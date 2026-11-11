@@ -14,7 +14,7 @@ There are three parts:
 
 ## 1. Make the Sheet and paste the script
 
-1. Open <https://sheets.new> (a new, empty Google Sheet). Name it `Nitzotz`
+1. Open <https://sheets.new> (a new, empty Google Sheet). Name it `Aura`
    (top left).
 2. In the menu: **Extensions → Apps Script**. A code editor opens in a new tab.
 3. Delete the few lines that are there, then paste everything from
@@ -24,8 +24,8 @@ There are three parts:
 5. Google asks for permission, since it's the first time this script runs:
    - Click **Review permissions** and choose your account.
    - Google warns "Google hasn't verified this app". That's normal for a
-     script you wrote yourself. Click **Advanced**, then **Go to Nitzotz
-     (unsafe)**, then **Allow**.
+     script you wrote yourself. Click **Advanced**, then **Go to … (unsafe)**
+     (the dots are your script's name), then **Allow**.
    - The script asks for three things: to edit this Sheet, to send email
      as you (only to you), and to run on a timer.
 6. When it finishes, the log at the bottom says

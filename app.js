@@ -1,4 +1,4 @@
-/* Nitzotz: a daily five-question quest for three sisters.
+/* Aura (a working name; the girls will vote on it): a daily five-question quest for three sisters.
  *
  * Two modes, picked by config.js:
  *  - demo (no apiUrl): example history and everything kept in this browser. The preview and a fresh checkout run so.
@@ -596,7 +596,7 @@ function renderParent() {
   ${overlap ? `<p class="small muted">${overlap}</p>` : ""}
   ${cards}
   <section class="stack"><span class="eyebrow">The email you get at ${+s.digestHour || 21}:00</span>
-    <div class="mail"><div class="mail-h"><b>ניצוץ · יום ${DAYS_FULL[NOW.getDay()]} ${D}.${M}</b></div><div class="mail-b">${digestLines().map(l => `<p>${l}</p>`).join("")}</div></div></section>
+    <div class="mail"><div class="mail-h"><b>Aura · יום ${DAYS_FULL[NOW.getDay()]} ${D}.${M}</b></div><div class="mail-b">${digestLines().map(l => `<p>${l}</p>`).join("")}</div></div></section>
   <section class="glass pad stack"><span class="eyebrow">Prizes</span>
     <div class="field"><label for="p5">הפרס של 5 אסימונים</label><input id="p5" value="${esc(s.prize5 || "")}" placeholder="למשל: הופעה לבחירתה"></div>
     <div class="field"><label for="p10">הפרס של 10 אסימונים</label><input id="p10" value="${esc(s.prize10 || "")}" placeholder="למשל: סוף שבוע באילת"></div>
@@ -617,7 +617,7 @@ function digestLines() {
 
 /* ---------- first run on a phone (live) ---------- */
 function renderCode() {
-  return `<div class="onb"><span class="eyebrow">Welcome</span><span class="wordmark">ניצוץ</span>
+  return `<div class="onb"><span class="eyebrow">Welcome</span><span class="wordmark" dir="ltr">Aura</span>
     <p class="muted">חמש שאלות ביום, טבלה חודשית, אסימונים. הכניסי את קוד המשפחה שאבא נתן.</p>
     <div class="field"><label for="code">קוד המשפחה</label><input id="code" autocomplete="off" autocapitalize="characters" dir="ltr" value="${esc(L.code)}"></div>
     <button type="button" class="btn btn-primary wide" data-act="joinCode">כניסה</button><p class="small muted" id="codeMsg"></p></div>`;
@@ -635,7 +635,7 @@ function renderAuraPick() {
     <button type="button" class="btn btn-primary wide" data-act="tab" data-to="home">יאללה</button><p class="small faint">אפשר להחליף מתי שרוצים.</p></div>`;
 }
 function renderError() {
-  return `<div class="onb"><span class="wordmark">ניצוץ</span><p class="muted">אין חיבור לגיליון של המשפחה כרגע. בדקי אינטרנט ונסי שוב.</p>
+  return `<div class="onb"><span class="wordmark" dir="ltr">Aura</span><p class="muted">אין חיבור לגיליון של המשפחה כרגע. בדקי אינטרנט ונסי שוב.</p>
     <button type="button" class="btn btn-primary wide" data-act="retry">לנסות שוב</button>
     <button type="button" class="link" style="align-self:center" data-act="resetCode">להקליד קוד אחר</button></div>`;
 }
@@ -930,7 +930,8 @@ function allPools() { return [...new Set(FAM.profiles.flatMap(p => trackPools(p.
 async function boot() {
   if (LIVE) {
     const k = new URLSearchParams(location.search).get("k");
-    if (k) { L.code = k; save(); history.replaceState(null, "", location.pathname); }
+    /* The code stays in the address: on an iPhone the home-screen copy keeps its own storage, and the address it is saved from carries the code into it. */
+    if (k) { L.code = k; save(); }
     if (!L.code) { FAM = { profiles: [], settings: {}, tokens: {}, rows: [], tests: [] }; show("code"); return; }
     try { await flush(); await refresh(); } catch (err) {
       /* Offline: carry on from the last copy of the Sheet, and send the answers when the connection is back. */

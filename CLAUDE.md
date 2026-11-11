@@ -1,4 +1,8 @@
-# Nitzotz: guide for Claude
+# Aura: guide for Claude
+
+"Aura" is a working name (2026-11-11); the girls will vote on the real one after
+a few days of use. The name is in index.html, manifest.webmanifest, the
+wordmark in app.js and the Sheet's `app_name` setting (the emails).
 
 A daily five-question study app for three sisters, built for their dad,
 Avsha (Nir). He is a marketing/CRM analyst and a novice coder: he decides,

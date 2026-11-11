@@ -43,7 +43,7 @@ def main():
     data = json.dumps(banks, ensure_ascii=False).replace("</", "<\\/")
     demo_js = json.dumps(demo, ensure_ascii=False).replace("</", "<\\/")
     out = (
-        "<title>Nitzotz Daily Quest</title>\n"
+        "<title>Aura Daily Quest</title>\n"
         '<meta name="claude:viewport-fit-sides" content="cover">\n'
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'

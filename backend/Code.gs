@@ -1,5 +1,5 @@
 /**
- * Nitzotz: the family's record, in a Google Sheet.
+ * Aura: the family's record, in a Google Sheet.
  *
  * This script lives inside the Sheet (Extensions > Apps Script) and is deployed as a web app
  * (SETUP.md has the steps). The app on the girls' phones talks to it:
@@ -22,6 +22,7 @@ var TABS = {
   Tests: ["when", "profile", "date", "subject", "note"]
 };
 var DEFAULTS = [
+  ["app_name", "Aura", "the app's name, at the start of every email"],
   ["family_code", "", "the code each phone types once (setup makes one)"],
   ["parent_pin", "1234", "the code of the parent screen: change it"],
   ["parent_email", "", "where the emails go (empty: the Sheet's owner)"],
@@ -172,7 +173,7 @@ function redeem_(b) {
   var prof = needProfile_(b.p), have = tokens_()[b.p] || 0;
   if (have < 1) throw new Error("no tokens");
   addToken_(b.p, -1, "redeemed for " + (Number(setting_("token_value")) || 100) + " ₪");
-  mail_("ניצוץ · " + prof.name + " פדתה אסימון",
+  mail_(appName_() + " · " + prof.name + " פדתה אסימון",
     "<p><b>" + esc_(prof.name) + "</b> פדתה אסימון אחד, " + (Number(setting_("token_value")) || 100) + " ₪.</p>" +
     "<p>נשארו לה " + (have - 1) + " אסימונים.</p>");
   return { ok: true };
@@ -204,7 +205,7 @@ function nightlyDigest() {
   var html = lines.join("") +
     (soon.length ? "<p>מבחנים בקרוב: " + soon.map(function (t) { return esc_(name_(profs, t.p)) + ", " + (SUBJ[t.subj] || t.subj) + " ב־" + t.date.slice(8) + "." + t.date.slice(5, 7); }).join("; ") + "</p>" : "") +
     "<p style='color:#666'>" + (lead ? esc_(name_(profs, lead.id)) + " מובילה עם " + lead.points + " נקודות. " : "") + "נשארו " + daysLeft + " ימים לחודש.</p>";
-  mail_("ניצוץ · הסיכום של היום", html);
+  mail_(appName_() + " · הסיכום של היום", html);
 }
 
 function monthlyClose() {
@@ -222,7 +223,7 @@ function monthlyClose() {
   var table = rank.map(function (r, i) {
     return "<tr><td>" + (i + 1) + "</td><td>" + esc_(name_(profs, r.id)) + "</td><td>" + r.points + "</td><td>" + r.played + "</td><td>" + r.acc + "%</td></tr>";
   }).join("");
-  mail_("ניצוץ · " + MONTHS[pm[1] - 1] + ": " + name_(profs, rank[0].id) + " אלופת החודש",
+  mail_(appName_() + " · " + MONTHS[pm[1] - 1] + ": " + name_(profs, rank[0].id) + " אלופת החודש",
     "<p><b>" + esc_(name_(profs, rank[0].id)) + "</b> ניצחה ב" + MONTHS[pm[1] - 1] + " וקיבלה אסימון.</p>" +
     (imp ? "<p>השתפרה הכי הרבה: <b>" + esc_(name_(profs, imp.id)) + "</b> (+" + imp.gain + "% דיוק). " + esc_(setting_("improved_reward")) + ".</p>" : "") +
     "<table cellpadding='6' style='border-collapse:collapse'><tr><th>#</th><th>שם</th><th>נקודות</th><th>ימים</th><th>דיוק</th></tr>" + table + "</table>");
@@ -317,6 +318,7 @@ function checkCode_(code) {
   var want = String(setting_("family_code") || "");
   if (!want || String(code || "").trim().toUpperCase() !== want.toUpperCase()) throw new Error("wrong family code");
 }
+function appName_() { return String(setting_("app_name") || "Aura"); }
 function checkPin_(pin) { if (String(pin || "") !== String(setting_("parent_pin"))) throw new Error("wrong pin"); }
 function needProfile_(pid) {
   var p = profiles_().filter(function (x) { return x.id === pid; })[0];

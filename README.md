@@ -1,4 +1,6 @@
-# Nitzotz (ניצוץ)
+# Aura
+
+(A working name: the girls will vote on the real one.)
 
 A daily study quest for three sisters: five questions a day from what they
 learn at school, math and English first, each girl at her own grade, with a
