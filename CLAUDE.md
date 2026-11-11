@@ -67,6 +67,12 @@ tests with the girls and gives feedback; Claude writes the code.
 - The real Sheet can be read with the Google Sheets connector (the file is
   "Aura" in Avsha's Drive). Never repeat the family code or PIN in chat.
 - After changing app files, bump `VERSION` in `sw.js` so phones update.
+- **Check the push reached the site**: the live `sw.js` should show the new
+  `VERSION` within a few minutes. GitHub Pages publishes each push to main
+  through its own "pages build and deployment" run; during a GitHub outage
+  (2026-11-11) two runs ended in "startup failure" and a re-run sat queued
+  for over an hour and could not be cancelled, so the site kept the old
+  version. A new push starts a new run.
 
 ## Monthly
 
