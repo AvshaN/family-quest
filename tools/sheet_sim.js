@@ -37,7 +37,8 @@ const SS = {
   getSheetByName: n => book.tabs.find(t => t.name === n) || null,
   insertSheet: n => { const s = new Sheet(n); book.tabs.push(s); return s; },
   getSheets: () => book.tabs.slice(),
-  deleteSheet: s => { book.tabs = book.tabs.filter(t => t !== s); }
+  deleteSheet: s => { book.tabs = book.tabs.filter(t => t !== s); },
+  getUrl: () => "https://docs.google.com/spreadsheets/d/EXAMPLE/edit"
 };
 let FIXED = null;
 const RealDate = Date;
@@ -56,7 +57,9 @@ const ctx = vm.createContext({
   Session: { getEffectiveUser: () => ({ getEmail: () => "parent@example.com" }) },
   Logger: { log: s => console.log("[script]", s) },
   ContentService: { createTextOutput: s => ({ s, setMimeType() { return this; } }), MimeType: { JSON: "json" } },
-  Utilities: { formatDate: (d, tz) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d) }
+  Utilities: { formatDate: (d, tz, f) => f === "HH:mm"
+    ? new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).format(d)
+    : new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d) }
 });
 vm.runInContext(fs.readFileSync(path.join(ROOT, "backend", "Code.gs"), "utf8"), ctx, { filename: "Code.gs" });
 ctx.setup();

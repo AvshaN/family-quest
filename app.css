@@ -331,3 +331,23 @@ details.how ul{margin:10px 0 0;padding-inline-start:18px;color:var(--text-2);fon
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}
   .seg.cur i{width:40%}
 }
+
+/* Dad's tabs and tables */
+.ptabs{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:4px;border-radius:999px;background:var(--glass);border:1px solid var(--hair);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.ptabs button{padding:9px 2px;border-radius:999px;font-size:14px;font-weight:600;color:var(--text-2);white-space:nowrap}
+.ptabs button[aria-selected="true"]{background:var(--text);color:#0B0B12}
+.tbl-wrap{overflow-x:auto;margin:0 -4px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{font-size:11px;font-weight:600;color:var(--text-3);text-align:start;padding:6px 5px 8px;border-bottom:1px solid var(--hair);white-space:nowrap}
+.tbl td{padding:10px 5px;border-bottom:1px solid var(--hair);white-space:nowrap;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .big{font-family:var(--f-display);font-weight:400;font-size:24px;line-height:1}
+.nm{display:inline-flex;align-items:center;gap:8px;font-weight:600}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.good-t{color:var(--good)}
+.bad-t{color:var(--bad)}
+.pgirl summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pgirl summary::-webkit-details-marker{display:none}
+.log{display:flex;flex-direction:column;gap:10px}
+.log>div{display:flex;justify-content:space-between;gap:10px;font-size:14px}

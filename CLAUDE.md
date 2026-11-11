@@ -39,6 +39,14 @@ tests with the girls and gives feedback; Claude writes the code.
   the shares. `tools/simulate_days.js` plays the coming days and reports
   repeats (from 2026-11-11: the twins' math and English run out on 29 Nov,
   the eldest's on 11 Dec).
+- **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
+  `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
+  score like "3/5": Gmail read "דניאל: 3/5" as Daniel Street 3, flat 5, and linked it to Maps
+  (2026-11-11). Scores are "3 מתוך 5" and `nm_()` puts an invisible joiner in each name.
+  The digest timer has `nearMinute(0)`; without it Google fires at any minute of the hour.
+- **Dad's screen** has tabs (`parentToday`, `parentMonth`, `parentLife`, `parentSettings`);
+  all-time numbers come from `state_().lifetime` and `tokenLog` (all the Answers tab, not just
+  the two months of rows the phones get), computed in the demo from what the app holds.
 - **Ties share a place** (`placeOf` / `placeOf_`): equal points, accuracy
   and days. A tie for first on the 1st gives each girl in it a token.
 - **Banks:** `data/bank/<pool>.json`, format in `data/README.md`;

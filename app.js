@@ -270,7 +270,8 @@ async function api(action, body) {
 }
 async function refresh() {
   const s = await api("state");
-  FAM = { profiles: s.profiles || [], settings: s.settings || {}, tokens: s.tokens || {}, rows: s.rows || [], tests: s.tests || [] };
+  FAM = { profiles: s.profiles || [], settings: s.settings || {}, tokens: s.tokens || {}, rows: s.rows || [], tests: s.tests || [],
+          lifetime: s.lifetime || null, tokenLog: s.tokenLog || [] };
   L.cache = FAM; save();
 }
 async function flush() {
@@ -390,7 +391,7 @@ const ICON = {
 
 /* ---------- screens ---------- */
 const app = $("#app"), tabsEl = $("#tabs"), layer = $("#layer");
-let view = "home", parentOK = false, pin = "", parentPin = "";
+let view = "home", parentOK = false, pin = "", parentPin = "", ptab = "today";
 let deferredInstall = null;
 
 function applyAura(key) {
@@ -578,56 +579,125 @@ function renderParent() {
       <div class="keypad" dir="ltr">${keys}<span></span><button type="button" data-act="pin" data-k="0">0</button><button type="button" data-act="pin" data-k="del" aria-label="מחיקה">⌫</button></div>
       ${LIVE ? "" : `<p class="small faint">בתצוגה לדוגמה הקוד הוא 1234</p>`}</div>`;
   }
-  const rk = ranking(Y, M), s = FAM.settings;
-  const cards = FAM.profiles.map(p => {
-    const st = stats(p.id, Y, M), place = placeOf(rk, p.id), e = st.byDay[TODAY];
-    const done = playedOn(p.id, TODAY);
-    const spark = Array.from({ length: 14 }, (_, i) => { const d = addDays(TODAY, i - 13), x = rows().filter(r => r.p === p.id && r.d === d && !r.r);
-      const ok = x.filter(r => r.ok).length; return `<i class="${x.length >= 5 ? "on" : ""}" style="height:${x.length >= 5 ? 20 + ok * 16 : 8}%" title="${d}"></i>`; }).join("");
-    const up = tests().filter(t => t.p === p.id && t.date >= TODAY);
-    const a = AURAS[auraOf(p)];
-    return `<section class="glass pad stack" style="--a1:${a.c[0]};--a2:${a.c[1]}">
-      <div class="row"><div class="hello">${avatar(p)}<div><b>${esc(p.name)}</b><span>${esc((TRACKS[p.track] || TRACKS.g7).grade)}</span></div></div>
-        ${done ? `<span class="chip good">היום ${e.ok}/5</span>` : `<span class="chip bad">עוד לא היום</span>`}</div>
-      <div class="pgrid num"><div><b>${st.played}/${D}</b><span>ימים</span></div><div><b>${st.acc}%</b><span>דיוק</span></div><div><b>${st.points}</b><span>נקודות</span></div><div><b>#${place}</b><span>מקום</span></div></div>
-      <div class="spark" aria-label="שבועיים אחרונים">${spark}</div>
-      ${subjectBars(st)}
-      ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(", ")}</p>` : ""}
-      ${up.length ? `<p class="small"><span class="muted">מבחנים:</span> ${up.map(t => `${esc(SUBJ[t.subj] || t.subj)} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}`).join(", ")}</p>` : ""}
-      <p class="small faint">השאלות של היום: ${dailySet(p, TODAY).map(q => esc(q.topic)).join(" · ")}</p>
-      <div class="row"><span class="small muted">${+FAM.tokens[p.id] || 0} אסימונים</span><button type="button" class="btn btn-ghost btn-sm" data-act="grant" data-id="${p.id}">+1 אסימון</button></div>
-    </section>`;
-  }).join("");
-  const pairs = {};
-  FAM.profiles.filter(p => p.pair).forEach(p => (pairs[p.pair] = pairs[p.pair] || []).push(p));
-  const overlap = Object.values(pairs).filter(g => g.length > 1).map(g => {
-    const [a, b] = g.map(p => new Set(dailySet(p, TODAY).map(q => q.id)));
-    const n = [...a].filter(x => b.has(x)).length;
-    return `${g.map(p => esc(p.name)).join(" ו")} קיבלו היום ${n ? `${n} שאלות משותפות` : "שאלות שונות לגמרי"}.`;
-  }).join(" ");
+  const tabs = [["today", "היום"], ["month", "החודש"], ["life", "מכל הזמנים"], ["settings", "הגדרות"]];
+  const body = { today: parentToday, month: parentMonth, life: parentLife, settings: parentSettings }[ptab]();
   return `
   <header class="top"><button type="button" class="round" data-act="leaveParent" aria-label="יציאה">${ICON.back}</button><span class="eyebrow">Parent · ${D}.${M}</span><span style="width:44px"></span></header>
   <h1 class="display" style="font-size:46px">${MONTHS[M - 1]}, יום ${D}</h1>
-  ${overlap ? `<p class="small muted">${overlap}</p>` : ""}
-  ${cards}
-  <section class="stack"><span class="eyebrow">The email you get at ${+s.digestHour || 21}:00</span>
-    <div class="mail"><div class="mail-h"><b>Aura · יום ${DAYS_FULL[NOW.getDay()]} ${D}.${M}</b></div><div class="mail-b">${digestLines().map(l => `<p>${l}</p>`).join("")}</div></div></section>
-  <section class="glass pad stack"><span class="eyebrow">Prizes</span>
+  <div class="ptabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" data-act="ptab" data-k="${k}" aria-selected="${k === ptab}">${t}</button>`).join("")}</div>
+  ${body}`;
+}
+
+/* ---------- Dad's tabs: the same tables as the evening email ---------- */
+const dot = p => `<i class="dot" style="background:${AURAS[auraOf(p)].c[0]}"></i>`;
+const nameCell = p => `<span class="nm">${dot(p)}${esc(p.name)}</span>`;
+const table = (heads, rowsHTML) => `<div class="tbl-wrap"><table class="tbl"><thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rowsHTML.join("")}</tbody></table></div>`;
+const joinHe = a => a.length < 2 ? (a[0] || "") : a.slice(0, -1).join(", ") + " ו" + a[a.length - 1];
+function todayOf(p) {
+  const st = stats(p.id, Y, M), e = st.byDay[TODAY] || { reg: 0, ok: 0, rev: 0, revOk: 0 };
+  const mine = rows().filter(r => r.p === p.id && r.d === TODAY), reg = mine.filter(r => !r.r), rev = mine.filter(r => r.r);
+  const played = reg.length >= 5;
+  let points = 0;
+  if (played) {
+    points = POINTS.day + e.ok * POINTS.right + e.revOk * POINTS.revenge;
+    /* today's day finished a full week if it is the fifth and last of the week's days so far */
+    const wk = st.days.filter(x => Math.floor((+x.d.slice(8) - 1 + new Date(Y, M - 1, 1).getDay()) / 7) === Math.floor((D - 1 + new Date(Y, M - 1, 1).getDay()) / 7));
+    if (wk.length === POINTS.weekDays && wk[wk.length - 1].d === TODAY) points += POINTS.week;
+  }
+  return { played, ok: e.ok, rev: rev.length ? rev[0].ok : null, points, at: (reg[reg.length - 1] || {}).w || "",
+           missed: [...new Set(reg.filter(r => !r.ok).map(r => r.t))], asked: reg.map(r => r.t), week: weekStrip(p.id).n };
+}
+function parentToday() {
+  const ts = FAM.profiles.map(p => [p, todayOf(p)]), n = ts.filter(([, t]) => t.played).length;
+  const missing = ts.filter(([, t]) => !t.played).map(([p]) => esc(p.name));
+  const rowsHTML = ts.map(([p, t]) => `<tr><td>${nameCell(p)}</td>
+    <td>${t.played ? `<span dir="ltr"><b class="big num">${t.ok}</b><span class="faint">/5</span></span>` : `<span class="bad-t small">לא שיחקה</span>`}</td>
+    <td>${t.rev === null ? `<span class="faint">—</span>` : t.rev ? `<span class="good-t" aria-label="ניצחה">✓</span>` : `<span class="bad-t" aria-label="הפסידה">✗</span>`}</td>
+    <td class="num">${t.points ? `<b dir="ltr">+${t.points}</b>` : "—"}</td><td class="num">${t.week}</td><td class="num faint">${t.at || "—"}</td></tr>`);
+  const detail = ts.map(([p, t]) => `<div class="stack" style="gap:4px"><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span>
+    ${t.played ? `<p class="small"><span class="muted">היום:</span> ${t.asked.map(esc).join(" · ")}</p>${t.missed.length ? `<p class="small"><span class="muted">פספסה:</span> ${t.missed.map(esc).join(" · ")}</p>` : `<p class="small good-t">בלי טעויות</p>`}`
+      : `<p class="small"><span class="muted">מחכות לה:</span> ${dailySet(p, TODAY).map(q => esc(q.topic)).join(" · ")}</p>`}</div>`).join("");
+  const pairs = {};
+  FAM.profiles.filter(p => p.pair).forEach(p => (pairs[p.pair] = pairs[p.pair] || []).push(p));
+  const twins = Object.values(pairs).filter(g => g.length > 1).map(g => {
+    const [a, b] = g.map(p => new Set(rows().filter(r => r.p === p.id && r.d === TODAY).map(r => r.q).concat(dailySet(p, TODAY).map(q => q.id))));
+    const k = [...a].filter(x => b.has(x)).length;
+    return `${joinHe(g.map(p => esc(p.name)))} קיבלו היום ${k ? `${k} שאלות משותפות` : "שאלות שונות לגמרי"}.`;
+  }).join(" ");
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Today</span><span class="small muted">${n === ts.length ? "כולן שיחקו" : `${n} מתוך ${ts.length} שיחקו${missing.length ? ` · חסרה: ${joinHe(missing)}` : ""}`}</span></div>
+    ${table(["", "ציון", "נקמה", "נקודות", "השבוע", "שעה"], rowsHTML)}</section>
+  <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>`;
+}
+function parentMonth() {
+  const rk = ranking(Y, M), s = FAM.settings, lead = rk[0] ? rk[0].points : 0, goal = +s.goal || 250;
+  const fam = rk.reduce((t, r) => t + r.ok + r.revOk, 0);
+  const rowsHTML = rk.map(r => { const p = profile(r.id), pl = placeOf(rk, r.id);
+    return `<tr><td class="num" style="${pl === 1 && r.points ? "color:var(--gold)" : "color:var(--text-3)"}"><b>${pl}</b></td><td>${nameCell(p)}</td><td><b class="big num">${r.points}</b></td>
+      <td class="num">${r.played}</td><td class="num" dir="ltr" style="text-align:end">${r.acc}%</td><td class="num">${r.fullWeeks}</td><td class="num faint" dir="ltr" style="text-align:end">${lead > r.points ? "−" + (lead - r.points) : "—"}</td></tr>`; });
+  const girls = FAM.profiles.map(p => {
+    const st = stats(p.id, Y, M), up = tests().filter(t => t.p === p.id && t.date >= TODAY);
+    const spark = Array.from({ length: 14 }, (_, i) => { const d = addDays(TODAY, i - 13), x = rows().filter(r => r.p === p.id && r.d === d && !r.r);
+      const ok = x.filter(r => r.ok).length; return `<i class="${x.length >= 5 ? "on" : ""}" style="height:${x.length >= 5 ? 20 + ok * 16 : 8}%" title="${d}"></i>`; }).join("");
+    const a = AURAS[auraOf(p)];
+    return `<details class="glass pad pgirl" style="--a1:${a.c[0]};--a2:${a.c[1]}"><summary><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span><span class="small muted">${st.played} ימים · ${st.acc}% · ${st.points} נק׳</span></summary>
+      <div class="stack" style="margin-top:12px"><span class="eyebrow">Last 14 days</span><div class="spark">${spark}</div>${subjectBars(st)}
+      ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(" · ")}</p>` : ""}
+      ${up.length ? `<p class="small"><span class="muted">מבחנים:</span> ${up.map(t => `${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` (${esc(t.note)})` : ""} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}`).join(", ")}</p>` : ""}</div></details>`;
+  }).join("");
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Standings</span><span class="small muted">עוד ${daysIn(Y, M) - D} ימים</span></div>
+    ${table(["#", "", "נקודות", "ימים", "דיוק", "שבועות", "פער"], rowsHTML)}
+    <div class="row small" style="margin-top:6px"><span class="muted">יעד משפחתי · ${esc(s.goalReward || "")}</span><span class="num" dir="ltr"><b>${fam}</b> / ${goal}</span></div>
+    <div class="bar"><i style="width:${Math.min(100, fam / goal * 100)}%"></i></div></section>
+  ${girls}`;
+}
+/* All time: from the Sheet (state's lifetime) when live; from the rows and tokens the app holds in the demo. */
+function demoTokenLog() {
+  const out = [];
+  FAM.profiles.forEach(p => { let [y, m] = [Y, M];
+    for (let k = 0; k < (+(window.FQ_DEMO && window.FQ_DEMO.tokens || { a: 2, b: 1, c: 3 })[p.id] || 0); k++) {
+      [y, m] = prevMonth(y, m); out.push({ d: `${y}-${pad2(m)}-01`, p: p.id, change: 1, reason: `winner ${y}-${pad2(m)}` }); } });
+  return out.concat(L.demoLog || []);
+}
+const tokenLog = () => LIVE ? (FAM.tokenLog || []) : demoTokenLog();
+function lifetimeOf(p) {
+  if (LIVE && FAM.lifetime && FAM.lifetime[p.id]) return FAM.lifetime[p.id];
+  const mine = rows().filter(r => r.p === p.id), reg = mine.filter(r => !r.r), ok = reg.filter(r => r.ok).length;
+  let points = 0, days = 0;
+  [...new Set(mine.map(r => r.d.slice(0, 7)))].forEach(mk => { const x = stats(p.id, +mk.slice(0, 4), +mk.slice(5, 7)); points += x.points; days += x.played; });
+  const log = tokenLog().filter(t => t.p === p.id);
+  const earned = log.reduce((a, t) => a + Math.max(0, t.change), 0), redeemed = log.reduce((a, t) => a + Math.max(0, -t.change), 0);
+  return { days, answered: reg.length, acc: reg.length ? Math.round(ok / reg.length * 100) : 0, points,
+           wins: log.filter(t => /^winner /.test(t.reason)).length, earned, redeemed, balance: +FAM.tokens[p.id] || 0 };
+}
+function reasonHe(t) {
+  const w = /^winner (\d{4})-(\d{2})/.exec(t.reason);
+  if (w) return `אלופת ${MONTHS[+w[2] - 1]}`;
+  if (/^gift/.test(t.reason)) return "מתנה מאבא";
+  if (/^redeemed/.test(t.reason)) return `פדתה ב־${(/\d+/.exec(t.reason) || [FAM.settings.tokenValue || 100])[0]} ₪`;
+  return esc(t.reason);
+}
+function parentLife() {
+  const ls = FAM.profiles.map(p => [p, lifetimeOf(p)]);
+  const life = ls.map(([p, x]) => `<tr><td>${nameCell(p)}</td><td class="num">${x.days}</td><td class="num">${x.answered}</td><td class="num" dir="ltr" style="text-align:end">${x.acc}%</td><td><b class="big num">${x.points}</b></td></tr>`);
+  const toks = ls.map(([p, x]) => `<tr><td>${nameCell(p)}</td><td class="num">${x.wins}</td><td class="num">${x.earned}</td><td class="num">${x.redeemed}</td><td><b class="big num">${x.balance}</b></td></tr>`);
+  const log = tokenLog().slice().sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0).slice(0, 15).map(t => { const p = profile(t.p);
+    return `<div><span class="nm">${p ? dot(p) + esc(p.name) : esc(t.p)} <span class="muted" style="font-weight:400">· ${reasonHe(t)}</span></span><span class="num ${t.change > 0 ? "good-t" : "bad-t"}" dir="ltr">${t.change > 0 ? "+" : "−"}${Math.abs(t.change)}</span></div>
+      <div class="faint small" style="margin-top:-6px">${+t.d.slice(8)}.${+t.d.slice(5, 7)}.${t.d.slice(0, 4)}</div>`; }).join("");
+  return `<section class="glass pad stack"><span class="eyebrow">All time</span>${table(["", "ימים", "שאלות", "דיוק", "נקודות"], life)}</section>
+  <section class="glass pad stack"><span class="eyebrow">Tokens</span>${table(["", "חודשים שניצחה", "קיבלה", "פדתה", "בכספת"], toks)}</section>
+  <section class="glass pad stack"><span class="eyebrow">Token history</span><div class="log">${log || `<p class="small muted">עוד אין אסימונים.</p>`}</div></section>`;
+}
+function parentSettings() {
+  const s = FAM.settings;
+  return `<section class="glass pad stack"><span class="eyebrow">Prizes</span>
     <div class="field"><label for="p5">הפרס של 5 אסימונים</label><input id="p5" value="${esc(s.prize5 || "")}" placeholder="למשל: הופעה לבחירתה"></div>
     <div class="field"><label for="p10">הפרס של 10 אסימונים</label><input id="p10" value="${esc(s.prize10 || "")}" placeholder="למשל: סוף שבוע באילת"></div>
     <div class="field"><label for="pg">הפרס של היעד המשפחתי</label><input id="pg" value="${esc(s.goalReward || "")}"></div>
     <button type="button" class="btn btn-primary" data-act="savePrizes">שמירה</button></section>
+  <section class="glass pad stack"><span class="eyebrow">Give a token</span><p class="small muted">מעבר לאסימון של אלופת החודש. היא תראה אותו בכספת.</p>
+    <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="grant" data-id="${p.id}">${dot(p)} +1 ל${esc(p.name)}</button>`).join("")}</div></section>
+  <section class="glass pad stack"><span class="eyebrow">Email</span><p class="small muted">סיכום עם הטבלאות האלה מגיע כל ערב סמוך ל־${+s.digestHour || 21}:00, וב־1 לחודש מגיעה הטבלה הסופית.</p></section>
   ${LIVE ? `<button type="button" class="link" style="align-self:center" data-act="forget">זה לא הטלפון שלי</button>` : ""}`;
-}
-function digestLines() {
-  const rk = ranking(Y, M), lines = FAM.profiles.map(p => {
-    const x = rows().filter(r => r.p === p.id && r.d === TODAY && !r.r), ok = x.filter(r => r.ok).length;
-    const miss = [...new Set(x.filter(r => !r.ok).map(r => r.t))];
-    return `<b>${esc(p.name)}:</b> ${x.length >= 5 ? `${ok}/5${miss.length ? `. פספסה: ${miss.map(esc).join(", ")}` : ", בלי טעויות"}` : "לא שיחקה היום"}. השבוע ${weekStrip(p.id).n} ימים.`;
-  });
-  const leads = rk.filter(r => r.points && placeOf(rk, r.id) === 1).map(r => esc(profile(r.id).name));
-  lines.push(`<span class="faint">${leads.length ? `${leads.join(" ו")} ${leads.length > 1 ? "מובילות" : "מובילה"} עם ${rk[0].points} נקודות. ` : ""}נשארו ${daysIn(Y, M) - D} ימים לחודש.</span>`);
-  return lines;
 }
 
 /* ---------- first run on a phone (live) ---------- */
@@ -886,7 +956,7 @@ document.addEventListener("click", async e => {
     case "grantYes": {
       const id = b.dataset.id;
       if (LIVE) { try { await api("grant", { p: id, pin: parentPin }); await refresh(); } catch (err) { toast("לא נשמר. נסה שוב."); break; } }
-      else { FAM.tokens[id] = (+FAM.tokens[id] || 0) + 1; L.demoTokens = FAM.tokens; save(); }
+      else { FAM.tokens[id] = (+FAM.tokens[id] || 0) + 1; L.demoTokens = FAM.tokens; L.demoLog = (L.demoLog || []).concat({ d: TODAY, p: id, change: 1, reason: "gift from parent" }); save(); }
       SFX.coin(); show("parent"); toast("ניתן"); break;
     }
     case "savePrizes": {
@@ -904,10 +974,11 @@ document.addEventListener("click", async e => {
     case "redeemYes": {
       const id = me().id;
       if (LIVE) { try { await api("redeem", { p: id }); await refresh(); } catch (err) { toast("לא עבר. נסי שוב כשיש אינטרנט."); layer.innerHTML = ""; break; } toast("נשלח לאבא"); }
-      else { FAM.tokens[id] = Math.max(0, (+FAM.tokens[id] || 0) - 1); L.demoTokens = FAM.tokens; save(); toast("בגרסה האמיתית אבא מקבל על זה מייל"); }
+      else { FAM.tokens[id] = Math.max(0, (+FAM.tokens[id] || 0) - 1); L.demoTokens = FAM.tokens; L.demoLog = (L.demoLog || []).concat({ d: TODAY, p: id, change: -1, reason: "redeemed for " + (+FAM.settings.tokenValue || 100) }); save(); toast("בגרסה האמיתית אבא מקבל על זה מייל"); }
       SFX.coin(); show("vault"); break;
     }
     case "closeSheet": layer.innerHTML = ""; break;
+    case "ptab": ptab = b.dataset.k; SFX.tap(); show("parent"); break;
     case "addTest": testSheet(); break;
     case "pickSub": $$("#tsub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
     case "saveTest": {
