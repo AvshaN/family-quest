@@ -623,7 +623,7 @@ function renderCode() {
     <button type="button" class="btn btn-primary wide" data-act="joinCode">כניסה</button><p class="small muted" id="codeMsg"></p></div>`;
 }
 function renderWho() {
-  return `<div class="onb"><span class="eyebrow">Who's this phone?</span><h1 class="display" style="font-size:48px">של מי הטלפון הזה?</h1>
+  return `<div class="onb"><span class="eyebrow"><bdi>Who’s this phone?</bdi></span><h1 class="display" style="font-size:48px">של מי הטלפון הזה?</h1>
     <div class="stack">${FAM.profiles.map(p => `<button type="button" class="glass pick" data-act="claim" data-id="${p.id}">${avatar(p)}<div><b>${esc(p.name)}</b><span class="small muted">${esc((TRACKS[p.track] || TRACKS.g7).grade)}</span></div></button>`).join("")}
     <button type="button" class="glass pick" data-act="claimParent"><span class="round">${ICON.lock}</span><div><b>אבא</b><span class="small muted">המסך של ההורה</span></div></button></div>
     <p class="small faint">הטלפון נשאר שלך: כל אחת משחקת רק מהטלפון שלה.</p></div>`;
