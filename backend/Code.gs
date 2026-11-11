@@ -53,6 +53,8 @@ function setup() {
   var st = ss.getSheetByName("Settings");
   var have = st.getDataRange().getValues().map(function (r) { return r[0]; });
   DEFAULTS.forEach(function (d) { if (have.indexOf(d[0]) < 0) st.appendRow(d); });
+  // The PIN cell holds text, so a PIN that starts with 0 keeps its zero.
+  st.getDataRange().getValues().forEach(function (r, i) { if (r[0] === "parent_pin") st.getRange(i + 1, 2).setNumberFormat("@"); });
   if (!setting_("family_code")) setSetting_("family_code", makeCode_());
   // The empty first tab a new Sheet comes with.
   ["Sheet1", "גיליון1"].forEach(function (n) {
@@ -319,7 +321,11 @@ function checkCode_(code) {
   if (!want || String(code || "").trim().toUpperCase() !== want.toUpperCase()) throw new Error("wrong family code");
 }
 function appName_() { return String(setting_("app_name") || "Aura"); }
-function checkPin_(pin) { if (String(pin || "") !== String(setting_("parent_pin"))) throw new Error("wrong pin"); }
+function checkPin_(pin) {
+  // A PIN typed into the Sheet as 0123 is kept as the number 123, so compare both without leading zeros.
+  var norm = function (s) { return String(s == null ? "" : s).trim().replace(/^0+(?=\d)/, ""); };
+  if (!String(pin || "") || norm(pin) !== norm(setting_("parent_pin"))) throw new Error("wrong pin");
+}
 function needProfile_(pid) {
   var p = profiles_().filter(function (x) { return x.id === pid; })[0];
   if (!p) throw new Error("unknown profile");
