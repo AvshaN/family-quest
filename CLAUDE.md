@@ -30,10 +30,17 @@ tests with the girls and gives feedback; Claude writes the code.
   redeem | pin | grant | settings`. Timers: `nightlyDigest`, `monthlyClose`.
 - **Scoring lives in two places** and must stay identical: `stats()` in
   `app.js` and `scoreMonth_()` in `Code.gs` (POINTS in both).
-- **The daily pick is deterministic:** each pool has one fixed shuffled
-  order (`permOf`), day n reads positions `n·STRIDE·k + STRIDE·slot`. Twins
-  (same `pair`) read neighbouring positions, so they never share a question.
-  Changing a bank's length reshuffles which question falls on which day.
+- **The daily pick** (`shareOf`, `take`): each pool has one fixed shuffled
+  order (`permOf`); girls who share a pool (same `pair`) split it by that
+  order, alternate questions each, so the twins never share a question. Each
+  girl takes the first questions of her share she hasn't answered (history
+  before the day only, so the day's five stay put), then the oldest seen.
+  Appending questions to a bank is safe; reordering or deleting reshuffles
+  the shares. `tools/simulate_days.js` plays the coming days and reports
+  repeats (from 2026-11-11: the twins' math and English run out on 29 Nov,
+  the eldest's on 11 Dec).
+- **Ties share a place** (`placeOf` / `placeOf_`): equal points, accuracy
+  and days. A tie for first on the 1st gives each girl in it a token.
 - **Banks:** `data/bank/<pool>.json`, format in `data/README.md`;
   `options[0]` is always right; `{...}` marks left-to-right math in Hebrew.
   Run `python3 tools/check_bank.py` after any change.
@@ -46,6 +53,11 @@ tests with the girls and gives feedback; Claude writes the code.
 - `python3 tools/check_bank.py`
 - `python3 tools/build_preview.py /tmp/x.html --names "A,B,C"` and open it
   (or walk it with Playwright) for a demo-mode look at every screen.
+- `node tools/sheet_sim.js 8765` runs `Code.gs` on an in-memory Sheet and
+  serves the app live against it (`/?k=TEST42`; `/__run?fn=...&now=...`
+  runs a timer, `/__sheet?tab=...` shows a tab).
+- The real Sheet can be read with the Google Sheets connector (the file is
+  "Aura" in Avsha's Drive). Never repeat the family code or PIN in chat.
 - After changing app files, bump `VERSION` in `sw.js` so phones update.
 
 ## Monthly

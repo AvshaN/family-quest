@@ -127,9 +127,13 @@ async function loadBanks(pools) {
 }
 
 /* ---------- today's five ----------
- * Each pool has one fixed shuffled order; day n reads positions n·3·k + 3·slot onward. So every phone
- * draws the same five, and the twins, reading neighbouring positions, never draw the same question. */
-const STRIDE = 3;
+ * Each pool has one fixed shuffled order. The girls who share a pool (the twins) split it by that order,
+ * alternate questions each, so they can never get the same question, this month or any other. Each girl
+ * takes, in her own order, the first questions she has not answered yet (in the two months of history the
+ * app holds), then the ones she answered longest ago. The pick reads only the days before `date`, so the
+ * day's five stay the same all day, on every phone.
+ * The first scheme (day n read positions 6n onward, live on 2026-11-11) skipped a third of every pool and
+ * wrapped the 15-question pools every 2.5 days: a girl would have met the same history question in 5. */
 const PERM = {};
 const permOf = pool => PERM[pool] || (PERM[pool] = shuffle(BANKS[pool].map((_, i) => i), rng(hash("order|" + pool))));
 function sharers(prof, pool) {
@@ -137,13 +141,18 @@ function sharers(prof, pool) {
   return FAM.profiles.filter(p => p.pair === prof.pair && trackPools(p.track).includes(pool))
     .sort((a, b) => (a.slot - b.slot) || (a.id < b.id ? -1 : 1));
 }
-function take(prof, pool, n, date) {
-  const bank = BANKS[pool] || [], N = bank.length;
-  if (!N) return [];
+function shareOf(prof, pool) {
+  const bank = BANKS[pool] || [];
+  if (!bank.length) return [];
   const grp = sharers(prof, pool), gi = Math.max(0, grp.findIndex(p => p.id === prof.id));
-  const base = dayIndex(date) * STRIDE * grp.length + gi * STRIDE, order = permOf(pool), out = [];
-  for (let k = 0; k < Math.min(n, STRIDE); k++) out.push(bank[order[mod(base + k, N)]]);
-  return out;
+  return permOf(pool).filter((_, k) => k % grp.length === gi).map(i => bank[i]);
+}
+function take(prof, pool, n, date, src) {
+  const mine = shareOf(prof, pool), last = {};
+  src.forEach(r => { if (r.p === prof.id && r.pool === pool && r.d < date && !(last[r.q] >= r.d)) last[r.q] = r.d; });
+  const fresh = mine.filter(q => !last[q.id]);
+  const seen = mine.filter(q => last[q.id]).sort((a, b) => last[a.id] < last[b.id] ? -1 : last[a.id] > last[b.id] ? 1 : 0);
+  return fresh.concat(seen).slice(0, n);
 }
 function otherPool(prof, date) {
   const opts = (TRACKS[prof.track] || TRACKS.g7).other.filter(([p]) => (BANKS[p] || []).length);
@@ -158,7 +167,8 @@ function activeTest(prof, date) {
   return tests().filter(t => t.p === prof.id && t.date >= date && daysBetween(date, t.date) <= 3)
     .sort((a, b) => a.date < b.date ? -1 : 1)[0] || null;
 }
-function dailySet(prof, date) {
+function dailySet(prof, date, src) {
+  src = src || rows();
   const t = TRACKS[prof.track] || TRACKS.g7, other = otherPool(prof, date);
   let slots = [t.math, t.eng, other, t.math, t.eng];
   const test = activeTest(prof, date), tp = test && poolFor(prof, test.subj);
@@ -168,7 +178,7 @@ function dailySet(prof, date) {
   slots = slots.map((p, i) => p && (BANKS[p] || []).length ? p : (i % 2 ? t.eng : t.math));
   const need = {}, got = {}, used = {};
   slots.forEach(p => { need[p] = (need[p] || 0) + 1; });
-  for (const p in need) got[p] = take(prof, p, need[p], date);
+  for (const p in need) got[p] = take(prof, p, need[p], date, src);
   return slots.map(p => { used[p] = used[p] || 0; return got[p][used[p]++]; }).filter(Boolean);
 }
 /* A question she missed 2-21 days ago comes back once, worth double. */
@@ -214,6 +224,10 @@ function ranking(y, m) {
   return FAM.profiles.map(p => Object.assign({ id: p.id }, stats(p.id, y, m)))
     .sort((a, b) => b.points - a.points || b.acc - a.acc || b.played - a.played || (a.id < b.id ? -1 : 1));
 }
+/* Equal points, accuracy and days share a place: on 2026-11-11 all three finished 3/5 and the board had
+ * put them 1st, 2nd and 3rd by their letters. */
+const ahead = (a, b) => a.points !== b.points ? a.points > b.points : a.acc !== b.acc ? a.acc > b.acc : a.played > b.played;
+function placeOf(rk, id) { const me = rk.find(r => r.id === id); return me ? 1 + rk.filter(r => ahead(r, me)).length : rk.length; }
 function playedOn(pid, date) { return rows().filter(r => r.p === pid && r.d === date && !r.r).length >= 5; }
 function improved(y, m) {
   const [py, pm] = prevMonth(y, m);
@@ -236,7 +250,7 @@ function makeExample() {
     for (let d = ymd(new Date(py, pm - 1, 1)); d < TODAY; d = addDays(d, 1)) {
       const r = rng(hash("example|" + prof.id + "|" + d));
       if (r() > p || L.rows.some(x => x.p === prof.id && x.d === d)) continue;
-      dailySet(prof, d).forEach(q => out.push({ d, p: prof.id, q: q.id, pool: q.pool, t: q.topic, l: q.level, ok: r() < acc ? 1 : 0, r: 0 }));
+      dailySet(prof, d, L.rows.concat(out)).forEach(q => out.push({ d, p: prof.id, q: q.id, pool: q.pool, t: q.topic, l: q.level, ok: r() < acc ? 1 : 0, r: 0 }));
     }
   });
   return out;
@@ -415,7 +429,7 @@ function show(v) {
 const flavorTitle = p => ({ portfolio: "Portfolio", routine: "The season", stage: "Setlist" })[p.flavor] || "החודש";
 
 function renderHome() {
-  const p = me(), st = stats(p.id, Y, M), rk = ranking(Y, M), place = rk.findIndex(r => r.id === p.id) + 1;
+  const p = me(), st = stats(p.id, Y, M), rk = ranking(Y, M), place = placeOf(rk, p.id);
   const done = playedOn(p.id, TODAY), set = dailySet(p, TODAY), rev = done ? null : revengeFor(p, TODAY, set);
   const test = activeTest(p, TODAY), wk = weekStrip(p.id), h = NOW.getHours();
   const hi = h < 5 ? "לילה טוב" : h < 12 ? "בוקר טוב" : h < 17 ? "צהריים טובים" : h < 22 ? "ערב טוב" : "לילה טוב";
@@ -474,16 +488,17 @@ function renderHome() {
 
 function renderBoard() {
   const p = me(), rk = ranking(Y, M), left = daysIn(Y, M) - D, lead = rk[0] ? rk[0].points : 0;
-  const rowsHTML = rk.map((r, i) => {
-    const q = profile(r.id);
-    return `<li class="glass st ${r.id === p.id ? "me" : ""}"><span class="st-pos num">${i + 1}</span>${avatar(q)}
-      <div class="st-main"><b>${esc(q.name)}${i === 0 && r.points ? `<span style="color:var(--gold);display:inline-flex">${ICON.crown.replace("<svg", '<svg width="18" height="18"')}</span>` : ""}</b>
-        <span class="st-sub">${r.played} ימים · ${r.acc}% דיוק${i > 0 ? ` · ${lead - r.points} מאחור` : ""}</span></div>
+  const rowsHTML = rk.map(r => {
+    const q = profile(r.id), pl = placeOf(rk, r.id);
+    return `<li class="glass st ${r.id === p.id ? "me" : ""} ${pl === 1 ? "first" : ""}"><span class="st-pos num">${pl}</span>${avatar(q)}
+      <div class="st-main"><b>${esc(q.name)}${pl === 1 && r.points ? `<span style="color:var(--gold);display:inline-flex">${ICON.crown.replace("<svg", '<svg width="18" height="18"')}</span>` : ""}</b>
+        <span class="st-sub">${r.played} ימים · ${r.acc}% דיוק${lead > r.points ? ` · ${lead - r.points} מאחור` : ""}</span></div>
       <span class="st-pts num">${r.points}<small>נק׳</small></span></li>`;
   }).join("");
   const s = FAM.settings, goal = +s.goal || 250;
   const fam = FAM.profiles.reduce((t, q) => { const x = stats(q.id, Y, M); return t + x.ok + x.revOk; }, 0);
-  const [py, pm] = prevMonth(Y, M), last = ranking(py, pm), champ = last[0] && last[0].points ? profile(last[0].id) : null, imp = improved(py, pm);
+  const [py, pm] = prevMonth(Y, M), last = ranking(py, pm), imp = improved(py, pm);
+  const champs = last.filter(r => r.points && placeOf(last, r.id) === 1).map(r => profile(r.id));
   return `
   <header class="month-head"><div><span class="eyebrow">Standings</span><h1 class="display">${MONTHS[M - 1]}</h1></div>
     <span class="small muted">${left > 0 ? `עוד ${left} ימים. ב־1 לחודש המובילה מקבלת אסימון והכול מתאפס.` : "היום האחרון. מחר מתחילים מאפס."}</span></header>
@@ -491,8 +506,8 @@ function renderBoard() {
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Family goal</span><span class="num small" dir="ltr"><b>${fam}</b> / ${goal}</span></div>
     <div class="bar"><i style="width:${Math.min(100, fam / goal * 100)}%"></i></div>
     <p class="small muted">${goal} תשובות נכונות של שלושתכן יחד החודש: ${esc(s.goalReward || "")}.</p></section>
-  ${champ ? `<section class="glass pad stack"><span class="eyebrow">${MONTHS[pm - 1]}</span>
-    <div class="row"><span>האלופה: <b>${esc(champ.name)}</b></span>${imp ? `<span>השתפרה הכי הרבה: <b>${esc(profile(imp.id).name)}</b> <span class="muted">(+${imp.gain}% דיוק)</span></span>` : ""}</div></section>` : ""}
+  ${champs.length ? `<section class="glass pad stack"><span class="eyebrow">${MONTHS[pm - 1]}</span>
+    <div class="row"><span>${champs.length > 1 ? "האלופות" : "האלופה"}: <b>${champs.map(c => esc(c.name)).join(" ו")}</b></span>${imp ? `<span>השתפרה הכי הרבה: <b>${esc(profile(imp.id).name)}</b> <span class="muted">(+${imp.gain}% דיוק)</span></span>` : ""}</div></section>` : ""}
   <details class="glass pad how"><summary>איך סופרים נקודות <span class="muted">+</span></summary>
     <ul><li>${POINTS.day} על כל יום עם משימה</li><li>${POINTS.right} על כל תשובה נכונה</li><li>${POINTS.revenge} על סיבוב נקמה מוצלח</li><li>${POINTS.week} על שבוע עם ${POINTS.weekDays} ימי משימה</li>
     <li>כל אחת עונה ברמה של הכיתה שלה, אז הניקוד הוגן בין ז׳ לי׳.</li>${s.improvedReward ? `<li>מי שמשתפרת הכי הרבה בדיוק לעומת החודש הקודם: ${esc(s.improvedReward)}.</li>` : ""}</ul></details>`;
@@ -565,7 +580,7 @@ function renderParent() {
   }
   const rk = ranking(Y, M), s = FAM.settings;
   const cards = FAM.profiles.map(p => {
-    const st = stats(p.id, Y, M), place = rk.findIndex(r => r.id === p.id) + 1, e = st.byDay[TODAY];
+    const st = stats(p.id, Y, M), place = placeOf(rk, p.id), e = st.byDay[TODAY];
     const done = playedOn(p.id, TODAY);
     const spark = Array.from({ length: 14 }, (_, i) => { const d = addDays(TODAY, i - 13), x = rows().filter(r => r.p === p.id && r.d === d && !r.r);
       const ok = x.filter(r => r.ok).length; return `<i class="${x.length >= 5 ? "on" : ""}" style="height:${x.length >= 5 ? 20 + ok * 16 : 8}%" title="${d}"></i>`; }).join("");
@@ -610,8 +625,8 @@ function digestLines() {
     const miss = [...new Set(x.filter(r => !r.ok).map(r => r.t))];
     return `<b>${esc(p.name)}:</b> ${x.length >= 5 ? `${ok}/5${miss.length ? `. פספסה: ${miss.map(esc).join(", ")}` : ", בלי טעויות"}` : "לא שיחקה היום"}. השבוע ${weekStrip(p.id).n} ימים.`;
   });
-  const lead = rk[0] && profile(rk[0].id);
-  lines.push(`<span class="faint">${lead ? `${esc(lead.name)} מובילה עם ${rk[0].points} נקודות. ` : ""}נשארו ${daysIn(Y, M) - D} ימים לחודש.</span>`);
+  const leads = rk.filter(r => r.points && placeOf(rk, r.id) === 1).map(r => esc(profile(r.id).name));
+  lines.push(`<span class="faint">${leads.length ? `${leads.join(" ו")} ${leads.length > 1 ? "מובילות" : "מובילה"} עם ${rk[0].points} נקודות. ` : ""}נשארו ${daysIn(Y, M) - D} ימים לחודש.</span>`);
   return lines;
 }
 
@@ -772,7 +787,7 @@ let STORY = null;
 function openRecap(pid) {
   const [py, pm] = prevMonth(Y, M), st = stats(pid, py, pm);
   if (!st.played) { toast("עוד אין סיכום לחודש שעבר"); return; }
-  const rk = ranking(py, pm), place = rk.findIndex(r => r.id === pid) + 1;
+  const rk = ranking(py, pm), place = placeOf(rk, pid);
   const best = Object.entries(st.bySubj).filter(([, v]) => v[1] >= 5).sort((a, b) => b[1][0] / b[1][1] - a[1][0] / a[1][1])[0];
   const perfect = st.days.filter(e => e.ok === 5).length;
   STORY = { i: 0, timer: null, slides: [
@@ -953,6 +968,8 @@ async function boot() {
     if (stats(me().id, py, pm).played) { L.seenRecap = THIS_MONTH; save(); openRecap(me().id); }
   }
 }
+/* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
+if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; } };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

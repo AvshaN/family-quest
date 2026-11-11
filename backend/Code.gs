@@ -201,12 +201,12 @@ function nightlyDigest() {
     var line = mine.length >= 5 ? ok + "/5" + (miss.length ? ". פספסה: " + miss.map(esc_).join(", ") : ", בלי טעויות") : "<span style='color:#c0392b'>לא שיחקה היום</span>";
     return "<p><b>" + esc_(p.name) + ":</b> " + line + ". השבוע " + week + " ימים.</p>";
   });
-  var lead = rank[0] && rank[0].points ? rank[0] : null;
+  var leads = rank.filter(function (r) { return r.points && placeOf_(rank, r) === 1; });
   var daysLeft = new Date(y, m, 0).getDate() - Number(today.slice(8));
   var soon = tests_().filter(function (t) { return t.date >= today && t.date <= addDays_(today, 3); });
   var html = lines.join("") +
     (soon.length ? "<p>מבחנים בקרוב: " + soon.map(function (t) { return esc_(name_(profs, t.p)) + ", " + (SUBJ[t.subj] || t.subj) + " ב־" + t.date.slice(8) + "." + t.date.slice(5, 7); }).join("; ") + "</p>" : "") +
-    "<p style='color:#666'>" + (lead ? esc_(name_(profs, lead.id)) + " מובילה עם " + lead.points + " נקודות. " : "") + "נשארו " + daysLeft + " ימים לחודש.</p>";
+    "<p style='color:#666'>" + (leads.length ? leads.map(function (r) { return esc_(name_(profs, r.id)); }).join(" ו") + (leads.length > 1 ? " מובילות" : " מובילה") + " עם " + leads[0].points + " נקודות. " : "") + "נשארו " + daysLeft + " ימים לחודש.</p>";
   mail_(appName_() + " · הסיכום של היום", html);
 }
 
@@ -220,13 +220,16 @@ function monthlyClose() {
   if (done) return;
   var profs = profiles_(), rows = answers_(), rank = ranking_(rows, profs, pm[0], pm[1]);
   if (!rank.length || !rank[0].points) return;
-  addToken_(rank[0].id, 1, reason);
+  // A tie for first (points, then accuracy, then days) gives every girl in it a token.
+  var winners = rank.filter(function (r) { return placeOf_(rank, r) === 1; });
+  winners.forEach(function (r) { addToken_(r.id, 1, reason); });
+  var names = winners.map(function (r) { return name_(profs, r.id); });
   var imp = improved_(rows, profs, pm[0], pm[1]);
-  var table = rank.map(function (r, i) {
-    return "<tr><td>" + (i + 1) + "</td><td>" + esc_(name_(profs, r.id)) + "</td><td>" + r.points + "</td><td>" + r.played + "</td><td>" + r.acc + "%</td></tr>";
+  var table = rank.map(function (r) {
+    return "<tr><td>" + placeOf_(rank, r) + "</td><td>" + esc_(name_(profs, r.id)) + "</td><td>" + r.points + "</td><td>" + r.played + "</td><td>" + r.acc + "%</td></tr>";
   }).join("");
-  mail_(appName_() + " · " + MONTHS[pm[1] - 1] + ": " + name_(profs, rank[0].id) + " אלופת החודש",
-    "<p><b>" + esc_(name_(profs, rank[0].id)) + "</b> ניצחה ב" + MONTHS[pm[1] - 1] + " וקיבלה אסימון.</p>" +
+  mail_(appName_() + " · " + MONTHS[pm[1] - 1] + ": " + names.join(" ו") + (names.length > 1 ? " אלופות החודש" : " אלופת החודש"),
+    "<p><b>" + names.map(esc_).join(" ו") + "</b> " + (names.length > 1 ? "ניצחו יחד ב" + MONTHS[pm[1] - 1] + ", וכל אחת קיבלה אסימון." : "ניצחה ב" + MONTHS[pm[1] - 1] + " וקיבלה אסימון.") + "</p>" +
     (imp ? "<p>השתפרה הכי הרבה: <b>" + esc_(name_(profs, imp.id)) + "</b> (+" + imp.gain + "% דיוק). " + esc_(setting_("improved_reward")) + ".</p>" : "") +
     "<table cellpadding='6' style='border-collapse:collapse'><tr><th>#</th><th>שם</th><th>נקודות</th><th>ימים</th><th>דיוק</th></tr>" + table + "</table>");
 }
@@ -254,6 +257,11 @@ function ranking_(rows, profs, y, m) {
   return profs.map(function (p) { return scoreMonth_(rows, p.id, y, m); }).sort(function (a, b) {
     return b.points - a.points || b.acc - a.acc || b.played - a.played || (a.id < b.id ? -1 : 1);
   });
+}
+/* Equal points, accuracy and days share a place, as placeOf() in app.js. */
+function placeOf_(rank, me) {
+  var ahead = function (a, b) { return a.points !== b.points ? a.points > b.points : a.acc !== b.acc ? a.acc > b.acc : a.played > b.played; };
+  return 1 + rank.filter(function (r) { return ahead(r, me); }).length;
 }
 function improved_(rows, profs, y, m) {
   var pm = m === 1 ? [y - 1, 12] : [y, m - 1], best = null;

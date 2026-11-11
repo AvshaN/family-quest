@@ -229,7 +229,7 @@ h1,h2,h3,p{margin:0}
 .st:nth-child(2){animation-delay:.07s}.st:nth-child(3){animation-delay:.14s}
 .st.me{border-color:var(--hair-hi);background:var(--glass-hi)}
 .st-pos{font-family:var(--f-display);font-size:30px;line-height:1;text-align:center;color:var(--text-2)}
-.st:first-child .st-pos{color:var(--gold)}
+.st.first .st-pos{color:var(--gold)}
 .st-main{min-width:0}
 .st-main b{font-weight:600;font-size:17px;display:flex;align-items:center;gap:8px}
 .st-sub{font-size:12px;color:var(--text-2)}
