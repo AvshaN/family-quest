@@ -1,0 +1,842 @@
+[
+  {
+    "id": "g10-eng-001",
+    "topic": "Present Perfect",
+    "level": 1,
+    "q": "I ___ in Jerusalem since I was six.",
+    "options": [
+      "have lived",
+      "live",
+      "am living",
+      "lived"
+    ],
+    "explain": "“Since” + a point in time describes a situation that began in the past and is still true, so we need the present perfect (have lived, or have been living). “I live since…” is a typical Hebrew-speaker error.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-002",
+    "topic": "Present Perfect",
+    "level": 2,
+    "q": "Your eyes are red. ___ you ___ crying?",
+    "options": [
+      "Have … been",
+      "Did … been",
+      "Are … been",
+      "Had … be"
+    ],
+    "explain": "The present perfect progressive (have been + -ing) describes a recent activity whose results we can still see now: red eyes.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-003",
+    "topic": "Past Perfect",
+    "level": 1,
+    "q": "By the time the police arrived, the thieves ___.",
+    "options": [
+      "had escaped",
+      "have escaped",
+      "has escaped",
+      "escape"
+    ],
+    "explain": "The escape happened before the police arrived. For the earlier of two past events we use the past perfect: had + V3.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-004",
+    "topic": "Past Perfect",
+    "level": 2,
+    "q": "When we reached the cinema, the film ___ already ___, so we missed the beginning.",
+    "options": [
+      "had … started",
+      "has … started",
+      "did … start",
+      "is … started"
+    ],
+    "explain": "The film started before we reached the cinema, and the story is told in the past, so we need the past perfect: had already started.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-005",
+    "topic": "Conditionals",
+    "level": 1,
+    "q": "If I ___ more free time, I would learn to play the drums.",
+    "options": [
+      "had",
+      "have",
+      "would have",
+      "will have"
+    ],
+    "explain": "Second conditional, an unreal present situation: If + past simple, would + base verb. “Would” never appears in the if-clause here.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-006",
+    "topic": "Conditionals",
+    "level": 2,
+    "q": "If Shira had left home ten minutes earlier, she ___ the train.",
+    "options": [
+      "would have caught",
+      "would catch",
+      "will catch",
+      "had caught"
+    ],
+    "explain": "Third conditional, an unreal past: If + past perfect, would have + V3. She didn’t leave earlier, so she missed the train.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-007",
+    "topic": "Conditionals",
+    "level": 3,
+    "q": "If I had accepted the job in London last year, I ___ there now.",
+    "options": [
+      "would be living",
+      "would have lived",
+      "will live",
+      "had lived"
+    ],
+    "explain": "A mixed conditional: an unreal past condition (had accepted… last year) with a result in the present (now) → would + base verb, here “would be living”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-008",
+    "topic": "Conditionals",
+    "level": 2,
+    "q": "___ you book tickets soon, there won’t be any seats left.",
+    "options": [
+      "Unless",
+      "If",
+      "Whereas",
+      "Despite"
+    ],
+    "explain": "“Unless” means “if… not”: unless you book soon = if you don’t book soon. With “If”, the sentence would not make sense.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-009",
+    "topic": "Passive",
+    "level": 1,
+    "q": "The first Dead Sea Scrolls ___ by Bedouin shepherds in the 1940s.",
+    "options": [
+      "were discovered",
+      "discovered",
+      "have been discovered",
+      "are discovered"
+    ],
+    "explain": "The scrolls didn’t discover anything; shepherds discovered them. A finished past event → past simple passive: were + V3.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-010",
+    "topic": "Passive",
+    "level": 1,
+    "q": "A new swimming pool ___ near our school at the moment; it should open in the spring.",
+    "options": [
+      "is being built",
+      "is building",
+      "has built",
+      "builds"
+    ],
+    "explain": "The pool doesn’t build anything; workers are building it right now → present progressive passive: is being + V3.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-011",
+    "topic": "Passive",
+    "level": 3,
+    "q": "By the time you read this email tomorrow, the exam results ___.",
+    "options": [
+      "will have been published",
+      "will have published",
+      "will be publishing",
+      "have been published"
+    ],
+    "explain": "Future perfect passive (will have been + V3): an action that someone will complete before a point in the future. The results are published by someone, so the verb is passive.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-012",
+    "topic": "Reported Speech",
+    "level": 2,
+    "q": "“Don’t touch the paintings,” the guide told us. → The guide told us ___.",
+    "options": [
+      "not to touch the paintings",
+      "don’t touch the paintings",
+      "to not touching the paintings",
+      "that we don’t touch the paintings"
+    ],
+    "explain": "A reported command: tell someone (not) to + base verb. “Don’t touch” → told us not to touch.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-013",
+    "topic": "Reported Speech",
+    "level": 2,
+    "q": "“Have you ever been to Japan?” Yoav asked me. → Yoav asked me ___.",
+    "options": [
+      "if I had ever been to Japan",
+      "if had I ever been to Japan",
+      "had I ever been to Japan",
+      "that had I ever been to Japan"
+    ],
+    "explain": "A reported yes/no question uses if/whether + statement word order (subject before verb), and the tense moves back: have been → had been.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-014",
+    "topic": "Modals of Deduction",
+    "level": 1,
+    "q": "The lights are off and nobody is answering the door. They ___ out.",
+    "options": [
+      "must be",
+      "can’t be",
+      "mustn’t be",
+      "must to be"
+    ],
+    "explain": "The evidence makes us almost sure, so we use “must be”. “Can’t be” would mean we are sure they are not out. In deduction, the opposite of “must” is “can’t”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-015",
+    "topic": "Modals of Deduction",
+    "level": 2,
+    "q": "You ___ my sister at the party on Friday. She was in Eilat all weekend.",
+    "options": [
+      "can’t have seen",
+      "must have seen",
+      "can’t see",
+      "mustn’t have see"
+    ],
+    "explain": "We are sure something did not happen in the past → can’t have + V3. She was in Eilat, so you can’t have seen her at the party.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-016",
+    "topic": "Relative Clauses",
+    "level": 1,
+    "q": "The girl ___ painting won the competition is in my class.",
+    "options": [
+      "whose",
+      "who",
+      "which",
+      "who’s"
+    ],
+    "explain": "“Whose” shows possession: the girl’s painting → the girl whose painting. “Who’s” is short for “who is”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-017",
+    "topic": "Relative Clauses",
+    "level": 3,
+    "q": "Which sentence is correct?",
+    "options": [
+      "My grandmother, who was born in Morocco, speaks four languages.",
+      "My grandmother, that was born in Morocco, speaks four languages.",
+      "My grandmother, who she was born in Morocco, speaks four languages.",
+      "My grandmother, which was born in Morocco, speaks four languages."
+    ],
+    "explain": "In a non-defining clause (between commas) we use who or which, never “that”; for a person, who. Don’t repeat the subject: “who she was” copies the Hebrew “שהיא”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-018",
+    "topic": "Gerund and Infinitive",
+    "level": 2,
+    "q": "I’m really looking forward to ___ you at the reunion.",
+    "options": [
+      "seeing",
+      "see",
+      "seen",
+      "have seen"
+    ],
+    "explain": "In “look forward to”, “to” is a preposition, so a gerund follows it: looking forward to seeing you. The same is true of “used to” in “I’m used to waking up early”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-019",
+    "topic": "Gerund and Infinitive",
+    "level": 3,
+    "q": "Hila stopped ___ coffee in the evening because it kept her awake at night.",
+    "options": [
+      "drinking",
+      "to drink",
+      "drink",
+      "drank"
+    ],
+    "explain": "Stop + -ing = quit a habit. Stop + to-infinitive = pause in order to do something else. Coffee kept her awake, so she quit: she stopped drinking it.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-020",
+    "topic": "Linking Words",
+    "level": 1,
+    "q": "Our room was small and quite noisy. ___, the view from the balcony was breathtaking.",
+    "options": [
+      "However",
+      "Therefore",
+      "Although",
+      "Despite"
+    ],
+    "explain": "“However” starts a new sentence that contrasts with the one before, and is followed by a comma. “Although” and “despite” join two parts of one sentence.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-021",
+    "topic": "Linking Words",
+    "level": 1,
+    "q": "___ the heavy traffic, we arrived at the airport on time.",
+    "options": [
+      "Despite",
+      "Although",
+      "Even though",
+      "However"
+    ],
+    "explain": "“Despite” is followed by a noun phrase: despite the heavy traffic. “Although” and “even though” need a full clause: although the traffic was heavy.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-022",
+    "topic": "Linking Words",
+    "level": 2,
+    "q": "Tamar loves big, noisy parties, ___ her twin sister prefers quiet evenings at home.",
+    "options": [
+      "whereas",
+      "therefore",
+      "unless",
+      "despite"
+    ],
+    "explain": "“Whereas” contrasts two different facts in one sentence: one sister likes this, whereas the other likes that.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-023",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "In the sentence “Adi was reluctant to share her poems, afraid that people would laugh at them,” what does “reluctant” mean?",
+    "options": [
+      "unwilling",
+      "eager",
+      "proud",
+      "unable"
+    ],
+    "explain": "Reluctant = not wanting to do something; unwilling. Her fear of being laughed at explains it. “Eager” is the opposite, and she is able to share them, just not willing.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-024",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "“After the storm, the streets were eerily silent.” What does “eerily” suggest?",
+    "options": [
+      "In a strange way that feels frightening",
+      "In a calm and pleasant way",
+      "In a loud and noisy way",
+      "In a sad but beautiful way"
+    ],
+    "explain": "Eerie means strange and slightly frightening, because something feels unnatural. An eerie silence makes you uneasy.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-025",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "Critics described the ending of the film as “ambiguous”. This means the ending ___.",
+    "options": [
+      "could be understood in more than one way",
+      "was very sad",
+      "was far too long",
+      "was easy to predict"
+    ],
+    "explain": "Ambiguous = open to more than one interpretation; viewers can’t be sure what really happened.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-026",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "Despite decades of ___, the two countries finally signed a peace agreement.",
+    "options": [
+      "hostility",
+      "hospitality",
+      "harmony",
+      "cooperation"
+    ],
+    "explain": "“Despite” signals a contrast with the peace agreement, so we need a negative word: hostility (unfriendliness and conflict). Don’t confuse it with hospitality, welcoming guests.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-027",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "What does “acquire” mean?",
+    "options": [
+      "לרכוש",
+      "לדרוש",
+      "לשאוף",
+      "לוותר"
+    ],
+    "explain": "Acquire = to get or gain: acquire a skill, acquire knowledge. Don’t confuse it with require (לדרוש) or aspire (לשאוף).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-028",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "What does “gradually” mean?",
+    "options": [
+      "בהדרגה",
+      "בפתאומיות",
+      "בהכרח",
+      "בחופשיות"
+    ],
+    "explain": "Gradually = slowly, step by step: The pain gradually disappeared. Its opposite is suddenly (בפתאומיות).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-029",
+    "topic": "Vocabulary",
+    "level": 3,
+    "q": "What does “inevitable” mean?",
+    "options": [
+      "בלתי נמנע",
+      "בלתי צפוי",
+      "בלתי נראה",
+      "בלתי אפשרי"
+    ],
+    "explain": "Inevitable = certain to happen; it can’t be avoided: Some change is inevitable. Don’t confuse it with unpredictable (בלתי צפוי).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-030",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "“She glanced at the clock and kept writing.” To glance is to ___.",
+    "options": [
+      "look quickly",
+      "stare for a long time",
+      "look angrily",
+      "search for something"
+    ],
+    "explain": "A glance is a quick look. Compare: stare = look for a long time; glare = look angrily.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-031",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "“By midnight, the town square was deserted.” This means that ___.",
+    "options": [
+      "there was nobody there",
+      "it was in the desert",
+      "it was very crowded",
+      "it had been destroyed"
+    ],
+    "explain": "Deserted = empty, because everyone has left. It comes from the verb “desert” (to leave or abandon), not from the desert as a place.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-032",
+    "topic": "Collocations",
+    "level": 1,
+    "q": "Take your time: you don’t have to ___ a decision today.",
+    "options": [
+      "make",
+      "do",
+      "give",
+      "put"
+    ],
+    "explain": "The collocation is “make a decision”. Others with make: make a mistake, make progress, make an effort.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-033",
+    "topic": "Collocations",
+    "level": 1,
+    "q": "Please ___ attention to the safety instructions before the flight.",
+    "options": [
+      "pay",
+      "do",
+      "make",
+      "take"
+    ],
+    "explain": "In English we “pay attention” to something (לשים לב). Do, make and take don’t combine with “attention” this way.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-034",
+    "topic": "Collocations",
+    "level": 2,
+    "q": "The campaign aims to ___ awareness of plastic pollution in the sea.",
+    "options": [
+      "raise",
+      "rise",
+      "arise",
+      "lift"
+    ],
+    "explain": "We “raise awareness”, i.e. make more people know about an issue. “Raise” takes an object; “rise” and “arise” don’t: prices rise, but shops raise prices.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-035",
+    "topic": "Collocations",
+    "level": 2,
+    "q": "After studying the data for weeks, the researchers were finally able to ___ a conclusion.",
+    "options": [
+      "draw",
+      "pull",
+      "make up",
+      "take out"
+    ],
+    "explain": "We “draw a conclusion” (or reach / come to one). “Make up” means invent.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-036",
+    "topic": "Collocations",
+    "level": 3,
+    "q": "When you choose a university, ___ in mind that the cost of living differs from city to city.",
+    "options": [
+      "bear",
+      "hold",
+      "put",
+      "take"
+    ],
+    "explain": "“Bear in mind” = remember and take into account. (“Keep in mind” means the same, but hold, put and take are not used this way.)",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-037",
+    "topic": "Word Formation",
+    "level": 1,
+    "q": "Regular exercise is ___ to both your body and your mood.",
+    "options": [
+      "beneficial",
+      "benefit",
+      "beneficially",
+      "benefited"
+    ],
+    "explain": "After “is” we need an adjective: beneficial (good for, helpful). Benefit is a noun or verb; beneficially is an adverb.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-038",
+    "topic": "Word Formation",
+    "level": 2,
+    "q": "The coach’s ___ to let injured players train surprised no one.",
+    "options": [
+      "refusal",
+      "refuse",
+      "refused",
+      "refusement"
+    ],
+    "explain": "After a possessive (the coach’s) we need a noun: refusal. Refuse is the verb.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-039",
+    "topic": "Word Formation",
+    "level": 1,
+    "q": "Which word is the opposite of “responsible”?",
+    "options": [
+      "irresponsible",
+      "unresponsible",
+      "disresponsible",
+      "inresponsible"
+    ],
+    "explain": "Many adjectives beginning with r take the prefix ir-: irresponsible, irregular, irrelevant. Compare il- (illegal) and im- (impossible).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-040",
+    "topic": "Word Formation",
+    "level": 2,
+    "q": "Sorry, I ___ you. I thought you said Tuesday, not Thursday.",
+    "options": [
+      "misunderstood",
+      "disunderstood",
+      "ununderstood",
+      "overunderstood"
+    ],
+    "explain": "The prefix mis- means “wrongly”: misunderstand, misspell, mislead.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-041",
+    "topic": "Word Formation",
+    "level": 3,
+    "q": "We lost 5–0 because we ___ the other team; we thought they would be easy to beat.",
+    "options": [
+      "underestimated",
+      "overestimated",
+      "disestimated",
+      "unestimated"
+    ],
+    "explain": "Under- = too little: to underestimate someone is to think they are weaker than they really are. Over- = too much: overestimate.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-042",
+    "topic": "Word Formation",
+    "level": 2,
+    "q": "She spoke so ___ about animal rights that the whole audience was moved.",
+    "options": [
+      "passionately",
+      "passionate",
+      "passion",
+      "passioned"
+    ],
+    "explain": "“Spoke” is a verb, and a verb is described by an adverb: passionately. Passion is the noun, passionate the adjective.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-043",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Many teenagers sleep with their phones next to their beds. Experts warn that this habit can make it harder to fall asleep.” What does “this habit” refer to?",
+    "options": [
+      "Keeping a phone next to the bed at night",
+      "Going to bed late",
+      "Asking experts for advice",
+      "Switching the phone off at night"
+    ],
+    "explain": "“This habit” points back to the previous sentence: sleeping with the phone next to the bed.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-044",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Join our beach clean-up this Friday at 9:00! Bring gloves, a hat and a friend. Last month, forty volunteers collected over 200 kilos of plastic. Let’s beat that record!” What is the main purpose of this text?",
+    "options": [
+      "To persuade people to take part in an event",
+      "To warn people about the dangers of the sun",
+      "To complain about people who pollute beaches",
+      "To report the results of a competition"
+    ],
+    "explain": "The imperatives (Join! Bring!) and the call to “beat that record” show that the writer wants readers to come and volunteer. Last month’s result only supports that aim.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-045",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Oh, wonderful. The bus is late again, it’s pouring with rain, and my umbrella is at home. What a perfect start to the day.” The writer’s tone is ___.",
+    "options": [
+      "sarcastic",
+      "grateful",
+      "excited",
+      "indifferent"
+    ],
+    "explain": "The writer says “wonderful” and “perfect” but describes only bad things. Saying the opposite of what you mean is sarcasm.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-046",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “When the results were posted, Yarden read the list twice. Then she quietly closed her laptop, put on her running shoes and went out without a word.” What can we infer?",
+    "options": [
+      "Yarden was probably disappointed with her result.",
+      "Yarden got the highest grade in the class.",
+      "Yarden didn’t see the results.",
+      "Yarden was late for a race."
+    ],
+    "explain": "Reading the list twice, closing the laptop quietly and leaving without a word suggest she didn’t find what she had hoped for. Nothing in the text supports the other options.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-047",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “The museum opened in 1965 and has over 500,000 objects in its collection. It is, without doubt, the most fascinating place in the city.” Which of these is an opinion, not a fact?",
+    "options": [
+      "It is the most fascinating place in the city.",
+      "The museum opened in 1965.",
+      "The museum has over 500,000 objects.",
+      "The museum has a collection."
+    ],
+    "explain": "Dates and numbers can be checked, so they are facts. “The most fascinating” is a personal view, so it is an opinion, even with “without doubt”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-048",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Social media companies claim they care about young users. Yet their apps are designed to keep teenagers scrolling for as long as possible, often late into the night.” What is the writer’s attitude towards these companies?",
+    "options": [
+      "Critical",
+      "Admiring",
+      "Neutral",
+      "Grateful"
+    ],
+    "explain": "“Claim” suggests the writer doubts what the companies say, and “Yet” introduces evidence against it. The writer is critical.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-049",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “The opening night was a disaster: the lights failed, an actor forgot his lines and the curtain got stuck. Still, the director smiled. ‘Well,’ she said, ‘the only way is up.’” What does the director mean?",
+    "options": [
+      "Things can only get better from now on.",
+      "The actors should stand higher on the stage.",
+      "The curtain must be raised again.",
+      "The show should close immediately."
+    ],
+    "explain": "After everything went wrong, things can’t get any worse, so they can only improve. “Still” shows that she stays positive.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-050",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “For centuries, people believed that the Sun moved around the Earth. The idea seemed obvious: anyone could watch the Sun rise and set. However, a few astronomers began to notice problems with this view.” What will the next paragraph most likely discuss?",
+    "options": [
+      "The evidence that challenged the old belief",
+      "How to watch a sunset safely",
+      "Why the old belief was correct",
+      "The daily lives of ancient farmers"
+    ],
+    "explain": "“However” and “problems with this view” prepare the reader for evidence against the old belief.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-051",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “Grandpa never talked about the war. But every year, on one particular day in April, he would take out an old photograph, look at it for a long time, and put it away without a word.” What can be inferred?",
+    "options": [
+      "The photograph is connected to painful memories.",
+      "Grandpa doesn’t like old photographs.",
+      "Grandpa forgets about the war every April.",
+      "The photograph was taken last April."
+    ],
+    "explain": "His silence about the war and his silent yearly ritual suggest the photograph reminds him of something painful from that time. Nothing supports the other options.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-052",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Learning a musical instrument does more than produce music. Studies suggest that it improves memory, teaches patience and even helps students concentrate in class.” What is the main idea?",
+    "options": [
+      "Playing an instrument has benefits beyond music.",
+      "Music is more important than other school subjects.",
+      "Only children should learn to play instruments.",
+      "Learning an instrument is very difficult."
+    ],
+    "explain": "The first sentence states the main idea, and the second gives examples of benefits beyond the music itself.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-053",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “Some people see graffiti as vandalism. Others see it as art that belongs to everyone. In some cities, artists are now paid to paint walls that were once covered in illegal tags.” Why does the writer mention the paid artists?",
+    "options": [
+      "To show that attitudes towards graffiti are changing",
+      "To prove that graffiti is always illegal",
+      "To complain about the cost of public art",
+      "To explain how to become a street artist"
+    ],
+    "explain": "Walls once covered in illegal tags are now painted by paid artists: an example of how some cities have come to see graffiti as art.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-054",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “The mountain path was so treacherous after the storm that the guide made everyone hold the rope. Even so, two hikers slipped.” In this text, “treacherous” means ___.",
+    "options": [
+      "dangerous",
+      "beautiful",
+      "long",
+      "crowded"
+    ],
+    "explain": "The rope and the hikers slipping are clues: the path was dangerous. (“Treacherous” can also mean disloyal, but not here.)",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-055",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “The old cinema on Herzl Street is a phone shop now. I still remember the smell of popcorn, the red velvet seats, and the hush when the lights went down.” The writer’s tone is best described as ___.",
+    "options": [
+      "nostalgic",
+      "angry",
+      "humorous",
+      "optimistic"
+    ],
+    "explain": "The writer remembers the past fondly, with some sadness that it is gone. That feeling is nostalgia.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-056",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “In the experiment, half the students studied with music in the background and half studied in silence. The silent group remembered more words, but both groups said they enjoyed the session.” Which statement is supported by the text?",
+    "options": [
+      "The silent group remembered more words than the music group.",
+      "The music group enjoyed the session more.",
+      "Music made the students lose interest.",
+      "Both groups remembered the same number of words."
+    ],
+    "explain": "The text says the silent group remembered more words. Both groups enjoyed the session, so we can’t say one enjoyed it more or lost interest.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-057",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “The school banned phones during breaks. ‘Finally, students will talk to each other,’ the principal said. The students have indeed found a new hobby: complaining about the ban, together, face to face.” What is ironic here?",
+    "options": [
+      "By complaining together, the students are doing exactly what the ban was meant to achieve.",
+      "The students are using their phones to complain.",
+      "The principal has changed his mind about the ban.",
+      "The students have stopped talking to each other."
+    ],
+    "explain": "The irony: the students oppose the rule, yet their protest, talking face to face, is the very result the principal wanted.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-058",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Electric scooters are cheap, quick and good for the environment. On the other hand, they cause hundreds of injuries every year, and many riders ignore traffic laws.” What is the writer doing in this text?",
+    "options": [
+      "Presenting advantages and disadvantages",
+      "Explaining how to ride a scooter",
+      "Persuading readers to buy a scooter",
+      "Describing the history of scooters"
+    ],
+    "explain": "The first sentence lists advantages; “On the other hand” introduces the disadvantages.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-059",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “By the time Ella reached the stage, her hands had stopped shaking. She looked at the crowd, found her mother’s face in the third row, and began to sing.” How did Ella probably feel before she reached the stage?",
+    "options": [
+      "Nervous",
+      "Bored",
+      "Angry with her mother",
+      "Sure that she would win"
+    ],
+    "explain": "Her hands “had stopped shaking” by the time she reached the stage, so before that they were shaking: she was nervous.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-060",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “The city planted 500 trees last year. Environmental groups welcomed the move but called it ‘a drop in the ocean’ compared with the thousands of trees cut down.” What do the groups mean?",
+    "options": [
+      "It is far too little to make a real difference.",
+      "The trees were planted too close to the sea.",
+      "It was a waste of water.",
+      "It was a huge success."
+    ],
+    "explain": "“A drop in the ocean” is a tiny amount compared with what is needed. “Welcomed… but” shows they liked the move yet thought it was not nearly enough.",
+    "ltr": true
+  }
+]

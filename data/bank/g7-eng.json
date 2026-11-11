@@ -1,0 +1,982 @@
+[
+  {
+    "id": "g7-eng-001",
+    "topic": "Present Simple",
+    "level": 1,
+    "q": "My sister ___ her guitar every evening.",
+    "options": [
+      "plays",
+      "play",
+      "is play",
+      "playing"
+    ],
+    "explain": "“My sister” is “she”. In the present simple, he/she/it adds -s: she plays. “Every evening” tells us it is a habit.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-002",
+    "topic": "Present Simple",
+    "level": 1,
+    "q": "Tamar ___ eat meat. She’s a vegetarian.",
+    "options": [
+      "doesn’t",
+      "don’t",
+      "isn’t",
+      "not"
+    ],
+    "explain": "For he/she/it, the negative is doesn’t + verb: Tamar doesn’t eat meat. “Don’t” is for I/you/we/they.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-003",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "“This song is amazing!” “Yes, I ___ with you.”",
+    "options": [
+      "agree",
+      "am agree",
+      "agrees",
+      "agreeing"
+    ],
+    "explain": "“Agree” is a verb, so we don’t add “am”: I agree (אני מסכימה). “I am agree” is a translation from Hebrew and is wrong.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-004",
+    "topic": "Present Progressive",
+    "level": 1,
+    "q": "Look! The dog ___ after the ball.",
+    "options": [
+      "is running",
+      "runs",
+      "running",
+      "run"
+    ],
+    "explain": "“Look!” shows that it is happening now, so we use am/is/are + verb-ing: the dog is running.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-005",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "Shira can’t talk on the phone now. She ___ her homework.",
+    "options": [
+      "is doing",
+      "does",
+      "do",
+      "doing"
+    ],
+    "explain": "Right now, at this moment → present progressive: she is doing her homework. Don’t forget “is”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-006",
+    "topic": "Present Progressive",
+    "level": 3,
+    "q": "Ask Yarden, not me. She ___ the answer.",
+    "options": [
+      "knows",
+      "is knowing",
+      "know",
+      "is know"
+    ],
+    "explain": "“Know” is a state verb, like like, love, want and need. We don’t use it with -ing, even for now: she knows, not “she is knowing”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-007",
+    "topic": "Past Simple",
+    "level": 1,
+    "q": "Yesterday we ___ to the beach with our friends.",
+    "options": [
+      "went",
+      "goed",
+      "go",
+      "gone"
+    ],
+    "explain": "“Go” is an irregular verb: go → went. “Gone” needs have/has: we have gone.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-008",
+    "topic": "Past Simple",
+    "level": 2,
+    "q": "We ___ the bus this morning, so we were late for school.",
+    "options": [
+      "didn’t catch",
+      "didn’t caught",
+      "not caught",
+      "don’t catch"
+    ],
+    "explain": "Past simple negative: didn’t + the base verb. “Didn’t caught” is wrong, because “did” already shows the past.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-009",
+    "topic": "Past Simple",
+    "level": 2,
+    "q": "“Did you see the game last night?” “Yes, I ___ it on TV.”",
+    "options": [
+      "saw",
+      "seen",
+      "see",
+      "was see"
+    ],
+    "explain": "See → saw (irregular). “Seen” comes only after have/has/had: I have seen it.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-010",
+    "topic": "There is / There are",
+    "level": 1,
+    "q": "There ___ three cats in our garden.",
+    "options": [
+      "are",
+      "is",
+      "be",
+      "have"
+    ],
+    "explain": "Three cats = more than one → there are. For one thing → there is: there is a cat in the garden.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-011",
+    "topic": "There is / There are",
+    "level": 2,
+    "q": "___ a good café near your school?",
+    "options": [
+      "Is there",
+      "Are there",
+      "Have there",
+      "There are"
+    ],
+    "explain": "To ask a question, put “is” before “there”: Is there…? “A good café” is one place, so not “Are there”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-012",
+    "topic": "Some / Any / Much / Many",
+    "level": 1,
+    "q": "How ___ money do you need for the concert ticket?",
+    "options": [
+      "much",
+      "many",
+      "lot",
+      "any"
+    ],
+    "explain": "We can’t count money (not “two moneys”), so we ask “how much”. “How many” is for things we can count: how many tickets?",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-013",
+    "topic": "Some / Any / Much / Many",
+    "level": 2,
+    "q": "We didn’t buy ___ bread, so we can’t make sandwiches.",
+    "options": [
+      "any",
+      "some",
+      "many",
+      "a"
+    ],
+    "explain": "In negative sentences we use “any”: we didn’t buy any bread. “Some” is for positive sentences: we bought some bread.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-014",
+    "topic": "Some / Any / Much / Many",
+    "level": 3,
+    "q": "I have ___ good friends in my new class, so I’m not lonely.",
+    "options": [
+      "a few",
+      "a little",
+      "much",
+      "any"
+    ],
+    "explain": "We can count friends (one friend, two friends), so we use “a few”. “A little” is for things we can’t count: a little time.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-015",
+    "topic": "Modals",
+    "level": 1,
+    "q": "You ___ wear a seatbelt in the car. It’s the law.",
+    "options": [
+      "must",
+      "can",
+      "mustn’t",
+      "don’t have to"
+    ],
+    "explain": "A rule or a law → must (חייבים). “Mustn’t” means it is not allowed, the opposite.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-016",
+    "topic": "Modals",
+    "level": 2,
+    "q": "Yael ___ finish her science project by Sunday.",
+    "options": [
+      "has to",
+      "must to",
+      "have to",
+      "can to"
+    ],
+    "explain": "She → has to. After “must” and “can” we never add “to”: she must finish, she can finish.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-017",
+    "topic": "Modals",
+    "level": 3,
+    "q": "Tomorrow is Saturday, so I ___ get up early. I can sleep late!",
+    "options": [
+      "don’t have to",
+      "mustn’t",
+      "have to",
+      "can’t"
+    ],
+    "explain": "“Don’t have to” = it isn’t necessary (לא חייבת). “Mustn’t” = it isn’t allowed (אסור). Getting up early isn’t forbidden, just not necessary.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-018",
+    "topic": "Comparatives and Superlatives",
+    "level": 1,
+    "q": "Mount Everest is ___ mountain in the world.",
+    "options": [
+      "the highest",
+      "the most high",
+      "higher",
+      "the higher"
+    ],
+    "explain": "To compare one thing with all the others, we use the superlative: the + adjective + -est. High → the highest.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-019",
+    "topic": "Comparatives and Superlatives",
+    "level": 2,
+    "q": "My new phone is ___ than my old one.",
+    "options": [
+      "more expensive",
+      "expensiver",
+      "more expensiver",
+      "most expensive"
+    ],
+    "explain": "Long adjectives use “more”: more expensive. We don’t add -er to them, and we never use “more” and -er together.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-020",
+    "topic": "Comparatives and Superlatives",
+    "level": 3,
+    "q": "The new version of the song is much ___ than the old one.",
+    "options": [
+      "better",
+      "more better",
+      "gooder",
+      "best"
+    ],
+    "explain": "Good → better → best (irregular). “Better” is already a comparative, so “more better” is wrong. “Much better” is correct.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-021",
+    "topic": "Questions",
+    "level": 1,
+    "q": "“___ do you live?” “In Haifa.”",
+    "options": [
+      "Where",
+      "When",
+      "Who",
+      "What"
+    ],
+    "explain": "The answer is a place, so the question word is “where” (איפה).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-022",
+    "topic": "Questions",
+    "level": 2,
+    "q": "___ you finish your project yesterday?",
+    "options": [
+      "Did",
+      "Do",
+      "Were",
+      "Have"
+    ],
+    "explain": "“Yesterday” is in the past, so we ask with “did” + the base verb: Did you finish…?",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-023",
+    "topic": "Questions",
+    "level": 3,
+    "q": "Choose the correct question.",
+    "options": [
+      "What time does the film start?",
+      "What time the film starts?",
+      "What time does the film starts?",
+      "What time is the film start?"
+    ],
+    "explain": "Question word + does + subject + base verb. After “does” the verb has no -s: does the film start.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-024",
+    "topic": "Prepositions",
+    "level": 1,
+    "q": "My birthday is ___ March.",
+    "options": [
+      "in",
+      "on",
+      "at",
+      "to"
+    ],
+    "explain": "Months take “in”: in March. Days take “on” (on Monday), and times take “at” (at 5 o’clock).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-025",
+    "topic": "Prepositions",
+    "level": 2,
+    "q": "The concert starts ___ 8 o’clock ___ Friday.",
+    "options": [
+      "at … on",
+      "in … at",
+      "on … in",
+      "at … in"
+    ],
+    "explain": "Times take “at” (at 8 o’clock), and days take “on” (on Friday).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-026",
+    "topic": "Prepositions",
+    "level": 2,
+    "q": "We live ___ the third floor.",
+    "options": [
+      "on",
+      "in",
+      "at",
+      "to"
+    ],
+    "explain": "In English we live “on” a floor: on the third floor. In Hebrew we say “בקומה”, but “in the third floor” is wrong.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-027",
+    "topic": "Possessives",
+    "level": 3,
+    "q": "The cat is licking ___ paw.",
+    "options": [
+      "its",
+      "it’s",
+      "it",
+      "its’"
+    ],
+    "explain": "“Its” (no apostrophe) shows belonging: its paw. “It’s” means “it is”: it’s cold today.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-028",
+    "topic": "Pronouns",
+    "level": 2,
+    "q": "Adi and I are going to the mall. Do you want to come with ___?",
+    "options": [
+      "us",
+      "we",
+      "our",
+      "ours"
+    ],
+    "explain": "After “with” we use an object pronoun: me, you, him, her, us, them. Adi and I = we → with us.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-029",
+    "topic": "Vocabulary",
+    "level": 3,
+    "q": "What does “borrow” mean?",
+    "options": [
+      "לשאול (לקחת בהשאלה)",
+      "להשאיל (לתת בהשאלה)",
+      "להחזיר",
+      "לקנות"
+    ],
+    "explain": "Borrow = take something and give it back later: Can I borrow your pen? The opposite is “lend” (להשאיל): I can lend you my pen.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-030",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "What does “tired” mean?",
+    "options": [
+      "עייף",
+      "רעב",
+      "עצוב",
+      "חולה"
+    ],
+    "explain": "Tired = עייף, when you need to rest or sleep: I’m tired after the long trip.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-031",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "What does “quiet” mean?",
+    "options": [
+      "שקט",
+      "די, במידה מסוימת",
+      "מהיר",
+      "רועש"
+    ],
+    "explain": "Quiet = שקט: The library is quiet. Be careful: “quite” (די) is a different word: The test was quite easy.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-032",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "What does “healthy” mean?",
+    "options": [
+      "בריא",
+      "חולה",
+      "שמן",
+      "חזק"
+    ],
+    "explain": "Healthy = בריא: Fruit and vegetables are healthy. The opposite is “unhealthy”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-033",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "What does “remember” mean?",
+    "options": [
+      "לזכור",
+      "לשכוח",
+      "להזכיר למישהו",
+      "לחשוב"
+    ],
+    "explain": "Remember = לזכור: I remember your phone number. To make someone remember is “remind” (להזכיר): Remind me to call Grandma.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-034",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "What does “invite” mean?",
+    "options": [
+      "להזמין (לאירוע)",
+      "לבקר",
+      "לשלם",
+      "לחגוג"
+    ],
+    "explain": "Invite = ask someone to come to an event (להזמין): She invited ten friends to her party.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-035",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "What does “weather” mean?",
+    "options": [
+      "מזג אוויר",
+      "האם (או לא)",
+      "עונה בשנה",
+      "חום"
+    ],
+    "explain": "Weather = מזג אוויר: The weather is sunny today. Don’t mix it up with “whether” (האם), which sounds the same.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-036",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "What is the opposite of “cheap”?",
+    "options": [
+      "expensive",
+      "cheaper",
+      "poor",
+      "small"
+    ],
+    "explain": "Cheap (זול) ↔ expensive (יקר). “Poor” is the opposite of “rich”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-037",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "What is the opposite of “early”?",
+    "options": [
+      "late",
+      "fast",
+      "slow",
+      "soon"
+    ],
+    "explain": "Early (מוקדם) ↔ late (מאוחר): I got up early, but my brother got up late.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-038",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "What is the opposite of “win”?",
+    "options": [
+      "lose",
+      "loose",
+      "miss",
+      "fail"
+    ],
+    "explain": "Win (לנצח) ↔ lose (להפסיד). Watch the spelling: “loose”, with two o’s, means not tight (רפוי).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-039",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "I’m ___. Can I have a sandwich?",
+    "options": [
+      "hungry",
+      "angry",
+      "thirsty",
+      "sleepy"
+    ],
+    "explain": "Hungry = רעב, you want to eat. Thirsty = צמא, you want to drink.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-040",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "Can you ___ the music down? I’m trying to study.",
+    "options": [
+      "turn",
+      "make",
+      "do",
+      "put"
+    ],
+    "explain": "Turn down = make the sound quieter (להנמיך). Turn up = make it louder.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-041",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "We ___ a lot of photos on our trip to Eilat.",
+    "options": [
+      "took",
+      "made",
+      "did",
+      "gave"
+    ],
+    "explain": "In English we “take” photos (לצלם): She took a photo of the sunset. We don’t say “make photos”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-042",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "Romi is very good ___ drawing. Her pictures are amazing.",
+    "options": [
+      "at",
+      "in",
+      "on",
+      "with"
+    ],
+    "explain": "We say “good at” something: good at drawing, good at chess. Not “good in”, which is a translation of “טובה ב…”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-043",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "Which word means “a place where you can borrow books”?",
+    "options": [
+      "library",
+      "bookshop",
+      "classroom",
+      "museum"
+    ],
+    "explain": "In a library (ספרייה) you borrow books and give them back. In a bookshop (חנות ספרים) you buy them.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-044",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "Which word does NOT belong with the others?",
+    "options": [
+      "kitchen",
+      "guitar",
+      "piano",
+      "drums"
+    ],
+    "explain": "A guitar, a piano and drums are musical instruments. A kitchen is a room in a house.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-045",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "Ella is very ___. She always helps other people.",
+    "options": [
+      "kind",
+      "lazy",
+      "rude",
+      "selfish"
+    ],
+    "explain": "Kind = nice and good to others (טובת לב). Lazy, rude and selfish people don’t usually help others.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-046",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "Don’t ___ to bring your swimsuit tomorrow!",
+    "options": [
+      "forget",
+      "remember",
+      "lose",
+      "leave"
+    ],
+    "explain": "“Don’t forget to…” (אל תשכחי) means “remember to…”. “Don’t remember to bring” says the opposite and doesn’t make sense.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-047",
+    "topic": "Vocabulary",
+    "level": 1,
+    "q": "I always ___ my homework before dinner.",
+    "options": [
+      "do",
+      "make",
+      "work",
+      "play"
+    ],
+    "explain": "We “do” homework, not “make” it. Other phrases with “do”: do the dishes, do an exercise.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-048",
+    "topic": "Vocabulary",
+    "level": 3,
+    "q": "Hila says: “I can’t stand loud music.” What does she mean?",
+    "options": [
+      "She really doesn’t like loud music.",
+      "She can’t stand up when the music is loud.",
+      "She loves loud music.",
+      "She can’t hear loud music."
+    ],
+    "explain": "“I can’t stand…” means “I hate…” (אני לא סובלת). It has nothing to do with standing up.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-049",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "It’s ___ cold today. Take a coat.",
+    "options": [
+      "really",
+      "very much",
+      "much",
+      "a lot"
+    ],
+    "explain": "Before an adjective like “cold” we use “really” or “very”. “Very much” and “a lot” go with verbs: I like it very much.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-050",
+    "topic": "Vocabulary",
+    "level": 3,
+    "q": "The film was so ___ that I fell asleep in the middle.",
+    "options": [
+      "boring",
+      "bored",
+      "exciting",
+      "scary"
+    ],
+    "explain": "-ing describes the thing: the film was boring (משעמם). -ed describes how a person feels: I was bored (השתעממתי).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-051",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "Can I ___ at your drawing?",
+    "options": [
+      "look",
+      "see",
+      "watch",
+      "show"
+    ],
+    "explain": "We “look at” something (להסתכל על). “See” and “watch” don’t take “at”: Can I see your drawing?",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-052",
+    "topic": "Vocabulary",
+    "level": 2,
+    "q": "It’s dark in here. Can you ___ the light, please?",
+    "options": [
+      "turn on",
+      "open",
+      "light up",
+      "close"
+    ],
+    "explain": "In English we “turn on” (or “switch on”) a light, a phone or the TV. “Open the light” is a translation from Hebrew.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-053",
+    "topic": "Vocabulary",
+    "level": 3,
+    "q": "Which word has the same meaning as “huge”?",
+    "options": [
+      "enormous",
+      "tiny",
+      "heavy",
+      "high"
+    ],
+    "explain": "Huge = enormous = very, very big (ענק). “Tiny” is the opposite: very small.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-054",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Tal has a dog called Pepper. Every morning before school, she takes Pepper for a walk in the park.” When does Tal walk her dog?",
+    "options": [
+      "In the morning, before school",
+      "After school",
+      "In the evening",
+      "At lunchtime"
+    ],
+    "explain": "The text says: “Every morning before school”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-055",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “My name is Michal. I have two brothers: Ido is fifteen and Ben is eight. I’m twelve.” Which sentence is true?",
+    "options": [
+      "Ido is older than Michal.",
+      "Michal is older than Ido.",
+      "Ben is older than Michal.",
+      "Michal has three brothers."
+    ],
+    "explain": "Ido is 15, Michal is 12 and Ben is 8. So Ido is older (מבוגר יותר) than Michal, and Michal is older than Ben.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-056",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Omer wanted to buy new headphones, but they cost 300 shekels. He only had 180, so he decided to save his pocket money for two more months.” Why didn’t Omer buy the headphones?",
+    "options": [
+      "He didn’t have enough money.",
+      "The shop was closed.",
+      "He didn’t like them.",
+      "His parents said no."
+    ],
+    "explain": "The headphones cost 300 shekels and Omer only had 180. He needs to save more money first.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-057",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Yuval opened the window and smiled. The sun was shining, and her friends were already waiting downstairs with their bikes.” What will Yuval probably do next?",
+    "options": [
+      "Go for a bike ride with her friends",
+      "Stay at home and watch TV",
+      "Look for an umbrella",
+      "Go back to sleep"
+    ],
+    "explain": "Her friends are waiting with bikes and the weather is nice, so she will probably join them. “Probably” (כנראה) means we guess from clues in the text.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-058",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “For a whole month before the school concert, Maya played the piano for two hours every day. At the concert, she didn’t make a single mistake.” Why did Maya play so well?",
+    "options": [
+      "She worked hard before the concert.",
+      "The songs were very easy.",
+      "She was lucky.",
+      "Her teacher played with her."
+    ],
+    "explain": "She played for two hours every day for a month. Her hard work helped her play without mistakes. The text says nothing about the other answers.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-059",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Lior’s phone fell into the pool at a party. When she took it out, the screen was black and it didn’t turn on.” How did Lior probably feel?",
+    "options": [
+      "Upset",
+      "Excited",
+      "Proud",
+      "Bored"
+    ],
+    "explain": "Her phone stopped working, so she probably felt upset (מוטרדת, עצובה).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-060",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Penguins are birds, but they can’t fly. They use their wings to swim very fast under water.” What do penguins use their wings for?",
+    "options": [
+      "Swimming",
+      "Flying",
+      "Walking",
+      "Building nests"
+    ],
+    "explain": "The text says: “They use their wings to swim”. Penguins can’t fly.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-061",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Shani’s family moved from Tel Aviv to a small village in the north. She misses her old friends, but she loves the quiet streets and the green hills.” Which sentence is true?",
+    "options": [
+      "Shani likes some things about her new home.",
+      "Shani doesn’t miss her old friends.",
+      "Shani still lives in Tel Aviv.",
+      "Shani hates the village."
+    ],
+    "explain": "She misses her friends, but she loves the quiet streets and the hills. So she likes some things about the village.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-062",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “The school trip is on Thursday. Bring water, a hat and a packed lunch. Phones are allowed, but music speakers are not.” What can’t students bring on the trip?",
+    "options": [
+      "Music speakers",
+      "Phones",
+      "A hat",
+      "Water"
+    ],
+    "explain": "“Music speakers are not allowed” means you can’t bring them (אסור).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-063",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “Gili’s grandmother is eighty, but she swims every morning and goes to a dance class twice a week. ‘Age is just a number,’ she likes to say.” What does she mean?",
+    "options": [
+      "You can be active at any age.",
+      "She doesn’t know how old she is.",
+      "Numbers are very important.",
+      "Old people shouldn’t swim."
+    ],
+    "explain": "She is eighty but very active. She means that your age doesn’t decide what you can do.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-064",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Amit forgot his sister’s birthday. In the evening, he came home with flowers and a long letter that began with ‘I’m so sorry’.” Why did Amit bring flowers?",
+    "options": [
+      "To say sorry for forgetting her birthday",
+      "Because it was his birthday",
+      "Because his sister asked for flowers",
+      "To thank his sister for a present"
+    ],
+    "explain": "He forgot the birthday, and his letter begins with “I’m so sorry”. The flowers are part of his apology (התנצלות).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-065",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “This is the best café in town! The cakes are amazing and the music is great. The only problem: it’s always full, so come early.” What is the problem with the café?",
+    "options": [
+      "It’s too crowded.",
+      "The cakes are bad.",
+      "The music is too loud.",
+      "It’s too expensive."
+    ],
+    "explain": "The writer says “it’s always full”. Full of people = crowded (צפוף).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-066",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “Roni and Inbar planned to see a film together on Saturday night. On Saturday afternoon, Inbar called: she had a high fever and had to stay in bed.” What probably happened on Saturday night?",
+    "options": [
+      "The girls didn’t see the film together.",
+      "Inbar went to the film alone.",
+      "The girls saw two films.",
+      "Roni got sick too."
+    ],
+    "explain": "Inbar was sick in bed, so the two girls couldn’t go to the film together.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-067",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “When Hadas got to the bus stop, she saw the number 5 bus driving away. She looked at her watch and sighed: the next one was in forty minutes.” What happened?",
+    "options": [
+      "She just missed her bus.",
+      "She got on the number 5 bus.",
+      "The bus didn’t come.",
+      "She lost her watch."
+    ],
+    "explain": "The bus was driving away when she arrived, so she missed it (פספסה) and had to wait for the next one.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-068",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “In her first week at the new school, Eden spent every break alone in the library. In the second week, a girl from her class asked her to join a basketball game. By the end of the month, Eden had lots of friends.” What is the text mostly about?",
+    "options": [
+      "Eden making friends at a new school",
+      "Books that Eden likes",
+      "How to play basketball",
+      "Eden’s old school"
+    ],
+    "explain": "The text shows how Eden goes from being alone to having many friends. That is the main idea (הרעיון המרכזי).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-069",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “Hi Nitzan! I can’t come to dance practice today because I have a dentist appointment. Can you tell the teacher? Thanks! Rachel” Why did Rachel write this message?",
+    "options": [
+      "To ask Nitzan to pass on a message",
+      "To invite Nitzan to the dentist",
+      "To ask when dance practice starts",
+      "To say that she has a new teacher"
+    ],
+    "explain": "Rachel asks Nitzan to tell the teacher that she can’t come. That is the purpose (המטרה) of the message.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-070",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Every summer, sea turtles come to Israel’s beaches to lay their eggs in the sand. Volunteers protect the eggs so that dogs and people don’t hurt them.” Why do volunteers protect the eggs?",
+    "options": [
+      "To keep them safe from dogs and people",
+      "To sell them",
+      "To eat them",
+      "To move them to the zoo"
+    ],
+    "explain": "The text says the volunteers protect the eggs “so that dogs and people don’t hurt them”.",
+    "ltr": true
+  }
+]

@@ -1,0 +1,50 @@
+# The question banks
+
+Each file in `bank/` is one pool of questions: a grade and a subject. The app
+picks five a day from the pools of each girl's track (see `TRACKS` in
+`app.js`), the same five on every phone that day, and never the same
+question to both twins.
+
+| Pool | Who | What |
+|---|---|---|
+| `g7-math` | the twins | grade 7 math |
+| `g7-eng` | the twins | grade 7 English |
+| `g7-sci` | the twins | grade 7 science and technology |
+| `g7-heb` | the twins | grade 7 Hebrew language (לשון) |
+| `g7-hist` | the twins | grade 7 history |
+| `g7-bible` | the twins | grade 7 Bible (תנ״ך) |
+| `g7-geo` | the twins | grade 7 geography |
+| `g7-art` | the art twin | her art major, grade 7 level |
+| `g10-math` | the eldest | grade 10 math, 4 units |
+| `g10-eng` | the eldest | grade 10 English, 5 points |
+| `g10-bio` | the eldest | her biology major, grade 10 |
+| `g10-hist` | the eldest | grade 10 history |
+| `g10-lit` | the eldest | grade 10 literature |
+| `g10-heb` | the eldest | grade 10 Hebrew language (לשון) |
+
+## One question
+
+```json
+{
+  "id": "g7-math-001",
+  "topic": "משוואות",
+  "level": 2,
+  "q": "פתרי את המשוואה: {3x − 7 = 14}",
+  "options": ["{x = 7}", "{x = 3}", "{x = 21}", "{x = 7/3}"],
+  "explain": "מוסיפים 7 לשני האגפים: {3x = 21}. מחלקים ב־3: {x = 7}.",
+  "ltr": false
+}
+```
+
+- `options[0]` is always the right answer. The app shuffles them, a
+  different order for each girl.
+- `{...}` marks math (or any left-to-right run) inside Hebrew text. Without
+  it the browser flips it: "−1" shows as "1−". An option with no Hebrew at
+  all is laid out left to right by itself, so `"−1"` needs no braces.
+- `ltr: true` for English questions: the question and explanation are laid
+  out left to right.
+- `level`: 1 easy, 2 standard, 3 a stretch.
+- `topic`: the unit, as the school names it. The parent dashboard groups
+  mistakes by it.
+
+Check a bank before using it: `python3 tools/check_bank.py`.
