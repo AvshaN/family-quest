@@ -45,6 +45,7 @@ question to both twins.
   out left to right.
 - `level`: 1 easy, 2 standard, 3 a stretch.
 - `topic`: the unit, as the school names it. The parent dashboard groups
-  mistakes by it.
+  mistakes by it, and `STUDYING` in `app.js` limits a girl to the topics her
+  class has reached, so spell a unit the same way every time.
 
 Check a bank before using it: `python3 tools/check_bank.py`.

@@ -838,5 +838,705 @@
     ],
     "explain": "“A drop in the ocean” is a tiny amount compared with what is needed. “Welcomed… but” shows they liked the move yet thought it was not nearly enough.",
     "ltr": true
+  },
+  {
+    "id": "g10-eng-061",
+    "topic": "Present Progressive",
+    "level": 1,
+    "q": "Look outside! It ___ . Don’t forget your umbrella.",
+    "options": [
+      "is raining",
+      "rains",
+      "rain",
+      "raining"
+    ],
+    "explain": "“Look!” shows it is happening now, so we use the present progressive: am / is / are + verb-ing. “Raining” alone is missing “is”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-062",
+    "topic": "Present Simple",
+    "level": 1,
+    "q": "My brother ___ to the gym three times a week.",
+    "options": [
+      "goes",
+      "is going",
+      "go",
+      "going"
+    ],
+    "explain": "“Three times a week” is a habit, so we use the present simple. With he / she / it we add -s (or -es): goes.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-063",
+    "topic": "Present Simple",
+    "level": 1,
+    "q": "Water ___ at 100 degrees Celsius.",
+    "options": [
+      "boils",
+      "is boiling",
+      "boil",
+      "is boil"
+    ],
+    "explain": "A scientific fact that is always true takes the present simple.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-064",
+    "topic": "Present Progressive",
+    "level": 1,
+    "q": "Shh! The baby ___ . Please don’t wake her up.",
+    "options": [
+      "is sleeping",
+      "sleeps",
+      "sleep",
+      "is sleep"
+    ],
+    "explain": "“Shh!” tells us it is happening right now: present progressive.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-065",
+    "topic": "Present Simple",
+    "level": 1,
+    "q": "___ your sister ___ in Haifa?",
+    "options": [
+      "Does … live",
+      "Is … live",
+      "Do … lives",
+      "Does … lives"
+    ],
+    "explain": "Present simple questions with he / she / it: Does + subject + base verb. The -s moves to “does”, so “live” has no -s.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-066",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "She ___ coffee. She prefers tea.",
+    "options": [
+      "doesn’t drink",
+      "isn’t drinking",
+      "don’t drink",
+      "doesn’t drinks"
+    ],
+    "explain": "A general preference, not something happening now: present simple. Negative with she: doesn’t + base verb (no -s).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-067",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "How often ___ your grandparents?",
+    "options": [
+      "do you visit",
+      "are you visiting",
+      "you visit",
+      "does you visit"
+    ],
+    "explain": "“How often” asks about a habit: present simple. Question with you: do + subject + base verb.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-068",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "‘What ___ for a living?’ ‘She’s a nurse.’",
+    "options": [
+      "does your mother do",
+      "is your mother doing",
+      "does your mother does",
+      "your mother does"
+    ],
+    "explain": "A job is a permanent situation: present simple. Question: does + subject + base verb (do, not does).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-069",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "I ___ to music while I study. It helps me concentrate.",
+    "options": [
+      "usually listen",
+      "am usually listening",
+      "usually listens",
+      "listen usually"
+    ],
+    "explain": "A habit (usually) takes the present simple. Adverbs of frequency go before the main verb: I usually listen.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-070",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "‘Can I borrow your laptop?’ ‘Sorry, I ___ it at the moment.’",
+    "options": [
+      "’m using",
+      "use",
+      "uses",
+      "used"
+    ],
+    "explain": "“At the moment” means right now: present progressive (I’m using).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-071",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "My dad ___ from home this week because his office is being painted.",
+    "options": [
+      "is working",
+      "works",
+      "work",
+      "is work"
+    ],
+    "explain": "“This week” describes a temporary situation, so we use the present progressive, even though it isn’t happening this very second.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-072",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "Maya usually takes the bus to school, but this week she ___ her bike because the bus drivers are on strike.",
+    "options": [
+      "is riding",
+      "rides",
+      "ride",
+      "is ride"
+    ],
+    "explain": "The usual habit is in the present simple (usually takes); the temporary change this week is in the present progressive (is riding).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-073",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "‘What are you doing tonight?’ ‘I ___ my cousins at the mall at eight. We arranged it yesterday.’",
+    "options": [
+      "’m meeting",
+      "meet",
+      "meets",
+      "am meet"
+    ],
+    "explain": "The present progressive also describes future plans that are already arranged (a time and place are fixed).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-074",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "According to the timetable, the last bus ___ at 23:40 every night.",
+    "options": [
+      "leaves",
+      "is leaving",
+      "leave",
+      "leaving"
+    ],
+    "explain": "Timetables and schedules (“every night”, “according to the timetable”) take the present simple.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-075",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "The climate ___ , and summers in Israel are getting hotter.",
+    "options": [
+      "is changing",
+      "changes",
+      "change",
+      "are changing"
+    ],
+    "explain": "A situation that is developing now, a trend, takes the present progressive. “The climate” is singular, so “is”, not “are”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-076",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "I ___ what you mean, but I don’t agree.",
+    "options": [
+      "understand",
+      "am understanding",
+      "understands",
+      "am understand"
+    ],
+    "explain": "“Understand” is a stative verb (a state of mind, not an action), so it is not normally used in the progressive.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-077",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "This soup ___ delicious. What’s in it?",
+    "options": [
+      "tastes",
+      "is tasting",
+      "taste",
+      "is taste"
+    ],
+    "explain": "“Taste” as a quality of the soup (how it seems) is stative: present simple.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-078",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "The chef ___ the soup to see if it needs more salt.",
+    "options": [
+      "is tasting",
+      "tastes",
+      "taste",
+      "are tasting"
+    ],
+    "explain": "Here “taste” is an action the chef is doing right now (he is trying it), so it can be progressive.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-079",
+    "topic": "Present Simple",
+    "level": 2,
+    "q": "Dana ___ two cats and a dog.",
+    "options": [
+      "has",
+      "is having",
+      "have",
+      "are having"
+    ],
+    "explain": "“Have” meaning own / possess is stative: present simple, with -s for she: has.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-080",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "We ___ a great time in Eilat! The weather is perfect.",
+    "options": [
+      "’re having",
+      "have",
+      "has",
+      "are have"
+    ],
+    "explain": "“Have a great time” is an experience, not possession, so “have” can be progressive here: we’re having.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-081",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "Choose the correct spelling: The kids are ___ in the pool.",
+    "options": [
+      "swimming",
+      "swiming",
+      "swimeing",
+      "swimmming"
+    ],
+    "explain": "One-syllable verbs ending consonant-vowel-consonant double the last letter before -ing: swim → swimming (also run → running, sit → sitting).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-082",
+    "topic": "Present Progressive",
+    "level": 2,
+    "q": "Choose the correct spelling: The cat is ___ on the sofa.",
+    "options": [
+      "lying",
+      "lieing",
+      "lyeing",
+      "liing"
+    ],
+    "explain": "Verbs ending in -ie change -ie to -y before -ing: lie → lying, die → dying, tie → tying.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-083",
+    "topic": "Present Progressive",
+    "level": 1,
+    "q": "Which time expression usually goes with the present progressive?",
+    "options": [
+      "at the moment",
+      "every day",
+      "usually",
+      "on Sundays"
+    ],
+    "explain": "Now, right now, at the moment, currently, this week: present progressive. Every day, usually, on Sundays: present simple.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-084",
+    "topic": "Present Simple",
+    "level": 1,
+    "q": "Which time expression usually goes with the present simple?",
+    "options": [
+      "once a week",
+      "right now",
+      "at the moment",
+      "currently"
+    ],
+    "explain": "Habits and routines (once a week, always, never, every morning) take the present simple.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-085",
+    "topic": "Present Progressive",
+    "level": 3,
+    "q": "He ___ always ___ his phone in class! It drives the teacher crazy.",
+    "options": [
+      "is … checking",
+      "does … check",
+      "is … check",
+      "has … checked"
+    ],
+    "explain": "“Always” with the present progressive expresses annoyance at a habit that keeps happening: He is always checking his phone!",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-086",
+    "topic": "Present Simple",
+    "level": 3,
+    "q": "Which sentence is NOT correct?",
+    "options": [
+      "This bag is belonging to my sister.",
+      "I don’t need any help, thanks.",
+      "She seems tired today.",
+      "We’re seeing the dentist on Monday."
+    ],
+    "explain": "“Belong” is stative, so “This bag belongs to my sister”. “We’re seeing the dentist on Monday” is fine: “see” here means meet, an arranged plan.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-087",
+    "topic": "Present Progressive",
+    "level": 3,
+    "q": "Only one of these sentences is correct. Which one?",
+    "options": [
+      "I’m thinking of quitting the team.",
+      "I’m thinking that the plan is good.",
+      "She is knowing the answer.",
+      "I am wanting a new phone."
+    ],
+    "explain": "“Think of / about” (considering) is an activity and can be progressive. “Think that” (an opinion), “know” and “want” are stative: I think that…, she knows, I want.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-088",
+    "topic": "Present Simple",
+    "level": 3,
+    "q": "Which question is correct?",
+    "options": [
+      "Do you know where the station is?",
+      "Are you knowing where the station is?",
+      "Does you know where is the station?",
+      "You know where is the station?"
+    ],
+    "explain": "“Know” is stative: Do you know…? Inside the question, “where the station is” keeps the order of a statement (subject before verb).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-089",
+    "topic": "Present Simple",
+    "level": 3,
+    "q": "I ___ this song! Who sings it?",
+    "options": [
+      "love",
+      "am loving",
+      "loves",
+      "am love"
+    ],
+    "explain": "“Love” is a stative verb (a feeling), so the present simple is correct. Slogans like “I’m loving it” are informal exceptions.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-090",
+    "topic": "Present Progressive",
+    "level": 3,
+    "q": "Which sentence describes a temporary situation?",
+    "options": [
+      "I’m staying with my aunt until our flat is ready.",
+      "I live in Tel Aviv.",
+      "My aunt owns a bakery.",
+      "The bakery opens at 6 a.m."
+    ],
+    "explain": "The present progressive (I’m staying… until…) shows the situation is temporary. The others are permanent facts or schedules in the present simple.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-091",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Our school’s robotics team meets every Tuesday after school. At the moment, the team is building a robot that can sort recycling, and it is hoping to enter the national competition in March.” What is the team doing now?",
+    "options": [
+      "Building a robot that sorts recycling",
+      "Competing in the national competition",
+      "Meeting every day after school",
+      "Collecting recycling around the school"
+    ],
+    "explain": "“At the moment, the team is building…” tells us what is happening now. The competition is in March, and they meet only on Tuesdays.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-092",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “More and more teenagers are choosing to work part-time while they are still at school. Some are saving for a car; others enjoy the independence. Teachers worry that long shifts leave students too tired to study.” What is the text mainly about?",
+    "options": [
+      "Teenagers who work while they are at school",
+      "How to save money for a car",
+      "Why teachers work long shifts",
+      "The best part-time jobs for students"
+    ],
+    "explain": "Every sentence is about school students with part-time jobs: why they work and what teachers think. A car is only one example.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-093",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “The library is introducing a new rule: from next month, visitors can borrow up to ten books at a time. Until now, it allowed only five.” What does “it” refer to?",
+    "options": [
+      "The library",
+      "The rule",
+      "Next month",
+      "A visitor"
+    ],
+    "explain": "Until now, the library allowed only five books. “It” points back to the subject of the first sentence.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-094",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Shira is standing at the bus stop, checking her watch every few seconds. She keeps looking down the road and sighing loudly.” How does Shira probably feel?",
+    "options": [
+      "Impatient",
+      "Relaxed",
+      "Proud",
+      "Sleepy"
+    ],
+    "explain": "Checking her watch again and again, looking down the road and sighing: she is waiting and wants the bus to come now.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-095",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Are you tired of waiting in long lines? Download the FastPass app today and order your coffee before you even reach the café. Your first drink is free!” What is the purpose of this text?",
+    "options": [
+      "To advertise an app",
+      "To complain about cafés",
+      "To explain how coffee is made",
+      "To warn people about long lines"
+    ],
+    "explain": "The imperative (Download!) and the free first drink are typical of an advertisement: it wants you to get the app.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-096",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “I can’t believe it. I’ve waited six months for this concert, and now they’re cancelling it two hours before the show, with no explanation and no refund!” The writer’s tone is ___.",
+    "options": [
+      "angry",
+      "grateful",
+      "calm",
+      "amused"
+    ],
+    "explain": "“I can’t believe it”, the long wait, no explanation, no refund and the exclamation mark all show anger.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-097",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “The town is famous for its annual festival. Each summer, thousands of visitors arrive for the music, the food and the fireworks.” In this text, “annual” means ___.",
+    "options": [
+      "happening once a year",
+      "very large",
+      "free of charge",
+      "held at night"
+    ],
+    "explain": "“Each summer” is the clue: the festival takes place once every year.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-098",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Doctors are warning parents about energy drinks. These drinks contain large amounts of caffeine and sugar, and they are becoming popular among children as young as ten.” What does “they” refer to?",
+    "options": [
+      "Energy drinks",
+      "Doctors",
+      "Parents",
+      "Children"
+    ],
+    "explain": "The drinks are what contain caffeine and are becoming popular; “they” continues “these drinks”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-099",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Ido opens the fridge and closes it, then opens the cupboard and closes that too. Then he picks up his phone and starts looking for the number of the pizza place.” What can we infer?",
+    "options": [
+      "He doesn’t find anything he wants to eat at home.",
+      "He works at a pizza place.",
+      "He is cleaning the kitchen.",
+      "His phone is broken."
+    ],
+    "explain": "He searches the fridge and the cupboard, finds nothing he wants, and turns to ordering pizza.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-100",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “The plant is thriving in its new spot by the window: it is growing new leaves almost every day, and its flowers are bigger than ever.” In this text, “thriving” means ___.",
+    "options": [
+      "growing well and staying healthy",
+      "slowly dying",
+      "being moved often",
+      "needing more water"
+    ],
+    "explain": "The words after the colon explain it: new leaves every day and bigger flowers. The plant is doing very well.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-101",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “The new stadium holds 30,000 people, and its roof opens in two minutes. It is the most beautiful building in the country.” Which of these is a fact from the text?",
+    "options": [
+      "The roof opens in two minutes.",
+      "It is the most beautiful building in the country.",
+      "The stadium is too big for the city.",
+      "Everyone loves the new stadium."
+    ],
+    "explain": "A number that can be checked is a fact. “The most beautiful” is an opinion, and the last two are not in the text at all.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-102",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Every evening, Mr. Levi waters his neighbour’s garden and collects her mail. This month he is also feeding her cat, and he leaves her porch light on at night.” What can we infer about the neighbour?",
+    "options": [
+      "She is away from home.",
+      "She doesn’t like cats.",
+      "She is Mr. Levi’s daughter.",
+      "She is afraid of the dark."
+    ],
+    "explain": "Someone else collects her mail, feeds her cat and leaves a light on for her: things people arrange when they are away.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-103",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Scientists are studying a small fish that can survive in water hotter than 40°C, a temperature at which most fish die. They hope it will help them understand how animals may adapt to warmer oceans.” Why are the scientists studying the fish?",
+    "options": [
+      "To learn how animals might cope with warmer seas",
+      "To find a new kind of food",
+      "To prove that most fish like warm water",
+      "To protect the fish from extinction"
+    ],
+    "explain": "The last sentence gives the reason: they hope the fish will show how animals may adapt to warmer oceans.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-104",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Many people believe multitasking saves time. In fact, each time we switch tasks, the brain needs a moment to refocus. As a result, doing two things at once often takes longer than doing them one after the other.” What is the writer’s main point?",
+    "options": [
+      "Multitasking is often less efficient than people think.",
+      "Our brains work faster when we multitask.",
+      "Research about the brain is usually wrong.",
+      "People should do only one task a day."
+    ],
+    "explain": "“In fact” corrects the common belief, and “As a result” gives the conclusion: multitasking often takes longer.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-105",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Noam usually works at the café on weekends, but this month he is working there every evening, because one of the waiters is on holiday.” Which statement is true?",
+    "options": [
+      "Noam is working more than usual this month.",
+      "Noam works at the café every evening all year.",
+      "Noam is on holiday this month.",
+      "Noam doesn’t work on weekends."
+    ],
+    "explain": "Usually (present simple) he works only on weekends; this month (present progressive) he is also working every evening, so he works more.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-106",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “For years, the island’s coral reefs were dying. Then local fishermen agreed to stop fishing in part of the bay. Today, divers report that the reefs are slowly recovering and fish are returning.” What does the text suggest?",
+    "options": [
+      "Protecting part of the bay helped the reefs recover.",
+      "Fishermen are destroying the reefs today.",
+      "Divers caused the reefs to die.",
+      "The fish have left the island forever."
+    ],
+    "explain": "The order of events, reefs dying, fishing stopped, reefs recovering, suggests the protection is the reason.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-107",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Bees are disappearing in many parts of the world. This is not only a problem for bees: about one third of the food we eat depends on plants that bees pollinate.” Why does the writer mention the food we eat?",
+    "options": [
+      "To show why the bees’ disappearance matters to people",
+      "To explain how bees make honey",
+      "To suggest that people should eat less",
+      "To describe what bees eat"
+    ],
+    "explain": "“Not only a problem for bees” prepares us for why it matters to us too: much of our food depends on them.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-108",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Every Friday morning, hundreds of volunteers deliver food to elderly people who live alone. For many of them, the visit is the only conversation they have all week.” Which is the best title?",
+    "options": [
+      "More Than a Meal",
+      "How to Cook for a Crowd",
+      "Why Old People Don’t Like Visitors",
+      "Friday Morning Traffic Jams"
+    ],
+    "explain": "The text says the visit gives the elderly company as well as food, so the visit is more than a meal.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-109",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “The company says it is ‘going green’. Yet it is still flying its managers to meetings that could easily take place online, and its factories are burning more coal than ever.” What does the writer suggest?",
+    "options": [
+      "The company’s green claims are hard to believe.",
+      "The company is the greenest in its industry.",
+      "Online meetings are bad for the environment.",
+      "Managers should travel more often."
+    ],
+    "explain": "“Says” and the quotation marks show doubt, and “Yet” introduces facts that contradict the claim.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-110",
+    "topic": "Reading",
+    "level": 3,
+    "q": "Read: “Tal was going to apologise, but at the last minute she got cold feet and said nothing.” What does “got cold feet” mean here?",
+    "options": [
+      "became too nervous to do it",
+      "felt physically cold",
+      "forgot what she wanted to say",
+      "decided she was right"
+    ],
+    "explain": "She planned to apologise but, at the last minute, did nothing: “get cold feet” means to lose your courage before doing something.",
+    "ltr": true
   }
 ]

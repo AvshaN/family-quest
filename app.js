@@ -56,6 +56,18 @@ const TRACKS = {
   "g7-art":  { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-art", 3], ["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-bible", 1], ["g7-geo", 1]] }
 };
 const trackPools = tr => { const t = TRACKS[tr] || TRACKS.g7; return [t.math, t.eng, ...t.other.map(o => o[0])]; };
+/* What each track's class has reached: a pool listed here gives her only these topics, in the daily five and in
+ * revenge rounds; a pool not listed gives all its topics. On 2026-11-13 the eldest met probability, modals of
+ * deduction and word formation, none studied yet; her notebook's test list was the straight line, and in English
+ * her class was on the present simple and progressive and reading. Open a topic here as the class reaches it. */
+const STUDYING = {
+  "g10-bio": {
+    "g10-math": ["שיפוע", "משוואת הישר", "ישרים מקבילים", "חיתוך עם הצירים", "חיתוך בין ישרים", "מערכות משוואות",
+                 "אמצע קטע", "מרחק בין נקודות", "שטח משולש", "פיתגורס"],
+    "g10-eng": ["Present Simple", "Present Progressive", "Reading"]
+  }
+};
+const studied = (prof, q) => { const t = (STUDYING[prof.track] || {})[q.pool]; return !t || t.includes(q.topic); };
 const SUBJ = {
   math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", bible: "תנ״ך",
   geo: "גאוגרפיה", art: "אמנות", bio: "ביולוגיה", lit: "ספרות"
@@ -147,10 +159,16 @@ function shareOf(prof, pool) {
   const grp = sharers(prof, pool), gi = Math.max(0, grp.findIndex(p => p.id === prof.id));
   return permOf(pool).filter((_, k) => k % grp.length === gi).map(i => bank[i]);
 }
+/* Questions a twin has answered never come to the other: adding questions to a bank reshuffles its order and so
+ * the halves, and a question one twin met last week could otherwise land in the other's half. */
 function take(prof, pool, n, date, src) {
-  const mine = shareOf(prof, pool), last = {};
-  src.forEach(r => { if (r.p === prof.id && r.pool === pool && r.d < date && !(last[r.q] >= r.d)) last[r.q] = r.d; });
-  const fresh = mine.filter(q => !last[q.id]);
+  const share = shareOf(prof, pool), now = share.filter(q => studied(prof, q)), mine = now.length ? now : share;
+  const last = {}, theirs = new Set(), others = new Set(sharers(prof, pool).map(p => p.id).filter(id => id !== prof.id));
+  src.forEach(r => {
+    if (r.pool !== pool || r.d >= date) return;
+    if (r.p === prof.id) { if (!(last[r.q] >= r.d)) last[r.q] = r.d; } else if (others.has(r.p)) theirs.add(r.q);
+  });
+  const fresh = mine.filter(q => !last[q.id] && !theirs.has(q.id));
   const seen = mine.filter(q => last[q.id]).sort((a, b) => last[a.id] < last[b.id] ? -1 : last[a.id] > last[b.id] ? 1 : 0);
   return fresh.concat(seen).slice(0, n);
 }
@@ -186,7 +204,7 @@ function revengeFor(prof, date, todays) {
   const ids = new Set(todays.map(q => q.id));
   const mine = rows().filter(r => r.p === prof.id);
   const closed = new Set(mine.filter(r => r.r && (r.ok || daysBetween(r.d, date) < 2)).map(r => r.q));
-  const c = mine.filter(r => !r.r && !r.ok && QIDX[r.q] && !ids.has(r.q) && !closed.has(r.q))
+  const c = mine.filter(r => !r.r && !r.ok && QIDX[r.q] && studied(prof, QIDX[r.q]) && !ids.has(r.q) && !closed.has(r.q))
     .filter(r => { const g = daysBetween(r.d, date); return g >= 2 && g <= 21; })
     .sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : (a.q < b.q ? -1 : 1));
   return c.length ? QIDX[c[0].q] : null;

@@ -35,10 +35,21 @@ tests with the girls and gives feedback; Claude writes the code.
   order, alternate questions each, so the twins never share a question. Each
   girl takes the first questions of her share she hasn't answered (history
   before the day only, so the day's five stay put), then the oldest seen.
-  Appending questions to a bank is safe; reordering or deleting reshuffles
-  the shares. `tools/simulate_days.js` plays the coming days and reports
-  repeats (from 2026-11-11: the twins' math and English run out on 29 Nov,
-  the eldest's on 11 Dec).
+  A twin never takes a question her sister has answered: adding questions
+  reshuffles the order and so the halves (on 2026-11-13 each twin would have
+  met two of her sister's first-day questions on 28-29 Nov). So appending is
+  safe; deleting or reordering only changes what comes next.
+  `tools/simulate_days.js` plays the coming days and reports repeats (from
+  2026-11-13: the twins' math runs out on 28-29 Nov; the eldest's none in 30
+  days).
+- **What each class has reached** (`STUDYING` in `app.js`, by track and
+  pool): a listed pool gives only those topics, in the five and in revenge
+  rounds. The eldest complained on 2026-11-13 of probability and modals she
+  hadn't studied; her math is now her notebook's test list (the straight
+  line: slope, line equation, parallel lines, axes and two lines meeting,
+  midpoint, distance, triangle area, Pythagoras) and her English the present
+  simple and progressive and reading. Open a topic as the class reaches it;
+  the twins' pools are not limited yet.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
   score like "3/5": Gmail read "דניאל: 3/5" as Daniel Street 3, flat 5, and linked it to Maps
@@ -78,4 +89,6 @@ tests with the girls and gives feedback; Claude writes the code.
 
 Write more questions before a pool runs out (each girl sees 2 math and 2
 English a day; the twins share the grade-7 pools, so those go twice as
-fast). Ask Avsha what the girls are learning now, or for their tests.
+fast). Ask Avsha what the girls are learning now, or for their tests, and
+keep `STUDYING` in step: a limited pool runs out sooner, so count its
+listed topics' questions, not the whole bank.
