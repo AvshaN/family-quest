@@ -71,7 +71,10 @@ tests with the girls and gives feedback; Claude writes the code.
   notes, she said); enzymes and the body's systems are written and wait off.
   Her history (`g10-hist`): time concepts, the five W's, the nation and its
   components, the French Revolution, the causes of Zionism (emancipation,
-  antisemitism), Israel's electoral system; Herzl onward waits off.
+  antisemitism); Herzl onward waits off. Her civics (`g10-civ`, added
+  2026-11-13): rights (natural, political, social, group), democracy's
+  principles and Israel's electoral system. Code.gs knows `civ` only once
+  Avsha pastes the script again (a civics test is refused until then).
   Open a topic as the class reaches it; the twins' pools are not limited yet.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a

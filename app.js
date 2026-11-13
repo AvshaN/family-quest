@@ -51,7 +51,7 @@ function shuffle(arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = 
 /* ---------- tracks: which pools each girl's five come from ---------- */
 /* Every day: 2 math, 2 English and 1 "other", drawn by weight from the track's other pools. */
 const TRACKS = {
-  "g10-bio": { grade: "כיתה י׳", math: "g10-math", eng: "g10-eng", other: [["g10-bio", 3], ["g10-bible", 1], ["g10-hist", 1], ["g10-lit", 1], ["g10-heb", 1]] },
+  "g10-bio": { grade: "כיתה י׳", math: "g10-math", eng: "g10-eng", other: [["g10-bio", 3], ["g10-bible", 1], ["g10-hist", 1], ["g10-civ", 1], ["g10-lit", 1], ["g10-heb", 1]] },
   "g7":      { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-bible", 1], ["g7-geo", 1]] },
   "g7-art":  { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-art", 3], ["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-bible", 1], ["g7-geo", 1]] }
 };
@@ -72,13 +72,15 @@ const STUDYING = {
     "g10-eng": ["Present Simple", "Present Progressive", "Reading", "Count That Day Lost", "Literary Terms",
                 "Vocabulary: Unit 1", "Vocabulary: Test 2"],
     // Her biology notebook: homeostasis, surface and volume, the membrane and transport, the molecules of life
-    // (water's properties beside them), and the cell's organelles (taught without notes, she said). Enzymes and the
-    // body's systems wait.
-    "g10-bio": ["הומאוסטזיס", "שטח פנים ונפח", "מעבר חומרים דרך קרום התא", "מולקולות החיים", "מבנה התא"],
+    // (water's properties beside them), the cell's organelles (taught without notes, she said) and the scientific
+    // inquiry. Enzymes and the body's systems wait.
+    "g10-bio": ["הומאוסטזיס", "שטח פנים ונפח", "מעבר חומרים דרך קרום התא", "מולקולות החיים", "מבנה התא", "החקר המדעי"],
     // Her Hebrew language notebook: the argument text, parts of speech, subject and predicate, connectors, numbers.
     "g10-heb": ["טקסט טיעון", "חלקי הדיבור", "חלקי המשפט", "קשרים לוגיים", "שם המספר"],
-    // Her history notebook: time, the five W's, the nation, the French Revolution, Zionism's causes, the electoral system.
-    "g10-hist": ["מושגי זמן", "חמשת המ״מים", "הלאומיות", "המהפכה הצרפתית", "הגורמים לציונות", "שיטת הבחירות"],
+    // Her history notebook: time, the five W's, the nation, the French Revolution, Zionism's causes.
+    "g10-hist": ["מושגי זמן", "חמשת המ״מים", "הלאומיות", "המהפכה הצרפתית", "הגורמים לציונות"],
+    // Her civics notebook: rights, democracy's principles, and the electoral system (its page came with her history).
+    "g10-civ": ["זכויות האדם והאזרח", "עקרונות הדמוקרטיה", "שיטת הבחירות"],
     // Her Bible notebook (2026-11-13): the Tanakh's structure and Genesis 1-3, the sentences of Genesis 3 read as an
     // aetiological story (a page that came with her history).
     "g10-bible": ["מבנה התנ״ך", "בראשית א: הבריאה", "בראשית ב: גן עדן", "שני סיפורי הבריאה", "בראשית ג: הפיתוי",
@@ -87,7 +89,7 @@ const STUDYING = {
 };
 const studied = (prof, q) => { const t = (STUDYING[prof.track] || {})[q.pool]; return !t || t.includes(q.topic); };
 const SUBJ = {
-  math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", bible: "תנ״ך",
+  math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", civ: "אזרחות", bible: "תנ״ך",
   geo: "גאוגרפיה", art: "אמנות", bio: "ביולוגיה", lit: "ספרות"
 };
 const subjOf = pool => String(pool || "").split("-")[1] || "math";

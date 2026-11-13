@@ -19,7 +19,7 @@ from collections import Counter
 BANK_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "bank")
 POOLS = {
     "g7-math", "g7-eng", "g7-sci", "g7-heb", "g7-hist", "g7-bible", "g7-geo", "g7-art",
-    "g10-math", "g10-eng", "g10-bio", "g10-hist", "g10-lit", "g10-heb", "g10-bible",
+    "g10-math", "g10-eng", "g10-bio", "g10-hist", "g10-lit", "g10-heb", "g10-bible", "g10-civ",
 }
 HEBREW = re.compile(r"[֐-׿]")
 
