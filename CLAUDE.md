@@ -48,8 +48,11 @@ tests with the girls and gives feedback; Claude writes the code.
   hadn't studied; her math is now her notebook's test list (the straight
   line: slope, line equation, parallel lines, axes and two lines meeting,
   midpoint, distance, triangle area, Pythagoras) and her English the present
-  simple and progressive and reading. Open a topic as the class reaches it;
-  the twins' pools are not limited yet.
+  simple and progressive and reading. Her Bible (`g10-bible`, added the same
+  day from her notebook) is Tanakh structure and Genesis 1-3 up to the
+  eating; its punishments-and-expulsion topic is written and waits off.
+  Avsha is sending each subject's notebook pages; build each pool from them.
+  Open a topic as the class reaches it; the twins' pools are not limited yet.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
   score like "3/5": Gmail read a girl's name followed by ": 3/5" as a street address (her name as the street, 3 the number, 5 the flat) and linked it to Maps

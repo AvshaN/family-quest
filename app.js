@@ -51,7 +51,7 @@ function shuffle(arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = 
 /* ---------- tracks: which pools each girl's five come from ---------- */
 /* Every day: 2 math, 2 English and 1 "other", drawn by weight from the track's other pools. */
 const TRACKS = {
-  "g10-bio": { grade: "כיתה י׳", math: "g10-math", eng: "g10-eng", other: [["g10-bio", 3], ["g10-hist", 1], ["g10-lit", 1], ["g10-heb", 1]] },
+  "g10-bio": { grade: "כיתה י׳", math: "g10-math", eng: "g10-eng", other: [["g10-bio", 3], ["g10-bible", 1], ["g10-hist", 1], ["g10-lit", 1], ["g10-heb", 1]] },
   "g7":      { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-bible", 1], ["g7-geo", 1]] },
   "g7-art":  { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-art", 3], ["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-bible", 1], ["g7-geo", 1]] }
 };
@@ -64,7 +64,9 @@ const STUDYING = {
   "g10-bio": {
     "g10-math": ["שיפוע", "משוואת הישר", "ישרים מקבילים", "חיתוך עם הצירים", "חיתוך בין ישרים", "מערכות משוואות",
                  "אמצע קטע", "מרחק בין נקודות", "שטח משולש", "פיתגורס"],
-    "g10-eng": ["Present Simple", "Present Progressive", "Reading"]
+    "g10-eng": ["Present Simple", "Present Progressive", "Reading"],
+    // From her Bible notebook (2026-11-13): Genesis 3 had reached the eating; the punishments and the expulsion wait.
+    "g10-bible": ["מבנה התנ״ך", "בראשית א: הבריאה", "בראשית ב: גן עדן", "שני סיפורי הבריאה", "בראשית ג: הפיתוי"]
   }
 };
 const studied = (prof, q) => { const t = (STUDYING[prof.track] || {})[q.pool]; return !t || t.includes(q.topic); };

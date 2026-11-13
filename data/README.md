@@ -21,6 +21,7 @@ question to both twins.
 | `g10-hist` | the eldest | grade 10 history |
 | `g10-lit` | the eldest | grade 10 literature |
 | `g10-heb` | the eldest | grade 10 Hebrew language (לשון) |
+| `g10-bible` | the eldest | grade 10 Bible (תנ״ך), from her notebook |
 
 ## One question
 
