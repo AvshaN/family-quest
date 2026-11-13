@@ -71,13 +71,18 @@ const STUDYING = {
     // English from her notebook too: George Eliot's poem, simile and metaphor, Unit 1's words, Test 2's word list.
     "g10-eng": ["Present Simple", "Present Progressive", "Reading", "Count That Day Lost", "Literary Terms",
                 "Vocabulary: Unit 1", "Vocabulary: Test 2"],
-    // From her Bible notebook (2026-11-13): Genesis 3 had reached the eating; the punishments and the expulsion wait.
     // Her biology notebook: homeostasis, surface and volume, the membrane and transport, the molecules of life
-    // (water's properties beside them). The cell's organelles, enzymes and the body's systems wait.
-    "g10-bio": ["הומאוסטזיס", "שטח פנים ונפח", "מעבר חומרים דרך קרום התא", "מולקולות החיים"],
+    // (water's properties beside them), and the cell's organelles (taught without notes, she said). Enzymes and the
+    // body's systems wait.
+    "g10-bio": ["הומאוסטזיס", "שטח פנים ונפח", "מעבר חומרים דרך קרום התא", "מולקולות החיים", "מבנה התא"],
     // Her Hebrew language notebook: the argument text, parts of speech, subject and predicate, connectors, numbers.
     "g10-heb": ["טקסט טיעון", "חלקי הדיבור", "חלקי המשפט", "קשרים לוגיים", "שם המספר"],
-    "g10-bible": ["מבנה התנ״ך", "בראשית א: הבריאה", "בראשית ב: גן עדן", "שני סיפורי הבריאה", "בראשית ג: הפיתוי"]
+    // Her history notebook: time, the five W's, the nation, the French Revolution, Zionism's causes, the electoral system.
+    "g10-hist": ["מושגי זמן", "חמשת המ״מים", "הלאומיות", "המהפכה הצרפתית", "הגורמים לציונות", "שיטת הבחירות"],
+    // Her Bible notebook (2026-11-13): the Tanakh's structure and Genesis 1-3, the sentences of Genesis 3 read as an
+    // aetiological story (a page that came with her history).
+    "g10-bible": ["מבנה התנ״ך", "בראשית א: הבריאה", "בראשית ב: גן עדן", "שני סיפורי הבריאה", "בראשית ג: הפיתוי",
+                  "בראשית ג: העונש והגירוש"]
   }
 };
 const studied = (prof, q) => { const t = (STUDYING[prof.track] || {})[q.pool]; return !t || t.includes(q.topic); };

@@ -53,22 +53,25 @@ tests with the girls and gives feedback; Claude writes the code.
   simple and progressive and reading, and from her English notebook George
   Eliot's "Count That Day Lost", simile and metaphor, and two word lists
   (Unit 1; Module E Test 2). Her Bible (`g10-bible`, added the same
-  day from her notebook) is Tanakh structure and Genesis 1-3 up to the
-  eating; its punishments-and-expulsion topic is written and waits off.
+  day from her notebook) is Tanakh structure and Genesis 1-3, the sentences
+  read as an aetiological story.
   Avsha is sending each subject's notebook pages; build each pool from them.
   **His rule for every round** (2026-11-13): the notebooks don't cover all
   that was taught, so compare them with the curriculum, and a topic or part
   the curriculum states beside one in the notes counts as studied (her
   perpendicular lines, beside parallel lines); the topic that comes after it
-  does not (Genesis 3's punishments; the kinds of verb complement). Say what
+  does not (the kinds of verb complement; Herzl after Zionism's causes). Say what
   was added this way; the girls will complain if it's wrong.
   Her Hebrew language (`g10-heb`): the argument text, parts of speech and
   the verb / infinitive / action-noun forms, subject, predicate, noun and
   verb complements, logical connectors and the cardinal numbers.
   Her biology (`g10-bio`): homeostasis, surface-to-volume, the membrane and
   transport (diffusion, osmosis, hypo/iso/hypertonic, passive and active),
-  the molecules of life and their elements; organelles, enzymes and the body's
-  systems are written and wait off (ask whether organelles were taught).
+  the molecules of life and their elements, and the organelles (taught without
+  notes, she said); enzymes and the body's systems are written and wait off.
+  Her history (`g10-hist`): time concepts, the five W's, the nation and its
+  components, the French Revolution, the causes of Zionism (emancipation,
+  antisemitism), Israel's electoral system; Herzl onward waits off.
   Open a topic as the class reaches it; the twins' pools are not limited yet.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
