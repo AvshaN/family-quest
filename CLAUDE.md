@@ -65,6 +65,10 @@ tests with the girls and gives feedback; Claude writes the code.
   Her Hebrew language (`g10-heb`): the argument text, parts of speech and
   the verb / infinitive / action-noun forms, subject, predicate, noun and
   verb complements, logical connectors and the cardinal numbers.
+  Her biology (`g10-bio`): homeostasis, surface-to-volume, the membrane and
+  transport (diffusion, osmosis, hypo/iso/hypertonic, passive and active),
+  the molecules of life and their elements; organelles, enzymes and the body's
+  systems are written and wait off (ask whether organelles were taught).
   Open a topic as the class reaches it; the twins' pools are not limited yet.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a

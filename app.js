@@ -72,6 +72,9 @@ const STUDYING = {
     "g10-eng": ["Present Simple", "Present Progressive", "Reading", "Count That Day Lost", "Literary Terms",
                 "Vocabulary: Unit 1", "Vocabulary: Test 2"],
     // From her Bible notebook (2026-11-13): Genesis 3 had reached the eating; the punishments and the expulsion wait.
+    // Her biology notebook: homeostasis, surface and volume, the membrane and transport, the molecules of life
+    // (water's properties beside them). The cell's organelles, enzymes and the body's systems wait.
+    "g10-bio": ["הומאוסטזיס", "שטח פנים ונפח", "מעבר חומרים דרך קרום התא", "מולקולות החיים"],
     // Her Hebrew language notebook: the argument text, parts of speech, subject and predicate, connectors, numbers.
     "g10-heb": ["טקסט טיעון", "חלקי הדיבור", "חלקי המשפט", "קשרים לוגיים", "שם המספר"],
     "g10-bible": ["מבנה התנ״ך", "בראשית א: הבריאה", "בראשית ב: גן עדן", "שני סיפורי הבריאה", "בראשית ג: הפיתוי"]
