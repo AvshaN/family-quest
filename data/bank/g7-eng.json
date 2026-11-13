@@ -978,5 +978,341 @@
     ],
     "explain": "The text says the volunteers protect the eggs “so that dogs and people don’t hurt them”.",
     "ltr": true
+  },
+  {
+    "id": "g7-eng-071",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “typical” mean?",
+    "options": [
+      "טיפוסי, רגיל",
+      "מיוחד",
+      "מסוכן",
+      "רחב"
+    ],
+    "explain": "A typical day is a normal, usual day.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-072",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “activity” mean?",
+    "options": [
+      "פעילות",
+      "בחירה",
+      "נהר",
+      "גשר"
+    ],
+    "explain": "Swimming and drawing are activities: things you do.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-073",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “bridge” mean?",
+    "options": [
+      "גשר",
+      "הר",
+      "כפר",
+      "נהר"
+    ],
+    "explain": "You cross a river on a bridge.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-074",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “choice” mean?",
+    "options": [
+      "בחירה",
+      "סכנה",
+      "מסע",
+      "פעילות"
+    ],
+    "explain": "You can choose: you have a choice.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-075",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “danger” mean?",
+    "options": [
+      "סכנה",
+      "מסוכן",
+      "בחירה",
+      "תיקון"
+    ],
+    "explain": "“Danger” is a noun (סכנה). “Dangerous” is the adjective (מסוכן).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-076",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “journey” mean?",
+    "options": [
+      "מסע",
+      "יום",
+      "כפר",
+      "הר"
+    ],
+    "explain": "A long trip from one place to another.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-077",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “mountain” mean?",
+    "options": [
+      "הר",
+      "נהר",
+      "גשר",
+      "עמק"
+    ],
+    "explain": "Mount Hermon is the highest mountain in Israel.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-078",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “village” mean?",
+    "options": [
+      "כפר",
+      "עיר גדולה",
+      "נהר",
+      "גשר"
+    ],
+    "explain": "A village is a small place to live, smaller than a town.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-079",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “river” mean?",
+    "options": [
+      "נהר",
+      "ים",
+      "הר",
+      "גשר"
+    ],
+    "explain": "The Jordan is a river.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-080",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “wide” mean?",
+    "options": [
+      "רחב",
+      "צר",
+      "גבוה",
+      "ארוך"
+    ],
+    "explain": "The opposite of “wide” is “narrow”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-081",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "What does “depend on” mean?",
+    "options": [
+      "לסמוך על, להיות תלוי ב־",
+      "לתקן",
+      "להמשיך",
+      "לדמיין"
+    ],
+    "explain": "You can depend on a good friend.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-082",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "What does “realize” mean?",
+    "options": [
+      "להבין, לקלוט",
+      "לתקן",
+      "להעדיף",
+      "להמשיך"
+    ],
+    "explain": "“I suddenly realized I forgot my keys.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-083",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "What does “prefer” mean?",
+    "options": [
+      "להעדיף",
+      "לתקן",
+      "להבין",
+      "לדמיין"
+    ],
+    "explain": "“I prefer tea to coffee.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-084",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “fix” mean?",
+    "options": [
+      "לתקן",
+      "לשבור",
+      "להמשיך",
+      "להעדיף"
+    ],
+    "explain": "“Dad can fix my bike.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-085",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "What does “continue” mean?",
+    "options": [
+      "להמשיך",
+      "להפסיק",
+      "להתחיל",
+      "לתקן"
+    ],
+    "explain": "“Please continue reading.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-086",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "What does “imagine” mean?",
+    "options": [
+      "לדמיין",
+      "לזכור",
+      "לתקן",
+      "להבין"
+    ],
+    "explain": "“Imagine you can fly!”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-087",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "What does “unusual” mean?",
+    "options": [
+      "יוצא דופן, לא רגיל",
+      "רגיל",
+      "אפשרי",
+      "מסוכן"
+    ],
+    "explain": "“Un-” means “not”: unusual = not usual.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-088",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "What does “possible” mean?",
+    "options": [
+      "אפשרי",
+      "בלתי אפשרי",
+      "מסוכן",
+      "רחב"
+    ],
+    "explain": "The opposite is “impossible”.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-089",
+    "topic": "Vocabulary: Word List 1",
+    "level": 1,
+    "q": "Be ___! The road is wet.",
+    "options": [
+      "careful",
+      "careless",
+      "wide",
+      "possible"
+    ],
+    "explain": "“Be careful” means תיזהר / תיזהרי.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-090",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "Swimming in the sea at night is ___.",
+    "options": [
+      "dangerous",
+      "danger",
+      "careful",
+      "typical"
+    ],
+    "explain": "After “is” we need an adjective: dangerous. “Danger” is a noun.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-091",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "We crossed the river on a long ___.",
+    "options": [
+      "bridge",
+      "village",
+      "mountain",
+      "journey"
+    ],
+    "explain": "You cross a river on a bridge.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-092",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "I can’t ___ my phone. Can you help me?",
+    "options": [
+      "fix",
+      "prefer",
+      "imagine",
+      "realize"
+    ],
+    "explain": "To fix = to repair, make it work again.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-093",
+    "topic": "Vocabulary: Word List 1",
+    "level": 3,
+    "q": "Snow in Tel Aviv is very ___.",
+    "options": [
+      "unusual",
+      "typical",
+      "usual",
+      "wide"
+    ],
+    "explain": "It almost never snows in Tel Aviv, so it is unusual.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-094",
+    "topic": "Vocabulary: Word List 1",
+    "level": 2,
+    "q": "Which word is the opposite of “narrow”?",
+    "options": [
+      "wide",
+      "long",
+      "short",
+      "dangerous"
+    ],
+    "explain": "Narrow = צר; wide = רחב.",
+    "ltr": true
   }
 ]

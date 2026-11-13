@@ -75,7 +75,19 @@ tests with the girls and gives feedback; Claude writes the code.
   2026-11-13): rights (natural, political, social, group), democracy's
   principles and Israel's electoral system. Code.gs knows `civ` only once
   Avsha pastes the script again (a civics test is refused until then).
-  Open a topic as the class reaches it; the twins' pools are not limited yet.
+  Open a topic as the class reaches it.
+  **The twins** (one class, one notebook each for everything, and loose
+  worksheets; sent 2026-11-13): `STUDYING.g7` serves both tracks. History is
+  time and historical thinking, aliyot (push and pull), the melting pot,
+  nation and identity (the ancient world first written for them waits);
+  science is science and technology, units and SI, the lab, body and
+  material, the greenhouse effect; Hebrew is reading skills, question types,
+  fact, opinion and rumour, their word lists; a new pool, `g7-midrash`
+  (בית מדרש), is their unit on change (Rabbi Akiva, the fork-girl poem,
+  eradication or sublimation, the role model); English is their word list,
+  reading and the present tenses. Math is not limited: one worksheet (the
+  distributive law) is all that came. Worksheets carry the school's name
+  and the girls' family name: keep both out of the repo.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
   score like "3/5": Gmail read a girl's name followed by ": 3/5" as a street address (her name as the street, 3 the number, 5 the flat) and linked it to Maps

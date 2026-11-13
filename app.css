@@ -351,3 +351,5 @@ details.how ul{margin:10px 0 0;padding-inline-start:18px;color:var(--text-2);fon
 .pgirl summary::-webkit-details-marker{display:none}
 .log{display:flex;flex-direction:column;gap:10px}
 .log>div{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+/* a math or date run inside Hebrew text: kept whole on one line when it fits (fmt in app.js) */
+bdi.ltr{display:inline-block;max-width:100%}

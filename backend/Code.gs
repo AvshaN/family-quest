@@ -36,7 +36,7 @@ var DEFAULTS = [
   ["improved_reward", "פרס קטן מאבא", "what the most improved girl of the month gets (given by hand)"]
 ];
 var POINTS = { day: 10, right: 4, revenge: 8, week: 15, weekDays: 5 };
-var SUBJ = { math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", civ: "אזרחות", bible: "תנ״ך", geo: "גאוגרפיה", art: "אמנות", bio: "ביולוגיה", lit: "ספרות" };
+var SUBJ = { math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", civ: "אזרחות", midrash: "בית מדרש", bible: "תנ״ך", geo: "גאוגרפיה", art: "אמנות", bio: "ביולוגיה", lit: "ספרות" };
 var DAYS_FULL = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 var AURA_COL = { orchid: "#A855F7", lagoon: "#14B8A6", ember: "#F97316", cherry: "#F43F5E", matcha: "#22C55E", chrome: "#8B95A8" };
 var APP_URL = "https://avshan.github.io/family-quest/";

@@ -19,7 +19,11 @@ const $ = (s, el) => (el || document).querySelector(s);
 const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 /* Math inside Hebrew flips without an isolate ("−1" shows as "1−"), so the banks mark left-to-right runs with {...}. */
-const fmt = s => esc(s).replace(/\{([^}]*)\}/g, '<bdi dir="ltr">$1</bdi>');
+/* {...} marks a left-to-right run (math, a year range) in Hebrew text. It is an inline block, so a line that wraps
+ * moves it whole to the next line: wrapping inside it put "3(x" at one line's end and "− 2) = 3x − 6" before the
+ * question mark on the next, and "(1984–" and "1985)" apart (2026-11-13). One longer than a line wraps inside its own
+ * box, still left to right. Brackets right round it go inside it, or a wrap could leave "(" on the line before. */
+const fmt = s => esc(s).replace(/\(\{([^}]*)\}\)/g, "{($1)}").replace(/\{([^}]*)\}/g, '<bdi dir="ltr" class="ltr">$1</bdi>');
 const plain = s => String(s).replace(/[{}]/g, "");
 const optDir = s => /[֐-׿]/.test(s) ? "rtl" : "ltr";
 const pad2 = n => String(n).padStart(2, "0");
@@ -52,8 +56,8 @@ function shuffle(arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = 
 /* Every day: 2 math, 2 English and 1 "other", drawn by weight from the track's other pools. */
 const TRACKS = {
   "g10-bio": { grade: "כיתה י׳", math: "g10-math", eng: "g10-eng", other: [["g10-bio", 3], ["g10-bible", 1], ["g10-hist", 1], ["g10-civ", 1], ["g10-lit", 1], ["g10-heb", 1]] },
-  "g7":      { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-bible", 1], ["g7-geo", 1]] },
-  "g7-art":  { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-art", 3], ["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-bible", 1], ["g7-geo", 1]] }
+  "g7":      { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-midrash", 1], ["g7-bible", 1], ["g7-geo", 1]] },
+  "g7-art":  { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-art", 3], ["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-midrash", 1], ["g7-bible", 1], ["g7-geo", 1]] }
 };
 const trackPools = tr => { const t = TRACKS[tr] || TRACKS.g7; return [t.math, t.eng, ...t.other.map(o => o[0])]; };
 /* What each track's class has reached (Avsha's rule, 2026-11-13: a topic the curriculum states beside one in her
@@ -87,9 +91,23 @@ const STUDYING = {
                   "בראשית ג: העונש והגירוש"]
   }
 };
+/* The twins are in one class, so one list serves both tracks. From their notebook pages and worksheets (2026-11-13;
+ * one notebook each for all subjects): history is time, migration and identity, not the ancient world written for
+ * them at first; science is what science is, units, the lab, body and material (states of matter beside it) and the
+ * greenhouse effect; Hebrew is reading skills, question types, fact and opinion and their word lists (synonyms
+ * beside them); English is their word lists, reading and the present tenses. Their math showed only one worksheet
+ * (the distributive law, early October), too little to limit by, so math is not limited yet. */
+STUDYING.g7 = STUDYING["g7-art"] = {
+  "g7-hist": ["ציר זמן וחשיבה היסטורית", "רונית אלקבץ", "גורמי דחיפה ומשיכה", "העליות אחרי קום המדינה", "כור ההיתוך",
+              "לאום, דת ואזרחות", "זהות"],
+  "g7-sci": ["מדע וטכנולוגיה", "יחידות מידה", "בטיחות במעבדה", "גוף וחומר", "תכונות של חומרים", "מבנה החומר ומצבי צבירה",
+             "אפקט החממה"],
+  "g7-heb": ["מיומנויות קריאה", "סוגי שאלות", "עובדה, דעה ושמועה", "אוצר מילים", "מילים נרדפות והפכים"],
+  "g7-eng": ["Vocabulary", "Vocabulary: Word List 1", "Reading", "Present Simple", "Present Progressive"]
+};
 const studied = (prof, q) => { const t = (STUDYING[prof.track] || {})[q.pool]; return !t || t.includes(q.topic); };
 const SUBJ = {
-  math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", civ: "אזרחות", bible: "תנ״ך",
+  math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", civ: "אזרחות", midrash: "בית מדרש", bible: "תנ״ך",
   geo: "גאוגרפיה", art: "אמנות", bio: "ביולוגיה", lit: "ספרות"
 };
 const subjOf = pool => String(pool || "").split("-")[1] || "math";

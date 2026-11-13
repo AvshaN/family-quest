@@ -14,6 +14,7 @@ question to both twins.
 | `g7-hist` | the twins | grade 7 history |
 | `g7-bible` | the twins | grade 7 Bible (תנ״ך) |
 | `g7-geo` | the twins | grade 7 geography |
+| `g7-midrash` | the twins | their class's beit midrash unit on change (בית מדרש), from their worksheets |
 | `g7-art` | the art twin | her art major, grade 7 level |
 | `g10-math` | the eldest | grade 10 math, 4 units |
 | `g10-eng` | the eldest | grade 10 English, 5 points |
