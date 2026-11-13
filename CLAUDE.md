@@ -52,7 +52,7 @@ tests with the girls and gives feedback; Claude writes the code.
   the twins' pools are not limited yet.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
-  score like "3/5": Gmail read "דניאל: 3/5" as Daniel Street 3, flat 5, and linked it to Maps
+  score like "3/5": Gmail read a girl's name followed by ": 3/5" as a street address (her name as the street, 3 the number, 5 the flat) and linked it to Maps
   (2026-11-11). Scores are "3 מתוך 5" and `nm_()` puts an invisible joiner in each name.
   The digest timer has `nearMinute(0)`; without it Google fires at any minute of the hour.
 - **Dad's screen** has tabs (`parentToday`, `parentMonth`, `parentLife`, `parentSettings`);

@@ -285,7 +285,7 @@ function weak_(rows, pid, mk) {
 }
 
 /* ---------- the emails' design: tables in inline styles, which every mail app keeps ----------
- * Names never stand next to a score like "3/5": Gmail read "דניאל: 3/5" as an address (Daniel Street 3,
+ * Names never stand next to a score like "3/5": Gmail read a name followed by ": 3/5" as an address (Name Street 3,
  * flat 5) and linked it to Maps. Scores are "3 מתוך 5", and nm_() puts an invisible joiner in each name. */
 var C = { ink: "#17161F", soft: "#6E6A84", line: "#ECEAF3", bg: "#F3F2F8", head: "#0B0B12", good: "#0E9F6E", bad: "#D63A52" };
 function nm_(name) { var s = String(name); return esc_(s.charAt(0)) + "&#8204;" + esc_(s.slice(1)); }
