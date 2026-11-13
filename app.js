@@ -64,7 +64,9 @@ const STUDYING = {
   "g10-bio": {
     "g10-math": ["שיפוע", "משוואת הישר", "ישרים מקבילים", "חיתוך עם הצירים", "חיתוך בין ישרים", "מערכות משוואות",
                  "אמצע קטע", "מרחק בין נקודות", "שטח משולש", "פיתגורס"],
-    "g10-eng": ["Present Simple", "Present Progressive", "Reading"],
+    // English from her notebook too: George Eliot's poem, simile and metaphor, Unit 1's words, Test 2's word list.
+    "g10-eng": ["Present Simple", "Present Progressive", "Reading", "Count That Day Lost", "Literary Terms",
+                "Vocabulary: Unit 1", "Vocabulary: Test 2"],
     // From her Bible notebook (2026-11-13): Genesis 3 had reached the eating; the punishments and the expulsion wait.
     "g10-bible": ["מבנה התנ״ך", "בראשית א: הבריאה", "בראשית ב: גן עדן", "שני סיפורי הבריאה", "בראשית ג: הפיתוי"]
   }

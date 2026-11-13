@@ -1538,5 +1538,1027 @@
     ],
     "explain": "She planned to apologise but, at the last minute, did nothing: “get cold feet” means to lose your courage before doing something.",
     "ltr": true
+  },
+  {
+    "id": "g10-eng-111",
+    "topic": "Count That Day Lost",
+    "level": 1,
+    "q": "In George Eliot’s poem “Count That Day Lost”, what does “set of sun” mean?",
+    "options": [
+      "sunset, the end of the day",
+      "sunrise",
+      "a group of suns",
+      "a sunny day"
+    ],
+    "explain": "“If you sit down at set of sun”: at the end of the day, when the sun sets, you look back on what you did.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-112",
+    "topic": "Count That Day Lost",
+    "level": 1,
+    "q": "In “Count That Day Lost”, a “self-denying deed” is ___.",
+    "options": [
+      "an act of sacrifice: doing something for others instead of for yourself",
+      "a selfish act",
+      "a lie you tell yourself",
+      "a deed you say you didn’t do"
+    ],
+    "explain": "To deny yourself is to give something up. A self-denying deed is an act of sacrifice (מעשה הקרבה).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-113",
+    "topic": "Count That Day Lost",
+    "level": 1,
+    "q": "In the poem, what does “cheer” mean, as in “You’ve cheered no heart”?",
+    "options": [
+      "to make someone happy",
+      "to shout loudly at a game",
+      "to eat together",
+      "to say goodbye"
+    ],
+    "explain": "To cheer someone (up) is to make them happier. Cheering no heart means making nobody feel better.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-114",
+    "topic": "Count That Day Lost",
+    "level": 2,
+    "q": "In the poem, what does it mean to “ease the heart” of someone?",
+    "options": [
+      "to make them feel better",
+      "to break their heart",
+      "to listen to them carefully",
+      "to make them work harder"
+    ],
+    "explain": "To ease is to make something less painful or difficult (להקל). A word that eases the heart comforts the person who hears it.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-115",
+    "topic": "Count That Day Lost",
+    "level": 2,
+    "q": "According to “Count That Day Lost”, when may you count a day “well spent”?",
+    "options": [
+      "When you did at least one kind act for someone else",
+      "When you worked hard all day",
+      "When the sun shone all day",
+      "When you made no mistakes"
+    ],
+    "explain": "If, counting your acts at the end of the day, you find one self-denying deed, one kind word or one kind glance, “Then you may count that day well spent.”",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-116",
+    "topic": "Count That Day Lost",
+    "level": 2,
+    "q": "What does the poem say about a day in which you cheered no heart?",
+    "options": [
+      "It is worse than lost.",
+      "It is well spent.",
+      "It doesn’t matter.",
+      "You should sleep earlier."
+    ],
+    "explain": "If you’ve done nothing to bring the sunshine to one face, “Then count that day as worse than lost.”",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-117",
+    "topic": "Count That Day Lost",
+    "level": 2,
+    "q": "“One glance most kind / That fell like sunshine where it went.” Which figure of speech is this?",
+    "options": [
+      "a simile",
+      "a metaphor",
+      "a rhyme",
+      "a stanza"
+    ],
+    "explain": "The kind glance is compared to sunshine with the word “like”, so it is a simile.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-118",
+    "topic": "Count That Day Lost",
+    "level": 3,
+    "q": "“…that brought the sunshine to one face.” Why is this a metaphor and not a simile?",
+    "options": [
+      "It calls the happiness “sunshine” directly, without “like” or “as”.",
+      "It uses the word “like”.",
+      "It rhymes with another line.",
+      "It describes real sunshine on a face."
+    ],
+    "explain": "A metaphor speaks of one thing as if it were another: the joy you bring is called sunshine, with no “like” or “as”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-119",
+    "topic": "Count That Day Lost",
+    "level": 2,
+    "q": "Which pair of words rhymes in “Count That Day Lost”?",
+    "options": [
+      "sun – done",
+      "day – lost",
+      "heart – kind",
+      "face – deed"
+    ],
+    "explain": "“If you sit down at set of sun / And count the acts that you have done”. Rhymes are words that end with the same sound (חרוזים).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-120",
+    "topic": "Count That Day Lost",
+    "level": 3,
+    "q": "What is the main message of “Count That Day Lost”?",
+    "options": [
+      "Even one small act of kindness gives a day its value.",
+      "Every day should be spent working.",
+      "Watching the sunset is the best part of the day.",
+      "People should count their money every evening."
+    ],
+    "explain": "The poem measures a day by the kindness in it: one kind deed, word or look makes it well spent; none makes it worse than lost.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-121",
+    "topic": "Count That Day Lost",
+    "level": 1,
+    "q": "What is a stanza?",
+    "options": [
+      "a group of lines in a poem, like a paragraph",
+      "a word that rhymes with another",
+      "the title of a poem",
+      "the poet’s name"
+    ],
+    "explain": "A stanza (בית בשיר) is a group of lines in a poem. “Count That Day Lost” has two.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-122",
+    "topic": "Literary Terms",
+    "level": 1,
+    "q": "What is a simile?",
+    "options": [
+      "a comparison that says one thing is like another, usually with “like” or “as”",
+      "describing one thing as if it really were another, without “like” or “as”",
+      "words that end with the same sound",
+      "a group of lines in a poem"
+    ],
+    "explain": "A simile compares with “like” or “as”: She swims like a fish.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-123",
+    "topic": "Literary Terms",
+    "level": 1,
+    "q": "What is a metaphor?",
+    "options": [
+      "describing one thing as if it really were something else",
+      "a comparison with “like” or “as”",
+      "a word that sounds like what it describes",
+      "the main idea of a poem"
+    ],
+    "explain": "A metaphor treats the two things as if they were the same: She is a flower.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-124",
+    "topic": "Literary Terms",
+    "level": 1,
+    "q": "“She swims like a fish.” This is ___.",
+    "options": [
+      "a simile",
+      "a metaphor",
+      "a rhyme",
+      "a stanza"
+    ],
+    "explain": "“Like” shows a comparison: a simile.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-125",
+    "topic": "Literary Terms",
+    "level": 1,
+    "q": "“She is a flower.” This is ___.",
+    "options": [
+      "a metaphor",
+      "a simile",
+      "a rhyme",
+      "a stanza"
+    ],
+    "explain": "She is described as if she really were a flower, with no “like” or “as”: a metaphor.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-126",
+    "topic": "Literary Terms",
+    "level": 2,
+    "q": "Which sentence contains a metaphor?",
+    "options": [
+      "Time is a thief.",
+      "He runs like the wind.",
+      "Her eyes shine as bright as stars.",
+      "The baby sleeps like an angel."
+    ],
+    "explain": "“Time is a thief” says time is a thief, without “like” or “as”. The other three compare with “like” or “as”: similes.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-127",
+    "topic": "Literary Terms",
+    "level": 2,
+    "q": "Which sentence contains a simile?",
+    "options": [
+      "The classroom was as quiet as a library.",
+      "The classroom was a zoo.",
+      "Life is a journey.",
+      "My brother is a couch potato."
+    ],
+    "explain": "“As quiet as a library” compares with “as”: a simile. The others are metaphors.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-128",
+    "topic": "Vocabulary: Unit 1",
+    "level": 1,
+    "q": "What does “compassion” mean?",
+    "options": [
+      "חמלה",
+      "אומץ",
+      "נדיבות",
+      "קבלה"
+    ],
+    "explain": "Compassion is feeling for someone who suffers and wanting to help (חמלה).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-129",
+    "topic": "Vocabulary: Unit 1",
+    "level": 1,
+    "q": "What does “courage” mean?",
+    "options": [
+      "אומץ",
+      "חמלה",
+      "ערך",
+      "מבחר"
+    ],
+    "explain": "Courage (אומץ) is being brave: doing something even though it is frightening.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-130",
+    "topic": "Vocabulary: Unit 1",
+    "level": 1,
+    "q": "Sharing your lunch with a friend who forgot his is an act of ___.",
+    "options": [
+      "generosity",
+      "possession",
+      "selection",
+      "exhibition"
+    ],
+    "explain": "Generosity (נדיבות) is giving freely to others.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-131",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "Firefighters run into burning buildings. That takes real ___.",
+    "options": [
+      "courage",
+      "acceptance",
+      "selection",
+      "possession"
+    ],
+    "explain": "Facing danger takes courage.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-132",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "You can always ___ me. I’ll be there when you need help.",
+    "options": [
+      "count on",
+      "contradict",
+      "ignore",
+      "recall"
+    ],
+    "explain": "To count on someone (לסמוך על) is to trust them to help you.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-133",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "I tried to talk to him, but he ___ me and kept walking.",
+    "options": [
+      "ignored",
+      "motivated",
+      "valued",
+      "explored"
+    ],
+    "explain": "To ignore (להתעלם) is to pay no attention to someone or something.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-134",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "The museum has a new ___ of modern photography.",
+    "options": [
+      "exhibition",
+      "possession",
+      "generosity",
+      "courage"
+    ],
+    "explain": "An exhibition (תערוכה) is a public show of art or objects.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-135",
+    "topic": "Vocabulary: Unit 1",
+    "level": 1,
+    "q": "What does “recall” mean?",
+    "options": [
+      "להיזכר",
+      "להתעלם",
+      "לסתור",
+      "לחקור"
+    ],
+    "explain": "To recall is to remember (להיזכר).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-136",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "His two stories ___ each other: in one he was at home, in the other at the beach.",
+    "options": [
+      "contradict",
+      "define",
+      "explore",
+      "focus"
+    ],
+    "explain": "Two statements contradict each other (סותרים) when they can’t both be true.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-137",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "What does “belongings” mean?",
+    "options": [
+      "חפצים אישיים",
+      "שייכות לקבוצה",
+      "אמונות",
+      "רגשות"
+    ],
+    "explain": "Your belongings are the things you own (חפצים, רכוש). Careful: “to belong to a group” is a different idea.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-138",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "She was ___ by the stars and spent hours looking at them.",
+    "options": [
+      "fascinated",
+      "ignored",
+      "independent",
+      "ordinary"
+    ],
+    "explain": "Fascinated by (מרותק ל) means extremely interested in.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-139",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "A good coach knows how to ___ players to give their best.",
+    "options": [
+      "motivate",
+      "contradict",
+      "ignore",
+      "recall"
+    ],
+    "explain": "To motivate (להניע, לתת מוטיבציה) is to make someone want to do something.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-140",
+    "topic": "Vocabulary: Unit 1",
+    "level": 3,
+    "q": "Teenagers ___ sleep late at weekends.",
+    "options": [
+      "tend to",
+      "count on",
+      "are aware of",
+      "are fascinated by"
+    ],
+    "explain": "Tend to (נוטה ל) + verb: to usually do something. The others need a noun or -ing after them.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-141",
+    "topic": "Vocabulary: Unit 1",
+    "level": 1,
+    "q": "What does “independent” mean?",
+    "options": [
+      "עצמאי",
+      "תלוי באחרים",
+      "אדיש",
+      "נדיב"
+    ],
+    "explain": "Independent (עצמאי) means not needing others to do things for you.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-142",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "You don’t have to be ___ to be a hero: ordinary people can do great things.",
+    "options": [
+      "superhuman",
+      "ordinary",
+      "common",
+      "independent"
+    ],
+    "explain": "Superhuman (על־אנושי) means with powers beyond a normal person’s, like a superhero.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-143",
+    "topic": "Vocabulary: Unit 1",
+    "level": 3,
+    "q": "Before you answer, ___ how your words might make the other person feel.",
+    "options": [
+      "consider",
+      "contradict",
+      "ignore",
+      "exchange"
+    ],
+    "explain": "To consider (לשקול, להתחשב) is to think carefully about something.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-144",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "In “we value our friends”, what does “value” mean?",
+    "options": [
+      "להעריך",
+      "למכור",
+      "לבחור",
+      "לשכוח"
+    ],
+    "explain": "As a verb, to value is to appreciate, think something is important (להעריך). As a noun, a value is ערך.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-145",
+    "topic": "Vocabulary: Unit 1",
+    "level": 1,
+    "q": "What does “ordinary” mean?",
+    "options": [
+      "רגיל",
+      "מיוחד",
+      "מסודר",
+      "מפחיד"
+    ],
+    "explain": "Ordinary (רגיל) means normal, not special.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-146",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "Be ___ the risks before you start: know what could go wrong.",
+    "options": [
+      "aware of",
+      "fascinated by",
+      "counting on",
+      "tending to"
+    ],
+    "explain": "To be aware of (להיות מודע ל) is to know about something.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-147",
+    "topic": "Vocabulary: Unit 1",
+    "level": 3,
+    "q": "Living in a ___ means meeting only people who think exactly like you.",
+    "options": [
+      "bubble",
+      "selection",
+      "exhibition",
+      "possession"
+    ],
+    "explain": "A bubble (בועה) can also mean a closed world, cut off from other people and ideas.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-148",
+    "topic": "Vocabulary: Unit 1",
+    "level": 2,
+    "q": "The shop has a wide ___ of books in English.",
+    "options": [
+      "selection",
+      "compassion",
+      "acceptance",
+      "courage"
+    ],
+    "explain": "A selection (מבחר) is a range of things to choose from.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-149",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “barely” mean?",
+    "options": [
+      "בקושי",
+      "במיוחד",
+      "כתוצאה מכך",
+      "בתקווה"
+    ],
+    "explain": "Barely (בקושי) means only just, almost not: I barely slept.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-150",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “consequently” mean?",
+    "options": [
+      "כתוצאה מכך",
+      "במיוחד",
+      "בקושי",
+      "באופן מדהים"
+    ],
+    "explain": "Consequently (כתוצאה מכך) introduces a result: It rained; consequently, the game was cancelled.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-151",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “particularly” mean?",
+    "options": [
+      "במיוחד",
+      "בקושי",
+      "כתוצאה מכך",
+      "בתקווה"
+    ],
+    "explain": "Particularly (במיוחד) means especially, more than usual.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-152",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “a fare” mean?",
+    "options": [
+      "דמי נסיעה",
+      "יריד",
+      "פחד",
+      "חוב"
+    ],
+    "explain": "A fare is the money you pay for a journey by bus, train or taxi. Don’t mix it up with “fair” (יריד, הוגן) or “fear” (פחד).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-153",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “capacity” mean?",
+    "options": [
+      "קיבולת, נפח",
+      "תעודה",
+      "תערובת",
+      "חוב"
+    ],
+    "explain": "Capacity (קיבולת, נפח) is how much something can hold: a stadium’s capacity.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-154",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “native” mean?",
+    "options": [
+      "יליד, מקומי",
+      "תייר",
+      "קשיש",
+      "מומחה"
+    ],
+    "explain": "Native (יליד, מקומי) means born in a place or belonging to it: a native speaker.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-155",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “accessible” mean?",
+    "options": [
+      "נגיש",
+      "מקובל",
+      "מוצלח",
+      "קיצוני"
+    ],
+    "explain": "Accessible (נגיש) means easy to reach or use. Careful: “acceptable” (מקובל) is a different word.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-156",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “extreme” mean?",
+    "options": [
+      "קיצוני",
+      "חיצוני",
+      "ממוצע",
+      "מסוים"
+    ],
+    "explain": "Extreme (קיצוני) means very great, or at the far end: extreme heat.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-157",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “elderly” mean?",
+    "options": [
+      "קשישים, מבוגרים",
+      "ילדים",
+      "מומחים",
+      "אבות קדמונים"
+    ],
+    "explain": "Elderly (קשיש) is a polite word for old people. Ancestors (אבות קדמונים) lived long ago.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-158",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “struggling” mean?",
+    "options": [
+      "מתקשה, נאבק",
+      "משתפר",
+      "משתתף",
+      "מנצח"
+    ],
+    "explain": "Struggling (מתקשה, נאבק) means having great difficulty: a struggling student.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-159",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “guidance” mean?",
+    "options": [
+      "הדרכה",
+      "צדק",
+      "טיפול",
+      "תחפושת"
+    ],
+    "explain": "Guidance (הדרכה) is help and advice from someone who knows more.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-160",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “justice” mean?",
+    "options": [
+      "צדק",
+      "רק",
+      "הדרכה",
+      "פחד"
+    ],
+    "explain": "Justice (צדק) is fairness. Careful: “just” can mean רק, but “justice” is צדק.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-161",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “a landscape” mean?",
+    "options": [
+      "נוף",
+      "מסכה",
+      "תערובת",
+      "צחוק"
+    ],
+    "explain": "A landscape (נוף) is everything you can see in an area of land.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-162",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “hopefully” mean?",
+    "options": [
+      "בתקווה, אני מקווה ש...",
+      "חסר תקווה",
+      "בקושי",
+      "כתוצאה מכך"
+    ],
+    "explain": "Hopefully (בתקווה) means I hope that…: Hopefully it won’t rain.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-163",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “potentially” mean?",
+    "options": [
+      "באופן פוטנציאלי, ייתכן ש...",
+      "בהחלט",
+      "בקושי",
+      "במיוחד"
+    ],
+    "explain": "Potentially (באופן פוטנציאלי) means possibly, in the future: a potentially dangerous situation.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-164",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "The bus ___ went up again: it now costs eight shekels.",
+    "options": [
+      "fare",
+      "debt",
+      "fear",
+      "claim"
+    ],
+    "explain": "The money you pay for a journey is the fare.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-165",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "My family’s ___ came from Morocco hundreds of years ago.",
+    "options": [
+      "ancestors",
+      "experts",
+      "costumes",
+      "treatments"
+    ],
+    "explain": "Ancestors (אבות קדמונים) are the people in your family who lived long before you.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-166",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The stadium has a ___ of 30,000 people.",
+    "options": [
+      "capacity",
+      "mixture",
+      "certificate",
+      "landscape"
+    ],
+    "explain": "Capacity is how many people or how much something can hold.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-167",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The new ramp makes the library ___ to people in wheelchairs.",
+    "options": [
+      "accessible",
+      "anxious",
+      "painless",
+      "casual"
+    ],
+    "explain": "Accessible: easy to reach or enter.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-168",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "She was ___ before the exam and couldn’t sleep.",
+    "options": [
+      "anxious",
+      "average",
+      "elderly",
+      "accessible"
+    ],
+    "explain": "Anxious (חרד, מודאג) means worried and nervous.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-169",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "I ___ caught the bus: the doors closed right behind me.",
+    "options": [
+      "barely",
+      "particularly",
+      "potentially",
+      "consequently"
+    ],
+    "explain": "Barely: only just. He caught it, but almost didn’t.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-170",
+    "topic": "Vocabulary: Test 2",
+    "level": 3,
+    "q": "He forgot to set his alarm. ___, he was late for school.",
+    "options": [
+      "Consequently",
+      "Hopefully",
+      "Barely",
+      "Particularly"
+    ],
+    "explain": "The second sentence is a result of the first, so “Consequently” (כתוצאה מכך) links them.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-171",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "At the end of the course, every participant receives a ___.",
+    "options": [
+      "certificate",
+      "debt",
+      "fare",
+      "landscape"
+    ],
+    "explain": "A certificate (תעודה) is an official document that shows you completed something.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-172",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Doctors are still looking for a way to ___ the disease.",
+    "options": [
+      "cure",
+      "rob",
+      "plant",
+      "absorb"
+    ],
+    "explain": "To cure (לרפא) is to make a sick person healthy again, or end a disease.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-173",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "A sponge can ___ a lot of water.",
+    "options": [
+      "absorb",
+      "request",
+      "participate",
+      "improve"
+    ],
+    "explain": "To absorb (לספוג) is to take in a liquid, or information.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-174",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Everyone in the class is invited to ___ in the debate.",
+    "options": [
+      "participate",
+      "rob",
+      "cure",
+      "absorb"
+    ],
+    "explain": "To participate in (להשתתף ב) is to take part.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-175",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "It’s a ___ party, so you can come in jeans and a T-shirt.",
+    "options": [
+      "casual",
+      "extreme",
+      "native",
+      "painless"
+    ],
+    "explain": "Casual (יומיומי, לא רשמי) means relaxed and informal.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-176",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "He ___ that he had never seen the wallet, but nobody believed him.",
+    "options": [
+      "claimed",
+      "requested",
+      "planted",
+      "robbed"
+    ],
+    "explain": "To claim (לטעון) is to say something is true, often when others may doubt it.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-177",
+    "topic": "Vocabulary: Test 2",
+    "level": 3,
+    "q": "It’s ___ to expect a ten-year-old to cook dinner every night.",
+    "options": [
+      "unreasonable",
+      "accessible",
+      "average",
+      "painless"
+    ],
+    "explain": "Unreasonable (לא סביר, לא הגיוני) means not fair or not sensible.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-178",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The patient is getting a new ___ for his back pain.",
+    "options": [
+      "treatment",
+      "costume",
+      "landscape",
+      "debt"
+    ],
+    "explain": "A treatment (טיפול) is what doctors do to cure or help an illness.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-179",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "She finally paid back her ___ to the bank.",
+    "options": [
+      "debt",
+      "fare",
+      "claim",
+      "laugh"
+    ],
+    "explain": "A debt (חוב) is money you owe.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-180",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "He wore a pirate ___ to the Purim party.",
+    "options": [
+      "costume",
+      "certificate",
+      "mixture",
+      "landscape"
+    ],
+    "explain": "A costume (תחפושת) is the clothes you wear to look like someone else.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-181",
+    "topic": "Vocabulary: Test 2",
+    "level": 3,
+    "q": "There was a ___ between the two teams about the referee’s decision.",
+    "options": [
+      "disagreement",
+      "mixture",
+      "certificate",
+      "capacity"
+    ],
+    "explain": "A disagreement (ויכוח, אי הסכמה) is when people don’t agree.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-182",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "It was an ___ hot day: 45 degrees in the shade.",
+    "options": [
+      "incredibly",
+      "barely",
+      "hopefully",
+      "potentially"
+    ],
+    "explain": "Incredibly (באופן מדהים) means extremely, hard to believe.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-183",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Practice every day and you will ___ quickly.",
+    "options": [
+      "improve",
+      "rob",
+      "request",
+      "absorb"
+    ],
+    "explain": "To improve (לשפר, להשתפר) is to get better.",
+    "ltr": true
   }
 ]

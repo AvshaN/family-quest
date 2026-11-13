@@ -48,7 +48,9 @@ tests with the girls and gives feedback; Claude writes the code.
   hadn't studied; her math is now her notebook's test list (the straight
   line: slope, line equation, parallel lines, axes and two lines meeting,
   midpoint, distance, triangle area, Pythagoras) and her English the present
-  simple and progressive and reading. Her Bible (`g10-bible`, added the same
+  simple and progressive and reading, and from her English notebook George
+  Eliot's "Count That Day Lost", simile and metaphor, and two word lists
+  (Unit 1; Module E Test 2). Her Bible (`g10-bible`, added the same
   day from her notebook) is Tanakh structure and Genesis 1-3 up to the
   eating; its punishments-and-expulsion topic is written and waits off.
   Avsha is sending each subject's notebook pages; build each pool from them.
