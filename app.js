@@ -56,18 +56,22 @@ const TRACKS = {
   "g7-art":  { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-art", 3], ["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-bible", 1], ["g7-geo", 1]] }
 };
 const trackPools = tr => { const t = TRACKS[tr] || TRACKS.g7; return [t.math, t.eng, ...t.other.map(o => o[0])]; };
-/* What each track's class has reached: a pool listed here gives her only these topics, in the daily five and in
+/* What each track's class has reached (Avsha's rule, 2026-11-13: a topic the curriculum states beside one in her
+ * notebook counts as studied; the topic that comes after it does not): a pool listed here gives her only these topics, in the daily five and in
  * revenge rounds; a pool not listed gives all its topics. On 2026-11-13 the eldest met probability, modals of
  * deduction and word formation, none studied yet; her notebook's test list was the straight line, and in English
  * her class was on the present simple and progressive and reading. Open a topic here as the class reaches it. */
 const STUDYING = {
   "g10-bio": {
-    "g10-math": ["שיפוע", "משוואת הישר", "ישרים מקבילים", "חיתוך עם הצירים", "חיתוך בין ישרים", "מערכות משוואות",
-                 "אמצע קטע", "מרחק בין נקודות", "שטח משולש", "פיתגורס"],
+    // Perpendicular lines and the line's rising or falling (2026-11-13): stated beside parallel lines in the curriculum.
+    "g10-math": ["שיפוע", "משוואת הישר", "ישרים מקבילים", "ישרים מאונכים", "הפונקציה הקווית", "חיתוך עם הצירים",
+                 "חיתוך בין ישרים", "מערכות משוואות", "אמצע קטע", "מרחק בין נקודות", "שטח משולש", "פיתגורס"],
     // English from her notebook too: George Eliot's poem, simile and metaphor, Unit 1's words, Test 2's word list.
     "g10-eng": ["Present Simple", "Present Progressive", "Reading", "Count That Day Lost", "Literary Terms",
                 "Vocabulary: Unit 1", "Vocabulary: Test 2"],
     // From her Bible notebook (2026-11-13): Genesis 3 had reached the eating; the punishments and the expulsion wait.
+    // Her Hebrew language notebook: the argument text, parts of speech, subject and predicate, connectors, numbers.
+    "g10-heb": ["טקסט טיעון", "חלקי הדיבור", "חלקי המשפט", "קשרים לוגיים", "שם המספר"],
     "g10-bible": ["מבנה התנ״ך", "בראשית א: הבריאה", "בראשית ב: גן עדן", "שני סיפורי הבריאה", "בראשית ג: הפיתוי"]
   }
 };

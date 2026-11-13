@@ -54,6 +54,15 @@ tests with the girls and gives feedback; Claude writes the code.
   day from her notebook) is Tanakh structure and Genesis 1-3 up to the
   eating; its punishments-and-expulsion topic is written and waits off.
   Avsha is sending each subject's notebook pages; build each pool from them.
+  **His rule for every round** (2026-11-13): the notebooks don't cover all
+  that was taught, so compare them with the curriculum, and a topic or part
+  the curriculum states beside one in the notes counts as studied (her
+  perpendicular lines, beside parallel lines); the topic that comes after it
+  does not (Genesis 3's punishments; the kinds of verb complement). Say what
+  was added this way; the girls will complain if it's wrong.
+  Her Hebrew language (`g10-heb`): the argument text, parts of speech and
+  the verb / infinitive / action-noun forms, subject, predicate, noun and
+  verb complements, logical connectors and the cardinal numbers.
   Open a topic as the class reaches it; the twins' pools are not limited yet.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
