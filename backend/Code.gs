@@ -205,7 +205,7 @@ function nightlyDigest() {
   var headline = n === r.girls.length ? "כולן שיחקו היום" : n + " מתוך " + r.girls.length + " שיחקו היום" + (missing.length ? " · חסרה: " + joinHe_(missing.map(nm_)) : "");
   var sub = "יום " + dow + ", " + Number(today.slice(8)) + " ב" + MONTHS[m - 1] + " · נשארו " + r.daysLeft + " ימים לחודש";
   mail_(appName_() + " · " + dow + " " + Number(today.slice(8)) + "." + m + " · " + (n === r.girls.length ? "כולן שיחקו" : n + " מתוך " + r.girls.length + " שיחקו"),
-    shell_(headline, sub, [todaySection_(r), monthSection_(r, "החודש · " + MONTHS[m - 1]), focusSection_(r), lifetimeSection_(r)], footer_(r)));
+    shell_(headline, sub, [todaySection_(r), examsSection_(r), monthSection_(r, "החודש · " + MONTHS[m - 1]), focusSection_(r), lifetimeSection_(r)], footer_(r)));
 }
 
 function monthlyClose() {
@@ -229,7 +229,7 @@ function monthlyClose() {
   var impHtml = imp ? "<p style='margin:0;font-size:14px'>השתפרה הכי הרבה: " + who_(r.girls.filter(function (g) { return g.id === imp.id; })[0]) +
     " <span dir='ltr'>(+" + imp.gain + "%</span> דיוק). " + esc_(setting_("improved_reward")) + ".</p>" : "";
   mail_(appName_() + " · " + month + ": " + names.join(" ו") + (names.length > 1 ? " אלופות החודש" : " אלופת החודש"),
-    shell_(headline, sub, [monthSection_(r, "הטבלה הסופית · " + month), impHtml ? section_("Most improved", "", impHtml) : "", lifetimeSection_(r)], footer_(r)));
+    shell_(headline, sub, [monthSection_(r, "הטבלה הסופית · " + month), impHtml ? section_("Most improved", "", impHtml) : "", examsSection_(r), lifetimeSection_(r)], footer_(r)));
 }
 
 /* ---------- what the emails and the parent screen show ---------- */
@@ -255,10 +255,11 @@ function report_(today, y, m) {
       life: lifetime_(rows, toks, p.id)
     };
   });
-  var soon = tests_().filter(function (t) { return t.date >= today && t.date <= addDays_(today, 7); });
+  var exams = tests_().filter(function (t) { return t.date >= today; })
+    .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
   return { today: today, y: y, m: m, elapsed: elapsed, daysLeft: inMonth ? dim - elapsed : 0, girls: girls,
            goal: Number(setting_("goal")) || 250, goalReward: String(setting_("goal_reward") || ""),
-           family: girls.reduce(function (t, g) { return t + g.month.right; }, 0), tests: soon };
+           family: girls.reduce(function (t, g) { return t + g.month.right; }, 0), exams: exams };
 }
 function lifetime_(rows, toks, pid) {
   var mine = rows.filter(function (x) { return x.p === pid; }), points = 0, days = 0;
@@ -350,13 +351,30 @@ function focusSection_(r) {
     if (g.month.weak.length) bits.push("כדאי לחזק החודש: " + g.month.weak.map(esc_).join(" · "));
     return bits.length ? "<p style='margin:0 0 10px;font-size:14px;line-height:1.6'>" + who_(g) + "<br>" + bits.join("<br>") + "</p>" : "";
   }).join("");
-  var tests = r.tests.map(function (t) {
+  if (!lines) return "";
+  return section_("Focus", "על מה לשים לב", lines);
+}
+/* Every upcoming exam, soonest first (Avsha, 2026-11-13): the date, whose, the subject, how long until it. A week
+ * before an exam three of her five come from its subject (TEST_LEAD in app.js), and that week is lit. */
+var TEST_LEAD = 7;
+function examsSection_(r) {
+  var rows = r.exams.slice(0, 12).map(function (t) {
     var g = r.girls.filter(function (x) { return x.id === t.p; })[0];
-    return "<li style='margin-bottom:4px'>" + (g ? nm_(g.name) : esc_(t.p)) + ": " + (SUBJ[t.subj] || esc_(t.subj)) + (t.note ? " (" + esc_(t.note) + ")" : "") +
-      ", יום " + DAYS_FULL[new Date(Number(t.date.slice(0, 4)), Number(t.date.slice(5, 7)) - 1, Number(t.date.slice(8))).getDay()] + " " + Number(t.date.slice(8)) + "." + Number(t.date.slice(5, 7)) + "</li>";
-  }).join("");
-  if (!lines && !tests) return "";
-  return section_("Focus", "על מה לשים לב", lines + (tests ? "<div style='font-size:14px;font-weight:700;margin-top:6px'>מבחנים בשבוע הקרוב</div><ul style='margin:6px 0 0;padding-right:18px;font-size:14px'>" + tests + "</ul>" : ""));
+    if (!g) return "";
+    var n = daysTo_(r.today, t.date), when = n <= 0 ? "היום" : n === 1 ? "מחר" : n === 2 ? "מחרתיים" : "בעוד " + n + " ימים";
+    var d = new Date(Number(t.date.slice(0, 4)), Number(t.date.slice(5, 7)) - 1, Number(t.date.slice(8)));
+    return "<tr>" + td_("יום " + DAYS_FULL[d.getDay()] + " " + ltr_(d.getDate() + "." + (d.getMonth() + 1)), "white-space:nowrap") + td_(who_(g)) +
+      td_(esc_(SUBJ[t.subj] || t.subj) + (t.note ? "<br><span style='font-size:12px;color:" + C.soft + "'>" + esc_(t.note) + "</span>" : "")) +
+      td_(n <= TEST_LEAD ? "<b style='color:#B7862A'>" + when + "</b>" : when, n <= TEST_LEAD ? "" : "color:" + C.soft) + "</tr>";
+  }).filter(String);
+  if (!rows.length) return "";
+  return section_("Exams", "מבחנים קרובים", table_(["תאריך", "", "מקצוע", ""], rows) +
+    "<p style='margin:8px 0 0;font-size:12px;color:" + C.soft + "'>שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו.</p>");
+}
+function daysTo_(a, b) {
+  var x = Date.UTC(Number(a.slice(0, 4)), Number(a.slice(5, 7)) - 1, Number(a.slice(8)));
+  var y = Date.UTC(Number(b.slice(0, 4)), Number(b.slice(5, 7)) - 1, Number(b.slice(8)));
+  return Math.round((y - x) / 86400000);
 }
 function lifetimeSection_(r) {
   var life = r.girls.map(function (g) {

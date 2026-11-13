@@ -100,10 +100,12 @@ const STUDYING = {
 STUDYING.g7 = STUDYING["g7-art"] = {
   "g7-hist": ["ציר זמן וחשיבה היסטורית", "רונית אלקבץ", "גורמי דחיפה ומשיכה", "העליות אחרי קום המדינה", "כור ההיתוך",
               "לאום, דת ואזרחות", "זהות"],
-  "g7-sci": ["מדע וטכנולוגיה", "יחידות מידה", "בטיחות במעבדה", "גוף וחומר", "תכונות של חומרים", "מבנה החומר ומצבי צבירה",
-             "אפקט החממה"],
+  // Their science book is Matmon Hadash, "Exploring Matter and Energy A": its first gate, a journey among materials, is
+  // where their notes are; the particle model is the second gate and waits.
+  "g7-sci": ["מדע וטכנולוגיה", "יחידות מידה", "בטיחות במעבדה", "גוף וחומר", "תכונות של חומרים", "מצבי צבירה", "אפקט החממה"],
   "g7-heb": ["מיומנויות קריאה", "סוגי שאלות", "עובדה, דעה ושמועה", "אוצר מילים", "מילים נרדפות והפכים"],
-  "g7-eng": ["Vocabulary", "Vocabulary: Word List 1", "Reading", "Present Simple", "Present Progressive"]
+  // Their English book is Teamwork (7th grade, Band II of the Ministry's word list); no unit started yet.
+  "g7-eng": ["Vocabulary", "Vocabulary: Word List 1", "Vocabulary: Band II", "Reading", "Present Simple", "Present Progressive"]
 };
 const studied = (prof, q) => { const t = (STUDYING[prof.track] || {})[q.pool]; return !t || t.includes(q.topic); };
 const SUBJ = {
@@ -219,8 +221,12 @@ function otherPool(prof, date) {
 }
 function subjectsOf(prof) { return [...new Set(trackPools(prof.track).map(subjOf))]; }
 function poolFor(prof, subj) { return trackPools(prof.track).find(p => subjOf(p) === subj) || null; }
+/* For a week before an exam, three of her five come from its subject (Avsha, 2026-11-13; it was three days). */
+const TEST_LEAD = 7;
+const inDays = n => n <= 0 ? "היום" : n === 1 ? "מחר" : n === 2 ? "מחרתיים" : `בעוד ${n} ימים`;
+const dateHe = d => `${DAYS_FULL[parseYmd(d).getDay()]} ${+d.slice(8)}.${+d.slice(5, 7)}`;
 function activeTest(prof, date) {
-  return tests().filter(t => t.p === prof.id && t.date >= date && daysBetween(date, t.date) <= 3)
+  return tests().filter(t => t.p === prof.id && t.date >= date && daysBetween(date, t.date) <= TEST_LEAD)
     .sort((a, b) => a.date < b.date ? -1 : 1)[0] || null;
 }
 function dailySet(prof, date, src) {
@@ -507,7 +513,7 @@ function renderHome() {
     hero = `<section class="glass hero-card">
       <span class="eyebrow">${DAYS_FULL[NOW.getDay()]} · ${D} ב${MONTHS[M - 1]}</span>
       <h1 class="display">${resumed ? `עוד ${set.length - resumed} שאלות` : "חמש שאלות"}</h1>
-      <div class="chips">${chips}${test ? `<span class="chip warn">${ICON.cal.replace("<svg", '<svg width="14" height="14"')} מבחן ב${esc(SUBJ[test.subj] || test.subj)}</span>` : ""}${rev ? `<span class="chip warn">+1 סיבוב נקמה</span>` : ""}</div>
+      <div class="chips">${chips}${test ? `<span class="chip warn">${ICON.cal.replace("<svg", '<svg width="14" height="14"')} מבחן ב${esc(SUBJ[test.subj] || test.subj)} ${inDays(daysBetween(TODAY, test.date))}</span>` : ""}${rev ? `<span class="chip warn">+1 סיבוב נקמה</span>` : ""}</div>
       <div class="meta"><span>בערך <b>3 דקות</b></span><span>עד <b class="num">${POINTS.day + 5 * POINTS.right + (rev ? POINTS.revenge : 0)}</b> נקודות</span></div>
       <button type="button" class="btn btn-primary wide" data-act="start">${resumed ? "להמשיך" : "להתחיל"}</button></section>`;
   }
@@ -539,7 +545,7 @@ function renderHome() {
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Tests</span>
       <button type="button" class="btn btn-ghost btn-sm" data-act="addTest">${ICON.plus.replace("<svg", '<svg width="16" height="16"')} מבחן</button></div>
     ${upcoming.length ? upcoming.map(t => `<div class="row small"><span>${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` · ${esc(t.note)}` : ""}</span><span class="muted">${DAYS_FULL[parseYmd(t.date).getDay()]} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}</span></div>`).join("")
-      : `<p class="small muted">יש מבחן בקרוב? שלושה ימים לפניו, השאלות מתמקדות במקצוע שלו.</p>`}</section>
+      : `<p class="small muted">יש מבחן בקרוב? שבוע לפניו, רוב השאלות יהיו מהמקצוע שלו.</p>`}</section>
   ${LIVE ? "" : `<p class="demo">תצוגה לדוגמה: ההיסטוריה עד היום היא נתוני דוגמה.</p>`}`;
 }
 
@@ -682,7 +688,19 @@ function parentToday() {
   }).join(" ");
   return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Today</span><span class="small muted">${n === ts.length ? "כולן שיחקו" : `${n} מתוך ${ts.length} שיחקו${missing.length ? ` · חסרה: ${joinHe(missing)}` : ""}`}</span></div>
     ${table(["", "ציון", "נקמה", "נקודות", "השבוע", "שעה"], rowsHTML)}</section>
+  ${examsCard()}
   <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>`;
+}
+/* Upcoming exams, every girl's, soonest first, as in the evening email; the week of focus is lit. */
+function examsCard() {
+  const up = tests().filter(t => t.date >= TODAY && profile(t.p)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  const rowsHTML = up.slice(0, 12).map(t => { const n = daysBetween(TODAY, t.date), p = profile(t.p);
+    // when it is and how long until it share a cell: a fourth column ran off a phone's width
+    return `<tr><td class="num"><b>${dateHe(t.date)}</b><br>${n <= TEST_LEAD ? `<span class="chip warn">${inDays(n)}</span>` : `<span class="small muted">${inDays(n)}</span>`}</td>
+      <td>${nameCell(p)}</td><td>${esc(SUBJ[t.subj] || t.subj)}${t.note ? `<br><span class="small faint">${esc(t.note)}</span>` : ""}</td></tr>`; });
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Exams</span><span class="small muted">מבחנים קרובים</span></div>
+    ${up.length ? table(["מתי", "", "מקצוע"], rowsHTML) + `<p class="small faint">שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו.</p>`
+      : `<p class="small muted">אין מבחנים ברשימה. הבנות מוסיפות מבחן במסך הבית שלהן (״+ מבחן״).</p>`}</section>`;
 }
 function parentMonth() {
   const rk = ranking(Y, M), s = FAM.settings, lead = rk[0] ? rk[0].points : 0, goal = +s.goal || 250;
@@ -943,9 +961,9 @@ function toast(msg) {
 }
 function testSheet() {
   const p = me(), subs = subjectsOf(p);
-  sheet(`<h3>מבחן בקרוב</h3><p class="small muted">שלושה ימים לפני המבחן, רוב השאלות יהיו מהמקצוע הזה.</p>
+  sheet(`<h3>מבחן בקרוב</h3><p class="small muted">שבוע לפני המבחן, רוב השאלות יהיו מהמקצוע הזה.</p>
     <div class="field"><label>מקצוע</label><div class="seg-pick" id="tsub">${subs.map((s, i) => `<button type="button" data-act="pickSub" data-k="${s}" aria-pressed="${i === 0}">${SUBJ[s]}</button>`).join("")}</div></div>
-    <div class="field"><label for="tdate">תאריך</label><input id="tdate" type="date" min="${TODAY}" value="${addDays(TODAY, 3)}"></div>
+    <div class="field"><label for="tdate">תאריך</label><input id="tdate" type="date" min="${TODAY}" value="${addDays(TODAY, TEST_LEAD)}"></div>
     <div class="field"><label for="tnote">על מה? (לא חובה)</label><input id="tnote" maxlength="40" placeholder="למשל: משוואות"></div>
     <button type="button" class="btn btn-primary wide" data-act="saveTest">שמירה</button>`);
 }

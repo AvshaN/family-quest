@@ -18,7 +18,7 @@ No accounts, no server, no cost.
 |---|---|
 | The daily five | 2 math, 2 English, 1 from her other subjects (biology for the eldest, art for one twin). The twins never get the same question. |
 | Revenge round | A question she missed comes back two days later, worth double. |
-| Test mode | She adds a test; for three days before it most questions come from that subject. |
+| Test mode | She adds a test (or it is entered from her notebook); for a week before it three of her five come from that subject. Dad's screen and the evening email list every upcoming exam. |
 | The board | Points for days played, right answers and full weeks (5 of 7 days). Resets on the 1st; the winner gets a token. |
 | The vault | Tokens: one is worth 100 ₪, or save 5 or 10 for bigger prizes. |
 | Her own look | Each girl picks her colours ("aura") and her photo or drawing. Each has her own result screen: a generative art piece, a gymnastics score (D + E), or a live set. |

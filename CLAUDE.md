@@ -88,6 +88,17 @@ tests with the girls and gives feedback; Claude writes the code.
   reading and the present tenses. Math is not limited: one worksheet (the
   distributive law) is all that came. Worksheets carry the school's name
   and the girls' family name: keep both out of the repo.
+  Their books (covers, same day): English "Teamwork" (7th grade, Band II
+  word list; no unit started), science Matmon Hadash "Exploring Matter and
+  Energy A" (first gate, materials, open; the particle model, the second
+  gate, waits).
+- **Exams** (Avsha, 2026-11-13): every exam found in a notebook goes into the
+  Sheet's Tests tab (profile id, date as text, subject key, note), as the
+  girls' "+ מבחן" does; the eldest's Hebrew 21.12, 8.3 and the internal bagrut
+  23.5 were entered that day. For `TEST_LEAD` (7) days before one, three of
+  her five come from its subject (`activeTest`, `dailySet`), her home screen
+  chip says how long is left, and Dad's Today tab (`examsCard`) and the
+  evening and monthly emails (`examsSection_`) list every upcoming exam.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
   score like "3/5": Gmail read a girl's name followed by ": 3/5" as a street address (her name as the street, 3 the number, 5 the flat) and linked it to Maps

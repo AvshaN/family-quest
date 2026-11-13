@@ -1314,5 +1314,481 @@
     ],
     "explain": "Narrow = צר; wide = רחב.",
     "ltr": true
+  },
+  {
+    "id": "g7-eng-095",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “advice” mean?",
+    "options": [
+      "עצה",
+      "הזמנה",
+      "שאלה",
+      "תשובה"
+    ],
+    "explain": "“My mom gave me good advice.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-096",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “agree” mean?",
+    "options": [
+      "להסכים",
+      "להתווכח",
+      "לשכוח",
+      "לנצח"
+    ],
+    "explain": "“I agree with you” = I think the same.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-097",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "What does “allow” mean?",
+    "options": [
+      "להרשות",
+      "לאסור",
+      "לבקש",
+      "להבטיח"
+    ],
+    "explain": "“My parents allow me to stay up late on Fridays.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-098",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “arrive” mean?",
+    "options": [
+      "להגיע",
+      "לעזוב",
+      "לחכות",
+      "לרוץ"
+    ],
+    "explain": "“The bus arrives at eight.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-099",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “brave” mean?",
+    "options": [
+      "אמיץ",
+      "פחדן",
+      "עייף",
+      "שקט"
+    ],
+    "explain": "A brave person does something even when it is scary.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-100",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “celebrate” mean?",
+    "options": [
+      "לחגוג",
+      "לבכות",
+      "לבשל",
+      "לנקות"
+    ],
+    "explain": "“We celebrate birthdays with a cake.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-101",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “choose” mean?",
+    "options": [
+      "לבחור",
+      "לקנות",
+      "למכור",
+      "לשבור"
+    ],
+    "explain": "“Choose” is the verb; “choice” is the noun.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-102",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "What does “collect” mean?",
+    "options": [
+      "לאסוף",
+      "לזרוק",
+      "לחלק",
+      "לשכוח"
+    ],
+    "explain": "“She collects stickers.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-103",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “decide” mean?",
+    "options": [
+      "להחליט",
+      "לדמיין",
+      "להסביר",
+      "לנחש"
+    ],
+    "explain": "“I can’t decide which dress to buy.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-104",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "What does “discover” mean?",
+    "options": [
+      "לגלות",
+      "להסתיר",
+      "לשכוח",
+      "לבנות"
+    ],
+    "explain": "“Scientists discovered a new planet.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-105",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “explain” mean?",
+    "options": [
+      "להסביר",
+      "לשאול",
+      "לצעוק",
+      "לשתוק"
+    ],
+    "explain": "“Can you explain the homework to me?”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-106",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “famous” mean?",
+    "options": [
+      "מפורסם",
+      "עשיר",
+      "חכם",
+      "צעיר"
+    ],
+    "explain": "Everybody knows a famous person.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-107",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "What does “guess” mean?",
+    "options": [
+      "לנחש",
+      "לדעת בוודאות",
+      "לזכור",
+      "לכתוב"
+    ],
+    "explain": "“I don’t know the answer, so I’ll guess.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-108",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "What does “improve” mean?",
+    "options": [
+      "לשפר",
+      "להחמיר",
+      "לעצור",
+      "להתחיל"
+    ],
+    "explain": "“Practice every day and your English will improve.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-109",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “mistake” mean?",
+    "options": [
+      "טעות",
+      "תשובה",
+      "שאלה",
+      "ציון"
+    ],
+    "explain": "“Everyone makes mistakes.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-110",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “neighbor” mean?",
+    "options": [
+      "שכן",
+      "חבר לכיתה",
+      "מורה",
+      "קרוב משפחה"
+    ],
+    "explain": "A neighbor lives next to you.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-111",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "What does “promise” mean?",
+    "options": [
+      "להבטיח",
+      "לבקש",
+      "לשקר",
+      "לשכוח"
+    ],
+    "explain": "“I promise I’ll be home by ten.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-112",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "What does “proud” mean?",
+    "options": [
+      "גאה",
+      "מבויש",
+      "כועס",
+      "משועמם"
+    ],
+    "explain": "“My parents were proud of my grades.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-113",
+    "topic": "Vocabulary: Band II",
+    "level": 1,
+    "q": "What does “share” mean?",
+    "options": [
+      "לחלוק, לשתף",
+      "לקחת לעצמך",
+      "להחביא",
+      "לקנות"
+    ],
+    "explain": "“Let’s share the pizza.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-114",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "What does “worry” mean?",
+    "options": [
+      "לדאוג",
+      "לשמוח",
+      "לישון",
+      "לחגוג"
+    ],
+    "explain": "“Don’t worry, everything will be OK.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-115",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "I can’t ___ which ice cream to buy. They all look good!",
+    "options": [
+      "decide",
+      "explain",
+      "arrive",
+      "allow"
+    ],
+    "explain": "To decide = להחליט.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-116",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "Can you ___ this word to me? I don’t understand it.",
+    "options": [
+      "explain",
+      "promise",
+      "guess",
+      "collect"
+    ],
+    "explain": "To explain = להסביר.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-117",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "The train will ___ at 5 o’clock.",
+    "options": [
+      "arrive",
+      "celebrate",
+      "choose",
+      "share"
+    ],
+    "explain": "To arrive = להגיע.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-118",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "It’s OK to make ___. That’s how we learn.",
+    "options": [
+      "mistakes",
+      "neighbors",
+      "advice",
+      "promises"
+    ],
+    "explain": "Mistakes = טעויות.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-119",
+    "topic": "Vocabulary: Band II",
+    "level": 3,
+    "q": "She was ___ enough to jump into the cold water and save the dog.",
+    "options": [
+      "brave",
+      "famous",
+      "proud",
+      "worried"
+    ],
+    "explain": "Brave = אמיץ: doing something scary.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-120",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "My little brother and I ___ a room.",
+    "options": [
+      "share",
+      "collect",
+      "allow",
+      "discover"
+    ],
+    "explain": "To share a room = לחלוק חדר.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-121",
+    "topic": "Vocabulary: Band II",
+    "level": 3,
+    "q": "My teacher gave me some good ___ about how to study for the test.",
+    "options": [
+      "advice",
+      "mistake",
+      "neighbor",
+      "choice"
+    ],
+    "explain": "Advice (עצה) has no plural: some advice, good advice.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-122",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "Which word is the opposite of “agree”?",
+    "options": [
+      "disagree",
+      "agreeing",
+      "argue",
+      "allow"
+    ],
+    "explain": "Dis- + agree = not agree.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-123",
+    "topic": "Vocabulary: Band II",
+    "level": 2,
+    "q": "Which word is the opposite of “arrive”?",
+    "options": [
+      "leave",
+      "come",
+      "stay",
+      "reach"
+    ],
+    "explain": "Arrive = to come to a place; leave = to go away from it.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-124",
+    "topic": "Vocabulary: Band II",
+    "level": 3,
+    "q": "We ___ my grandmother’s 80th birthday with the whole family.",
+    "options": [
+      "celebrated",
+      "explained",
+      "guessed",
+      "worried"
+    ],
+    "explain": "To celebrate = לחגוג (past: celebrated).",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-125",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “Noa gets up at 6:30 every morning. She eats breakfast, takes the bus to school and starts her first lesson at eight.” What time does Noa get up?",
+    "options": [
+      "At 6:30",
+      "At 8:00",
+      "At 7:30",
+      "At 6:00"
+    ],
+    "explain": "The first sentence says she gets up at 6:30.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-126",
+    "topic": "Reading",
+    "level": 1,
+    "q": "Read: “The village is small and quiet. There is one shop, one school and a wide river with an old bridge.” What is there in the village?",
+    "options": [
+      "A river with a bridge",
+      "A big mall",
+      "Three schools",
+      "A mountain"
+    ],
+    "explain": "“A wide river with an old bridge.”",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-127",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Tom wanted to climb the mountain, but it started to rain. ‘It’s dangerous,’ said his dad. ‘We’ll try again tomorrow.’” Why didn’t they climb the mountain?",
+    "options": [
+      "Because it was raining and dangerous",
+      "Because Tom was tired",
+      "Because the mountain was closed",
+      "Because they had no shoes"
+    ],
+    "explain": "Rain made the path dangerous, so Dad said they would try again tomorrow.",
+    "ltr": true
+  },
+  {
+    "id": "g7-eng-128",
+    "topic": "Reading",
+    "level": 2,
+    "q": "Read: “Maya prefers reading to watching TV. Every weekend she goes to the library and borrows three books.” What can we learn about Maya?",
+    "options": [
+      "She loves reading.",
+      "She hates the library.",
+      "She watches TV every day.",
+      "She buys books every weekend."
+    ],
+    "explain": "She prefers reading and borrows books every weekend: she loves reading.",
+    "ltr": true
   }
 ]
