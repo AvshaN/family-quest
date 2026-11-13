@@ -47,7 +47,9 @@ tests with the girls and gives feedback; Claude writes the code.
   rounds. The eldest complained on 2026-11-13 of probability and modals she
   hadn't studied; her math is now her notebook's test list (the straight
   line: slope, line equation, parallel lines, axes and two lines meeting,
-  midpoint, distance, triangle area, Pythagoras) and her English the present
+  midpoint, distance, triangle area, Pythagoras; then from her notebook the
+  test's algebra: shortcut multiplication, quadratic equations, algebraic
+  fractions; and the parallelogram and rhombus) and her English the present
   simple and progressive and reading, and from her English notebook George
   Eliot's "Count That Day Lost", simile and metaphor, and two word lists
   (Unit 1; Module E Test 2). Her Bible (`g10-bible`, added the same

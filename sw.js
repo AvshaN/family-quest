@@ -1,7 +1,7 @@
 /* Keeps the app and its question banks on the phone, so it opens at once and works on a bus with no signal.
  * The Sheet (script.google.com) is never cached: answers wait in the app's outbox until there is a connection.
  * Bump VERSION when the app's files change, so phones take the new copy. */
-const VERSION = "fq-10";
+const VERSION = "fq-11";
 const SHELL = ["./", "index.html", "app.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

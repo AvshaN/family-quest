@@ -64,8 +64,10 @@ const trackPools = tr => { const t = TRACKS[tr] || TRACKS.g7; return [t.math, t.
 const STUDYING = {
   "g10-bio": {
     // Perpendicular lines and the line's rising or falling (2026-11-13): stated beside parallel lines in the curriculum.
+    // Her math notebook (same day) adds the test's algebra and the parallelogram and rhombus.
     "g10-math": ["שיפוע", "משוואת הישר", "ישרים מקבילים", "ישרים מאונכים", "הפונקציה הקווית", "חיתוך עם הצירים",
-                 "חיתוך בין ישרים", "מערכות משוואות", "אמצע קטע", "מרחק בין נקודות", "שטח משולש", "פיתגורס"],
+                 "חיתוך בין ישרים", "מערכות משוואות", "אמצע קטע", "מרחק בין נקודות", "שטח משולש", "פיתגורס",
+                 "משוואות", "נוסחאות הכפל המקוצר", "שברים אלגבריים", "מקבילית ומעוין"],
     // English from her notebook too: George Eliot's poem, simile and metaphor, Unit 1's words, Test 2's word list.
     "g10-eng": ["Present Simple", "Present Progressive", "Reading", "Count That Day Lost", "Literary Terms",
                 "Vocabulary: Unit 1", "Vocabulary: Test 2"],
