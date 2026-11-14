@@ -454,6 +454,17 @@ const ICON = {
 /* ---------- screens ---------- */
 const app = $("#app"), tabsEl = $("#tabs"), layer = $("#layer");
 let view = "home", parentOK = false, pin = "", parentPin = "", ptab = "today";
+/* Dad's unlock lasts the session: pulling the page down to refresh reloads it, and the PIN was asked again
+   (Avsha, 2026-11-14). The browser keeps sessionStorage over a reload and clears it when the app is closed,
+   so a refresh stays in, and opening the app again asks for the PIN. */
+const UNLOCK = "fq.parent";
+function keepUnlock() { try { sessionStorage.setItem(UNLOCK, JSON.stringify({ pin: parentPin, tab: ptab })); } catch (e) { /* no storage: the PIN is asked again */ } }
+function dropUnlock() { try { sessionStorage.removeItem(UNLOCK); } catch (e) { /* nothing kept */ } }
+function takeUnlock() {
+  let u = null;
+  try { u = JSON.parse(sessionStorage.getItem(UNLOCK) || "null"); } catch (e) { u = null; }
+  if (u && u.pin) { parentOK = true; parentPin = String(u.pin); ptab = u.tab || "today"; }
+}
 let deferredInstall = null;
 
 function applyAura(key) {
@@ -1009,8 +1020,8 @@ document.addEventListener("click", async e => {
     case "toggle": L[b.dataset.k] = !L[b.dataset.k]; save(); b.setAttribute("aria-checked", String(L[b.dataset.k])); SFX.tap(); break;
     case "install": if (deferredInstall) { deferredInstall.prompt(); deferredInstall = null; } break;
     case "become": L.me = b.dataset.id; save(); applyAura(auraOf(me())); show("home"); break;
-    case "parent": parentOK = false; pin = ""; applyAura("chrome"); show("parent"); break;
-    case "leaveParent": parentOK = false; pin = ""; if (me()) { applyAura(auraOf(me())); show("home"); } else if (LIVE && L.parent) show("parent"); else show("home"); break;
+    case "parent": parentOK = false; pin = ""; dropUnlock(); applyAura("chrome"); show("parent"); break;
+    case "leaveParent": parentOK = false; pin = ""; dropUnlock(); if (me()) { applyAura(auraOf(me())); show("home"); } else if (LIVE && L.parent) show("parent"); else show("home"); break;
     case "pin": {
       SFX.tap();
       if (b.dataset.k === "del") pin = pin.slice(0, -1); else if (pin.length < 4) pin += b.dataset.k;
@@ -1018,7 +1029,7 @@ document.addEventListener("click", async e => {
         let good = false;
         if (LIVE) { try { await api("pin", { pin }); good = true; } catch (err) { good = false; } }
         else good = pin === String(FAM.settings.parentPin || "1234");
-        if (good) { parentOK = true; parentPin = pin; pin = ""; show("parent"); return; }
+        if (good) { parentOK = true; parentPin = pin; pin = ""; keepUnlock(); show("parent"); return; }
         pin = ""; show("parent"); $("#pinDots").classList.add("err"); buzz(80); return;
       }
       show("parent"); break;
@@ -1052,7 +1063,7 @@ document.addEventListener("click", async e => {
       SFX.coin(); show("vault"); break;
     }
     case "closeSheet": layer.innerHTML = ""; break;
-    case "ptab": ptab = b.dataset.k; SFX.tap(); show("parent"); break;
+    case "ptab": ptab = b.dataset.k; if (parentOK) keepUnlock(); SFX.tap(); show("parent"); break;
     case "addTest": testSheet(); break;
     case "pickSub": $$("#tsub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
     case "saveTest": {
@@ -1070,13 +1081,13 @@ document.addEventListener("click", async e => {
       try { await refresh(); await loadBanks(allPools()); show("who"); } catch (err) { $("#codeMsg").textContent = "הקוד לא נכון, או שאין אינטרנט."; }
       break;
     }
-    case "claim": L.me = b.dataset.id; L.parent = false; save(); applyAura(auraOf(me())); show(L.auras[L.me] ? "home" : "aura"); break;
+    case "claim": L.me = b.dataset.id; L.parent = false; save(); dropUnlock(); applyAura(auraOf(me())); show(L.auras[L.me] ? "home" : "aura"); break;
     case "claimParent": L.parent = true; L.me = null; save(); applyAura("chrome"); show("parent"); break;
     case "forget":
       sheet(`<h3>להתנתק?</h3><p class="muted">הטלפון ישכח מי את (ההתקדמות שלך שמורה בגיליון של המשפחה).</p>
         <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-primary wide" data-act="forgetYes">להתנתק</button><button type="button" class="btn btn-ghost wide" data-act="closeSheet">ביטול</button></div>`);
       break;
-    case "forgetYes": L.me = null; L.parent = false; save(); show("who"); break;
+    case "forgetYes": L.me = null; L.parent = false; save(); dropUnlock(); show("who"); break;
     case "retry": boot(); break;
     case "resetCode": L.code = ""; save(); show("code"); break;
   }
@@ -1098,7 +1109,7 @@ async function boot() {
       if (L.cache) FAM = L.cache; else { show("error"); return; }
     }
     await loadBanks(allPools());
-    if (L.parent) { applyAura("chrome"); show("parent"); return; }
+    if (L.parent) { takeUnlock(); applyAura("chrome"); show("parent"); return; }
     if (!me()) { show("who"); return; }
   } else {
     FAM = demoFamily();

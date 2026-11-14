@@ -107,6 +107,9 @@ tests with the girls and gives feedback; Claude writes the code.
 - **Dad's screen** has tabs (`parentToday`, `parentMonth`, `parentLife`, `parentSettings`);
   all-time numbers come from `state_().lifetime` and `tokenLog` (all the Answers tab, not just
   the two months of rows the phones get), computed in the demo from what the app holds.
+  His PIN unlock lasts the session (`keepUnlock`, sessionStorage): the phone's pull-down
+  reload keeps him in, on the same tab; reopening the app, leaving his screen or a girl
+  claiming the phone asks for it again (2026-11-14).
 - **Ties share a place** (`placeOf` / `placeOf_`): equal points, accuracy
   and days. A tie for first on the 1st gives each girl in it a token.
 - **Banks:** `data/bank/<pool>.json`, format in `data/README.md`;
