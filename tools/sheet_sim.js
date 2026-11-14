@@ -6,6 +6,10 @@
  * Extra routes for tests:
  *   /__run?fn=nightlyDigest|monthlyClose[&now=2026-12-01T00:30:00]   runs a timer (at that time) and returns the emails sent
  *   /__sheet?tab=Tokens                                               returns a tab's rows
+ *   /__now?t=2026-12-10T18:00:00                                      the script's clock from now on (no t: the real one)
+ *   /__load  (POST {tab, rows})                                       appends rows to a tab, to stage a history
+ *   /__score?y=2026&m=12                                              the script's ranking for a month
+ *   /__mails                                                          the emails sent since last asked
  * The stand-ins below cover only what Code.gs calls. */
 const fs = require("fs"), path = require("path"), http = require("http"), vm = require("vm"), url = require("url");
 const ROOT = path.join(__dirname, "..");
@@ -15,6 +19,7 @@ class Sheet {
   constructor(name) { this.name = name; this.rows = []; }
   getLastRow() { return this.rows.length; }
   appendRow(a) { this.rows.push(a.slice()); }
+  deleteRow(n) { this.rows.splice(n - 1, 1); }
   set(r, c, v) { while (this.rows.length < r) this.rows.push([]); const row = this.rows[r - 1]; while (row.length < c) row.push(""); row[c - 1] = v; }
   getRange(r, c, nr, nc) {
     const sh = this;
@@ -76,9 +81,21 @@ http.createServer((req, res) => {
     return req.on("end", () => send(200, "application/json", ctx.doPost({ postData: { contents: body } }).s));
   }
   if (u.pathname === "/__run") {
-    FIXED = u.query.now || null; mails.length = 0;
-    try { ctx[u.query.fn](); } finally { FIXED = null; }
+    const was = FIXED;
+    if (u.query.now) FIXED = u.query.now;
+    mails.length = 0;
+    try { ctx[u.query.fn](); } finally { FIXED = was; }
     return send(200, "application/json", JSON.stringify(mails));
+  }
+  if (u.pathname === "/__now") { FIXED = u.query.t || null; return send(200, "application/json", JSON.stringify({ now: FIXED })); }
+  if (u.pathname === "/__mails") { const out = JSON.stringify(mails); mails.length = 0; return send(200, "application/json", out); }
+  if (u.pathname === "/__score") {
+    const rank = ctx.ranking_(ctx.answers_(), ctx.profiles_(), +u.query.y, +u.query.m);
+    return send(200, "application/json", JSON.stringify(rank));
+  }
+  if (u.pathname === "/__load") {
+    let body = ""; req.on("data", c => body += c);
+    return req.on("end", () => { const b = JSON.parse(body), t = SS.getSheetByName(b.tab); b.rows.forEach(r => t.appendRow(r)); send(200, "application/json", JSON.stringify({ rows: t.rows.length })); });
   }
   if (u.pathname === "/__sheet") { const t = SS.getSheetByName(u.query.tab); return send(200, "application/json", JSON.stringify(t ? t.rows : null)); }
   if (u.pathname === "/config.js") return send(200, "text/javascript", `window.FQ_CONFIG = { apiUrl: "http://localhost:${PORT}/exec" };`);

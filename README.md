@@ -17,13 +17,17 @@ No accounts, no server, no cost.
 | | |
 |---|---|
 | The daily five | 2 math, 2 English, 1 from her other subjects (biology for the eldest, art for one twin). The twins never get the same question. |
-| Revenge round | A question she missed comes back two days later, worth double. |
+| The round | Only her first answer counts, and it is timed (no clock on her screen). A question she misses comes back at the end of the round until she gets it right. Math with a number for an answer is typed on a number pad; vocabulary is four words to match with their meanings. |
+| Revenge round | A question she missed comes back two days later for points. |
+| The map | "What I know": every topic her class has reached, filling up with right answers on three different days. |
+| Practice | After the five, up to two optional rounds a day on what the map still lacks. No points for the board; it counts for the map and the family goal. |
+| Full weeks | A week with five days played is full. Her streak of full weeks is on her home screen, and every four full weeks, in a row or not, earn her a token. |
 | Test mode | She adds a test (or it is entered from her notebook); for a week before it three of her five come from that subject. Dad's screen and the evening email list every upcoming exam. |
-| The board | Points for days played, right answers and full weeks (5 of 7 days). Resets on the 1st; the winner gets a token. |
+| The board | Points for days played, right answers, perfect days and full weeks (5 of 7 days); from December 2026 a right answer is worth as much as showing up. Resets on the 1st; the winner gets a token. |
 | The vault | Tokens: one is worth 100 ₪, or save 5 or 10 for bigger prizes. |
 | Her own look | Each girl picks her colours ("aura") and her photo or drawing. Each has her own result screen: a generative art piece, a gymnastics score (D + E), or a live set. |
 | Monthly recap | Her last month, as a story. |
-| Dad's screen | Behind a PIN: each girl's month, weak topics, tests, today's questions, and the evening email. |
+| Dad's screen | Behind a PIN: each girl's month, weak topics, today's questions, what she got wrong with the right answers, how long she took (a rushed day is marked), exams he can add or take off, and the evening email. |
 
 ## Files
 

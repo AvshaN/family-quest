@@ -51,4 +51,20 @@ question to both twins.
   mistakes by it, and `STUDYING` in `app.js` limits a girl to the topics her
   class has reached, so spell a unit the same way every time.
 
+## How a question is asked
+
+Every question is written with four options, and the app decides how to ask
+it (`typedOf`, `matchOf` in `app.js`):
+
+- **Typed on a number pad:** a math question whose four options are plain
+  numbers, all with the same `x =` before them or the same unit after them
+  (`"12"`, `"x = −5"`, `"40 סמ״ר"`, `"25%"`). She types the number. A question
+  that says "which of the following" (הבאים) or "approximately" (בקירוב), or
+  writes thousands with a comma (`"72,250"`), stays four options. To keep any
+  other question as options, add `"choice": true` to it.
+- **Matched in pairs:** an English question of the exact form
+  `What does “word” mean?` with a Hebrew first option becomes four words to
+  pair with their meanings: its own and three more of the same pool.
+- **Four options:** everything else.
+
 Check a bank before using it: `python3 tools/check_bank.py`.

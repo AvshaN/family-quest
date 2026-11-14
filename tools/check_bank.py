@@ -45,7 +45,7 @@ def check_file(path):
         for key in ("id", "topic", "level", "q", "options", "explain"):
             if key not in it:
                 errors.append(f"{where}: missing {key!r}")
-        extra = set(it) - {"id", "topic", "level", "q", "options", "explain", "ltr"}
+        extra = set(it) - {"id", "topic", "level", "q", "options", "explain", "ltr", "choice"}
         if extra:
             errors.append(f"{where}: unknown fields {sorted(extra)}")
         qid = it.get("id", "")

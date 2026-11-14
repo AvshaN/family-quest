@@ -27,9 +27,42 @@ tests with the girls and gives feedback; Claude writes the code.
   Script URL; empty means demo mode (example history, localStorage only).
 - `backend/Code.gs` runs inside the Sheet. Tabs: Settings, Profiles,
   Answers, Tokens, Tests. API: GET `state`, POST `submit | profile | test |
-  redeem | pin | grant | settings`. Timers: `nightlyDigest`, `monthlyClose`.
+  untest | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
+  `monthlyClose`. `state` sends `api` (2 since 2026-11-14): the app is live
+  the minute it is pushed, the script only when Avsha pastes it, so anything
+  the old script would get wrong (practice rows, deleting an exam) is shown
+  only when `api` is 2. Test a build against the old script too.
 - **Scoring lives in two places** and must stay identical: `stats()` in
-  `app.js` and `scoreMonth_()` in `Code.gs` (POINTS in both).
+  `app.js` and `scoreMonth_()` in `Code.gs` (`POINTS_BY` in both, by month:
+  to change a rule, add a line with the month it starts; never edit a past
+  one, or closed months change). Until November 2026 a day was 10, a right
+  answer 4, a revenge round 8; from December 5, 5, 5 more for a perfect day,
+  and a revenge round 5 (at double, missing on purpose and winning it back
+  paid more than knowing). `tools/sheet_sim.js` has `/__score` to compare.
+- **An Answers row**: `revenge` is 0 (one of the five), 1 (a revenge round)
+  or 2 (practice: no points, counts for the map and the family goal); `secs`
+  is how long her first answer took. `r.r` is truthy for both 1 and 2: write
+  `r.r === 1` when you mean a revenge round.
+- **The round** (`newRound`, `settle`, `finishQuest`; Avsha, 2026-11-14, after
+  a review found a day of random taps took seconds and paid half a perfect
+  day): only the first answer is recorded; a miss rejoins the end of the
+  queue until right. A question is typed on a number pad (`typedOf`: math,
+  four plain-number options), matched in pairs (`matchOf`: "What does “x”
+  mean?"), or four options; `data/README.md` has the rules. Leaving after an
+  answer moves on at the return (it used to show the question again).
+- **Rushed** (`RUSH`): three of the five in under three seconds each. Dad's
+  Today and the email mark it; her result screen says so too. The Me screen
+  tells the girls everything Dad sees: keep that line true.
+- **Full weeks** (`weeksOf` / `weeks_`, `PATH`): calendar weeks with five
+  days played, from 2026-11-15. The streak is on her home screen; every
+  fourth full week, in a row or not, is a token (`pathTokens_`, reason
+  "weeks N", an email to Dad), so a girl behind on the board has one to play
+  for. A token is 100 ₪ of Avsha's money: he chose this.
+- **The map** (`knowOf`, `knowMap`, the `know` tab): a topic is known after
+  right answers on three different days (`KNOW`). **Practice**
+  (`practiceSet`): after the five, two optional rounds a day, mostly what she
+  has seen (missed first), so the pools last. The Sheet sends `path` and
+  `know` for what is older than the two months of rows the phones hold.
 - **The daily pick** (`shareOf`, `take`): each pool has one fixed shuffled
   order (`permOf`); girls who share a pool (same `pair`) split it by that
   order, alternate questions each, so the twins never share a question. Each
@@ -126,7 +159,13 @@ tests with the girls and gives feedback; Claude writes the code.
   (or walk it with Playwright) for a demo-mode look at every screen.
 - `node tools/sheet_sim.js 8765` runs `Code.gs` on an in-memory Sheet and
   serves the app live against it (`/?k=TEST42`; `/__run?fn=...&now=...`
-  runs a timer, `/__sheet?tab=...` shows a tab).
+  runs a timer, `/__sheet?tab=...` shows a tab, `/__now?t=...` sets the
+  script's clock, `/__load` stages rows, `/__score` gives its ranking,
+  `/__mails` the emails sent). With Playwright's `page.clock.setFixedTime`
+  on the phone's side, any date can be played.
+- With `window.FQ_TEST = {}` set before the app loads, `FQ_TEST.api` gives a
+  test the round on screen (`round()`), `typedOf`, `weeksOf`, `knowMap`,
+  `ranking` and more, to answer right or wrong through real taps.
 - The real Sheet can be read with the Google Sheets connector (the file is
   "Aura" in Avsha's Drive). Never repeat the family code or PIN in chat.
 - After changing app files, bump `VERSION` in `sw.js` so phones update.
@@ -136,6 +175,20 @@ tests with the girls and gives feedback; Claude writes the code.
   (2026-11-11) two runs ended in "startup failure" and a re-run sat queued
   for over an hour and could not be cancelled, so the site kept the old
   version. A new push starts a new run.
+
+## Reminders (looked into 2026-11-14, not built)
+
+Avsha asked whether a girl who hasn't played can get an evening reminder on
+her phone. Possible, untested: standard Web Push with no payload, sent by
+Code.gs from an evening timer (it knows who played). Apps Script has no
+ECDSA, so the VAPID signature (ES256) must be written in plain JS, and
+BigInt may not work there (use a non-BigInt bignum). iPhones need iOS 16.4+
+and the app on the Home Screen, and drop a subscription that shows no
+notification. A Telegram bot is the simple fallback if the girls use
+Telegram. Ruled out: ntfy (weak on iPhone), Firebase (needs a project, and
+has an open issue with sites under a subpath like ours), Calendar (can't
+set another person's reminder), WhatsApp (paid), email (ignored). Ask which
+phones the girls have before building.
 
 ## Monthly
 

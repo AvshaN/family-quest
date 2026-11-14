@@ -4,7 +4,7 @@
  * This script lives inside the Sheet (Extensions > Apps Script) and is deployed as a web app
  * (SETUP.md has the steps). The app on the girls' phones talks to it:
  *   GET  ?action=state&code=...   the family, this month's and last month's answers, tokens, tests
- *   POST {action, code, ...}      submit | profile | test | redeem | pin | grant | settings
+ *   POST {action, code, ...}      submit | profile | test | untest | redeem | pin | grant | settings
  * and two daily timers run here:
  *   nightlyDigest   the evening email to the parent: today, the month and all time, in tables
  *   monthlyClose    on the 1st: a token to last month's winner(s), and an email with the month's results
@@ -18,7 +18,8 @@ var TZ = "Asia/Jerusalem";
 var TABS = {
   Settings: ["key", "value", "what it is"],
   Profiles: ["id", "name", "track", "pair", "slot", "flavor", "aura"],
-  Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge"],
+  // revenge: 0 one of the daily five, 1 a revenge round, 2 practice (no points). secs: how long her first answer took.
+  Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge", "secs"],
   Tokens: ["when", "profile", "change", "reason"],
   Tests: ["when", "profile", "date", "subject", "note"]
 };
@@ -35,7 +36,17 @@ var DEFAULTS = [
   ["token_value", 100, "shekels a token is worth"],
   ["improved_reward", "פרס קטן מאבא", "what the most improved girl of the month gets (given by hand)"]
 ];
-var POINTS = { day: 10, right: 4, revenge: 8, week: 15, weekDays: 5 };
+/* Points by month, as POINTS_BY in app.js: the new rule from December 2026 (Avsha, 2026-11-14). */
+var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, week: 15, weekDays: 5 }],
+                 ["", { day: 10, right: 4, perfect: 0, revenge: 8, week: 15, weekDays: 5 }]];
+function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
+/* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
+var API = 2;
+/* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
+var PATH = { start: "2026-11-15", every: 4 };
+var WEEK_DAYS = 5;
+/* A day with 3 of the five answered in under 3 seconds each is marked as rushed. */
+var RUSH = { secs: 3, n: 3 };
 var SUBJ = { math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", civ: "אזרחות", midrash: "בית מדרש", bible: "תנ״ך", geo: "גאוגרפיה", art: "אמנות", bio: "ביולוגיה", lit: "ספרות" };
 var DAYS_FULL = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 var AURA_COL = { orchid: "#A855F7", lagoon: "#14B8A6", ember: "#F97316", cherry: "#F43F5E", matcha: "#22C55E", chrome: "#8B95A8" };
@@ -102,6 +113,7 @@ function doPost(e) {
         case "submit": return submit_(b);
         case "profile": return setProfile_(b);
         case "test": return addTest_(b);
+        case "untest": return delTest_(b);
         case "redeem": return redeem_(b);
         case "pin": checkPin_(b.pin); return { ok: true };
         case "grant": checkPin_(b.pin); needProfile_(b.p); addToken_(b.p, 1, "gift from parent"); return { ok: true };
@@ -126,6 +138,7 @@ function state_() {
   var from = pm[0] + "-" + pad_(pm[1]) + "-01";
   return {
     ok: true,
+    api: API,
     today: today,
     profiles: profiles_(),
     settings: {
@@ -136,6 +149,9 @@ function state_() {
     tokens: tokens_(),
     lifetime: lifetimeAll_(),
     tokenLog: tokenRows_().slice(-30),
+    // the full weeks before this one, and the right days older than the rows below: the phones add what they hold
+    path: pathAll_(today),
+    know: knowAll_(from),
     rows: answers_().filter(function (r) { return r.d >= from; }),
     tests: tests_().filter(function (t) { return t.date >= addDays_(today, -1); })
   };
@@ -150,16 +166,21 @@ function submit_(b) {
   answers_().forEach(function (r) { if (r.p === b.p && r.d === b.d) have[r.q + "|" + r.r] = true; });
   var now = new Date(), add = [];
   rows.forEach(function (r) {
-    var key = String(r.q) + "|" + (r.r ? 1 : 0);
+    var kind = Number(r.r) === 2 ? 2 : r.r ? 1 : 0, key = String(r.q) + "|" + kind;
     if (have[key] || r.p !== b.p || r.d !== b.d) return;
     have[key] = true;
-    add.push([now, b.d, b.p, String(r.q), String(r.pool), String(r.t || ""), Number(r.l) || 1, r.ok ? 1 : 0, r.r ? 1 : 0]);
+    add.push([now, b.d, b.p, String(r.q), String(r.pool), String(r.t || ""), Number(r.l) || 1, r.ok ? 1 : 0, kind,
+              Math.max(0, Math.min(999, Number(r.s) || 0))]);
   });
+  var tokens = 0;
   if (add.length) {
     var sh = sheet_("Answers");
+    // a Sheet set up before the seconds were kept has no heading for them
+    if (String(sh.getDataRange().getValues()[0][9] || "") !== "secs") sh.getRange(1, 10).setValue("secs");
     sh.getRange(sh.getLastRow() + 1, 1, add.length, add[0].length).setValues(add);
+    tokens = pathTokens_(b.p);
   }
-  return { ok: true, added: add.length };
+  return { ok: true, added: add.length, tokens: tokens };
 }
 
 function setProfile_(b) {
@@ -176,6 +197,60 @@ function addTest_(b) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.date)) || !SUBJ[b.subj]) throw new Error("bad test");
   sheet_("Tests").appendRow([new Date(), b.p, b.date, b.subj, String(b.note || "").slice(0, 40)]);
   return { ok: true };
+}
+
+/* An exam entered wrong: hers taken off by her, anyone's by the parent. */
+function delTest_(b) {
+  needProfile_(b.p);
+  var sh = sheet_("Tests"), v = sh.getDataRange().getValues();
+  for (var i = v.length - 1; i >= 1; i--) {
+    if (String(v[i][1]) === b.p && dateText_(v[i][2]) === String(b.date) && String(v[i][3]) === String(b.subj)) { sh.deleteRow(i + 1); return { ok: true, removed: 1 }; }
+  }
+  return { ok: true, removed: 0 };
+}
+
+/* ---------- full weeks: the streak and the four-week path (weeksOf in app.js) ---------- */
+function weeks_(rows, pid, today) {
+  var n = {}, played = {};
+  rows.forEach(function (r) { if (r.p === pid && !r.r) n[r.d] = (n[r.d] || 0) + 1; });
+  Object.keys(n).forEach(function (d) { if (n[d] >= 5) played[d] = true; });
+  var inWeek = function (w) { var k = 0; for (var i = 0; i < 7; i++) if (played[addDays_(w, i)]) k++; return k; };
+  var cur = addDays_(today, -new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, Number(today.slice(8))).getDay());
+  var full = 0, streak = 0;
+  for (var w = PATH.start; w < cur; w = addDays_(w, 7)) { if (inWeek(w) >= WEEK_DAYS) { full++; streak++; } else streak = 0; }
+  var now = cur >= PATH.start ? inWeek(cur) : 0;
+  return { full: full, streak: streak, now: now, total: full + (now >= WEEK_DAYS ? 1 : 0) };
+}
+function pathAll_(today) {
+  var rows = answers_(), out = {};
+  profiles_().forEach(function (p) { var w = weeks_(rows, p.id, today); out[p.id] = { full: w.full, streak: w.streak }; });
+  return out;
+}
+/* A token for every fourth full week, given as her answers arrive, once each ("weeks 4", "weeks 8", ...). */
+function pathTokens_(pid) {
+  var w = weeks_(answers_(), pid, ymd_(new Date())), due = Math.floor(w.total / PATH.every), n = 0;
+  var given = tokenRows_().filter(function (t) { return t.p === pid && /^weeks /.test(t.reason); }).length;
+  for (; given < due; given++, n++) addToken_(pid, 1, "weeks " + (given + 1) * PATH.every);
+  if (n) {
+    var prof = needProfile_(pid);
+    mail_(appName_() + " · " + prof.name + " קיבלה אסימון על " + PATH.every + " שבועות מלאים",
+      shell_(nm_(prof.name) + " קיבלה אסימון", PATH.every + " שבועות מלאים, חמישה ימים עם משימה בכל אחד · " + (tokens_()[pid] || 0) + " אסימונים בכספת", [], footer_()));
+  }
+  return n;
+}
+/* For the map: on how many different days each girl answered each topic right, before the rows the phones get. */
+function knowAll_(from) {
+  var days = {}, out = {};
+  answers_().forEach(function (r) {
+    if (!r.ok || r.d >= from) return;
+    var k = r.p + "\n" + r.pool + "|" + r.t;
+    (days[k] = days[k] || {})[r.d] = true;
+  });
+  Object.keys(days).forEach(function (k) {
+    var i = k.indexOf("\n"), pid = k.slice(0, i);
+    (out[pid] = out[pid] || {})[k.slice(i + 1)] = Object.keys(days[k]).length;
+  });
+  return out;
 }
 
 function redeem_(b) {
@@ -241,17 +316,23 @@ function report_(today, y, m) {
   var lead = rank.length ? rank[0].points : 0;
   var girls = profs.map(function (p) {
     var todays = rows.filter(function (x) { return x.p === p.id && x.d === today; });
-    var reg = todays.filter(function (x) { return !x.r; }), rev = todays.filter(function (x) { return x.r; });
+    var reg = todays.filter(function (x) { return !x.r; }), rev = todays.filter(function (x) { return x.r === 1; });
+    var prac = todays.filter(function (x) { return x.r === 2; });
+    var secs = reg.map(function (x) { return x.s; }).filter(function (x) { return x > 0; }).sort(function (a, b) { return a - b; });
+    var fast = secs.filter(function (x) { return x < RUSH.secs; }).length, half = Math.floor(secs.length / 2);
     var mo = rank.filter(function (x) { return x.id === p.id; })[0];
     var without = scoreMonth_(rows.filter(function (x) { return !(x.p === p.id && x.d === today); }), p.id, y, m);
     return {
       id: p.id, name: p.name, color: AURA_COL[p.aura] || AURA_COL.orchid,
       today: { played: reg.length >= 5, ok: reg.filter(function (x) { return x.ok; }).length, rev: rev.length ? rev[0].ok : null,
                points: inMonth ? mo.points - without.points : 0, at: reg.length ? reg[reg.length - 1].w : "",
-               missed: unique_(reg.filter(function (x) { return !x.ok; }).map(function (x) { return x.t; })) },
+               missed: unique_(reg.filter(function (x) { return !x.ok; }).map(function (x) { return x.t; })),
+               secs: secs.length ? (secs.length % 2 ? secs[half] : (secs[half - 1] + secs[half]) / 2) : 0,
+               fast: fast, rushed: reg.length >= 5 && fast >= RUSH.n,
+               prac: prac.length, pracOk: prac.filter(function (x) { return x.ok; }).length },
       week: weekDays_(rows, p.id, today),
       month: { place: placeOf_(rank, mo), points: mo.points, played: mo.played, acc: mo.acc, weeks: mo.full,
-               right: mo.ok + mo.revOk, gap: lead - mo.points, weak: weak_(rows, p.id, mk) },
+               right: mo.right, gap: lead - mo.points, weak: weak_(rows, p.id, mk) },
       life: lifetime_(rows, toks, p.id)
     };
   });
@@ -321,13 +402,20 @@ function todaySection_(r) {
   var rows = r.girls.map(function (g) {
     var t = g.today;
     return "<tr>" + td_(who_(g)) +
-      td_(t.played ? "<b>" + t.ok + "</b> מתוך 5" : "<span style='color:" + C.bad + "'>לא שיחקה</span>") +
+      td_((t.played ? "<b>" + t.ok + "</b> מתוך 5" : "<span style='color:" + C.bad + "'>לא שיחקה</span>") + paceLine_(t)) +
       td_(t.rev === null ? "<span style='color:" + C.soft + "'>—</span>" : t.rev ? "<span style='color:" + C.good + "'>ניצחה</span>" : "<span style='color:" + C.bad + "'>הפסידה</span>") +
       td_(t.points ? "<b>" + ltr_("+" + t.points) + "</b>" : "—") +
       td_(g.week) +
       td_(t.at || "—", "color:" + C.soft) + "</tr>";
   });
   return section_("Today", "היום", table_(["", "ציון", "נקמה", "נקודות", "ימים השבוע", "שעה"], rows));
+}
+/* Under her score: how long a question took her (the median), or "too fast" in red on a rushed day. Kept short:
+ * the column is narrow on a phone, and the Focus section says the rest. */
+function paceLine_(t) {
+  if (!t.played || !t.secs) return "";
+  var sec = t.secs < 10 ? Math.round(t.secs * 10) / 10 : Math.round(t.secs);
+  return "<br><span style='font-size:12px;white-space:nowrap;color:" + (t.rushed ? C.bad : C.soft) + "'>" + (t.rushed ? "מהר מדי" : sec + " שנ׳ לשאלה") + "</span>";
 }
 function monthSection_(r, title) {
   var rows = r.girls.slice().sort(function (a, b) { return a.month.place - b.month.place || (a.id < b.id ? -1 : 1); }).map(function (g) {
@@ -347,7 +435,9 @@ function monthSection_(r, title) {
 function focusSection_(r) {
   var lines = r.girls.map(function (g) {
     var bits = [];
+    if (g.today.rushed) bits.push("<span style='color:" + C.bad + "'>ענתה מהר מדי: " + g.today.fast + " מחמש התשובות בפחות מ־" + RUSH.secs + " שניות</span>");
     if (g.today.missed.length) bits.push("פספסה היום: " + g.today.missed.map(esc_).join(" · "));
+    if (g.today.prac) bits.push("תרגלה עוד, בלי נקודות: " + g.today.pracOk + " נכונות מתוך " + g.today.prac);
     if (g.month.weak.length) bits.push("כדאי לחזק החודש: " + g.month.weak.map(esc_).join(" · "));
     return bits.length ? "<p style='margin:0 0 10px;font-size:14px;line-height:1.6'>" + who_(g) + "<br>" + bits.join("<br>") + "</p>" : "";
   }).join("");
@@ -398,22 +488,25 @@ function footer_(r) {
 
 /* ---------- scoring: keep in step with stats() in app.js ---------- */
 function scoreMonth_(rows, pid, y, m) {
-  var mk = y + "-" + pad_(m), firstDow = new Date(y, m - 1, 1).getDay(), byDay = {};
+  var mk = y + "-" + pad_(m), P = pointsOf_(mk), firstDow = new Date(y, m - 1, 1).getDay(), byDay = {}, pracOk = 0;
   rows.forEach(function (r) {
     if (r.p !== pid || r.d.slice(0, 7) !== mk) return;
+    if (r.r === 2) { if (r.ok) pracOk++; return; }   // practice: no points, only the family goal
     var e = byDay[r.d] || (byDay[r.d] = { reg: 0, ok: 0, revOk: 0 });
     if (r.r) { if (r.ok) e.revOk++; } else { e.reg++; if (r.ok) e.ok++; }
   });
   var days = Object.keys(byDay).filter(function (d) { return byDay[d].reg >= 5; });
-  var weeks = {}, reg = 0, ok = 0, revOk = 0;
+  var weeks = {}, reg = 0, ok = 0, revOk = 0, perfect = 0;
   days.forEach(function (d) {
+    if (byDay[d].ok >= 5) perfect++;
     var w = Math.floor((Number(d.slice(8)) - 1 + firstDow) / 7);
     weeks[w] = (weeks[w] || 0) + 1;
     reg += byDay[d].reg; ok += byDay[d].ok; revOk += byDay[d].revOk;
   });
-  var full = Object.keys(weeks).filter(function (w) { return weeks[w] >= POINTS.weekDays; }).length;
+  var full = Object.keys(weeks).filter(function (w) { return weeks[w] >= P.weekDays; }).length;
   return { id: pid, played: days.length, acc: reg ? Math.round(ok / reg * 100) : 0, ok: ok, revOk: revOk, full: full,
-           points: days.length * POINTS.day + ok * POINTS.right + revOk * POINTS.revenge + full * POINTS.week };
+           pracOk: pracOk, perfect: perfect, right: ok + revOk + pracOk,
+           points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + full * P.week };
 }
 function ranking_(rows, profs, y, m) {
   return profs.map(function (p) { return scoreMonth_(rows, p.id, y, m); }).sort(function (a, b) {
@@ -467,7 +560,7 @@ function profiles_() {
 function answers_() {
   return sheet_("Answers").getDataRange().getValues().slice(1).filter(function (r) { return r[2] !== ""; }).map(function (r) {
     return { d: dateText_(r[1]), p: String(r[2]), q: String(r[3]), pool: String(r[4]), t: String(r[5]), l: Number(r[6]) || 1,
-             ok: Number(r[7]) ? 1 : 0, r: Number(r[8]) ? 1 : 0, w: r[0] instanceof Date ? Utilities.formatDate(r[0], TZ, "HH:mm") : "" };
+             ok: Number(r[7]) ? 1 : 0, r: Number(r[8]) === 2 ? 2 : Number(r[8]) ? 1 : 0, s: Number(r[9]) || 0, w: r[0] instanceof Date ? Utilities.formatDate(r[0], TZ, "HH:mm") : "" };
   });
 }
 function tokenRows_() {

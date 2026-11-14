@@ -353,3 +353,67 @@ details.how ul{margin:10px 0 0;padding-inline-start:18px;color:var(--text-2);fon
 .log>div{display:flex;justify-content:space-between;gap:10px;font-size:14px}
 /* a math or date run inside Hebrew text: kept whole on one line when it fits (fmt in app.js) */
 bdi.ltr{display:inline-block;max-width:100%}
+
+/* ---- 2026-11-14: the map tab, typed and matched answers, the streak, thumbs ---- */
+.tabbar{grid-template-columns:repeat(5,1fr)}
+/* every control a thumb can hit: 44px at least ("+ test" was 39, the switches 28, Dad's tabs 39, his token chips 30) */
+.btn-sm,.ptabs button,.seg-pick button{min-height:44px}
+button.chip{min-height:44px;padding:4px 14px}
+.link{display:inline-flex;align-items:center;min-height:44px}
+.switch{box-sizing:content-box;border:8px solid transparent;background-clip:padding-box}
+.x{flex:none;width:44px;height:44px;display:grid;place-items:center;color:var(--text-3);border-radius:50%}
+.x:active{background:var(--glass-hi)}
+.trow{display:flex;align-items:center;gap:10px;font-size:13px}
+.trow>span:first-child{flex:1;min-width:0}
+/* a question that came back, and the round's bar */
+.revtag.again{color:var(--text-2)}
+.seg.fixed i{background:rgba(255,255,255,.5)}
+.seg.now{outline:1.5px solid var(--text);outline-offset:2px;overflow:visible}
+/* a number typed on the pad */
+.typed{display:flex;align-items:center;justify-content:center;gap:8px;min-height:68px;padding:10px 16px;border-radius:18px;background:var(--glass);border:1px solid var(--hair-hi);
+  font-family:var(--f-display);font-size:34px;line-height:1}
+.typed .tv{display:inline-flex;align-items:center;gap:8px}
+.typed b{font-weight:400}
+.typed .caret{width:2px;height:30px;background:var(--text);animation:blink 1s steps(2) infinite}
+.typed .unit{font-family:var(--f-body);font-size:17px;color:var(--text-2)}
+.typed.right{border-color:var(--good);background:rgba(62,230,164,.13);box-shadow:0 0 30px -8px rgba(62,230,164,.6)}
+.typed.wrong{border-color:var(--bad);background:rgba(255,92,114,.12);animation:shake .4s}
+.typed.right .caret,.typed.wrong .caret{display:none}
+@keyframes blink{50%{opacity:0}}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.numpad button{height:52px;border-radius:16px;background:var(--glass-hi);border:1px solid var(--hair);font-size:26px;font-family:var(--f-display)}
+.numpad button:active{background:rgba(255,255,255,.2)}
+.numrow{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+/* four words and four meanings */
+.match{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mcol{display:flex;flex-direction:column;gap:10px}
+.mbtn{min-height:58px;padding:10px 12px;border-radius:18px;background:var(--glass);border:1px solid var(--hair);font-size:17px;text-align:center;overflow-wrap:anywhere;
+  transition:background .15s,border-color .15s,opacity .2s}
+.mbtn[aria-pressed="true"]{border-color:var(--text);background:var(--glass-hi)}
+.mbtn.right{border-color:var(--good);background:rgba(62,230,164,.13);opacity:.6}
+.mbtn.wrong{border-color:var(--bad);background:rgba(255,92,114,.12);animation:shake .4s}
+/* the map's topics */
+.kt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--hair);font-size:15px}
+.kts .kt:first-child,.eyebrow+.kt{border-top:0}
+.kts{margin-top:6px}
+.kt bdi{min-width:0;overflow-wrap:anywhere}
+.kt.new{color:var(--text-2)}
+.pips{display:inline-flex;gap:4px;flex:none}
+.pips i{width:18px;height:6px;border-radius:99px;background:rgba(255,255,255,.14)}
+.pips i.on{background:linear-gradient(90deg,var(--a1),var(--a2))}
+.kt.known .pips i{background:var(--good)}
+/* the streak of full weeks and the four-week path */
+.streak{display:flex;align-items:center;gap:8px}
+.streak .flame{display:inline-flex;color:var(--text-3)}
+.streak .flame svg{width:22px;height:22px}
+.streak .flame.on{color:var(--gold)}
+.streak .n{font-family:var(--f-display);font-weight:400;font-size:30px;line-height:1}
+.streak .path{margin-inline-start:auto}
+.path{display:inline-flex;gap:5px;flex:none}
+.path i{width:22px;height:8px;border-radius:99px;background:rgba(255,255,255,.14)}
+.path i.on{background:var(--gold)}
+/* a day that went badly is not dressed as a win */
+.res-top.low .display{font-size:56px}
+.res-top .small{max-width:34ch}
+/* Dad's list of what she got wrong */
+.mq{padding-top:6px}

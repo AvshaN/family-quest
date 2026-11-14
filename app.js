@@ -160,7 +160,7 @@ const auraOf = p => (p && (L.auras[p.id] || p.aura)) || "orchid";
 function rows() {
   const src = LIVE ? FAM.rows.concat(...L.outbox.map(b => b.rows)) : L.rows.concat(EXAMPLE);
   const seen = new Set(), out = [];
-  for (const r of src) { const k = `${r.d}|${r.p}|${r.q}|${r.r ? 1 : 0}`; if (!seen.has(k)) { seen.add(k); out.push(r); } }
+  for (const r of src) { const k = `${r.d}|${r.p}|${r.q}|${r.r | 0}`; if (!seen.has(k)) { seen.add(k); out.push(r); } }
   return out;
 }
 const tests = () => LIVE ? (FAM.tests || []) : L.tests;
@@ -243,11 +243,11 @@ function dailySet(prof, date, src) {
   for (const p in need) got[p] = take(prof, p, need[p], date, src);
   return slots.map(p => { used[p] = used[p] || 0; return got[p][used[p]++]; }).filter(Boolean);
 }
-/* A question she missed 2-21 days ago comes back once, worth double. */
+/* A question she missed 2-21 days ago comes back as a revenge round, until she wins it. */
 function revengeFor(prof, date, todays) {
   const ids = new Set(todays.map(q => q.id));
   const mine = rows().filter(r => r.p === prof.id);
-  const closed = new Set(mine.filter(r => r.r && (r.ok || daysBetween(r.d, date) < 2)).map(r => r.q));
+  const closed = new Set(mine.filter(r => r.r === 1 && (r.ok || daysBetween(r.d, date) < 2)).map(r => r.q));
   const c = mine.filter(r => !r.r && !r.ok && QIDX[r.q] && studied(prof, QIDX[r.q]) && !ids.has(r.q) && !closed.has(r.q))
     .filter(r => { const g = daysBetween(r.d, date); return g >= 2 && g <= 21; })
     .sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : (a.q < b.q ? -1 : 1));
@@ -255,28 +255,40 @@ function revengeFor(prof, date, todays) {
 }
 
 /* ---------- scoring (keep in step with scoreMonth_ in backend/Code.gs) ----------
- * A day counts once its five are done: 10 points, 4 a right answer, 8 a revenge round won,
- * and 15 for every week of the month (Sunday to Saturday) with five such days. */
-const POINTS = { day: 10, right: 4, revenge: 8, week: 15, weekDays: 5 };
+ * A day counts once its five are done. Until November 2026: 10 points a day, 4 a right answer, 8 a revenge round
+ * won, and 15 for every week of the month (Sunday to Saturday) with five such days.
+ * From December 2026 (Avsha, 2026-11-14): 5 a day, 5 a right answer, 5 more for a perfect day, 5 a revenge round.
+ * Under the old rule a day of random taps earned half a perfect day's points (10 + a quarter of 20, of 30), and one
+ * twin got 18 for none right of five and a revenge round; now it earns a third. The revenge round pays what a
+ * right answer does: at double, missing a question on purpose and winning it back paid more than knowing it.
+ * Practice rounds (r = 2) earn no points: they count for the map and the family goal only. */
+const POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, week: 15, weekDays: 5 }],
+                   ["", { day: 10, right: 4, perfect: 0, revenge: 8, week: 15, weekDays: 5 }]];
+const pointsOf = mk => POINTS_BY.find(x => mk >= x[0])[1];
+const POINTS = pointsOf(THIS_MONTH);
+const dayPoints = (e, P) => P.day + e.ok * P.right + (e.ok >= 5 ? P.perfect : 0) + e.revOk * P.revenge;
 function stats(pid, y, m) {
-  const mk = monthKey(y, m), firstDow = new Date(y, m - 1, 1).getDay();
+  const mk = monthKey(y, m), P = pointsOf(mk), firstDow = new Date(y, m - 1, 1).getDay();
   const rs = rows().filter(r => r.p === pid && r.d.slice(0, 7) === mk);
   const byDay = {}, bySubj = {}, miss = {};
+  let pracOk = 0;
   rs.forEach(r => {
-    const e = byDay[r.d] || (byDay[r.d] = { reg: 0, ok: 0, rev: 0, revOk: 0 });
-    if (r.r) { e.rev++; if (r.ok) e.revOk++; } else { e.reg++; if (r.ok) e.ok++; }
+    const e = byDay[r.d] || (byDay[r.d] = { reg: 0, ok: 0, rev: 0, revOk: 0, prac: 0 });
+    if (r.r === 2) { e.prac++; if (r.ok) pracOk++; }
+    else if (r.r) { e.rev++; if (r.ok) e.revOk++; } else { e.reg++; if (r.ok) e.ok++; }
     const s = subjOf(r.pool); bySubj[s] = bySubj[s] || [0, 0]; bySubj[s][1]++;
     if (r.ok) bySubj[s][0]++; else miss[r.t] = (miss[r.t] || 0) + 1;
   });
   const days = Object.keys(byDay).sort().filter(d => byDay[d].reg >= 5).map(d => Object.assign({ d }, byDay[d]));
   const weeks = {};
   days.forEach(e => { const w = Math.floor((+e.d.slice(8) - 1 + firstDow) / 7); weeks[w] = (weeks[w] || 0) + 1; });
-  const fullWeeks = Object.values(weeks).filter(n => n >= POINTS.weekDays).length;
+  const fullWeeks = Object.values(weeks).filter(n => n >= P.weekDays).length;
   const reg = days.reduce((s, e) => s + e.reg, 0), ok = days.reduce((s, e) => s + e.ok, 0), revOk = days.reduce((s, e) => s + e.revOk, 0);
+  const perfect = days.filter(e => e.ok >= 5).length;
   const elapsed = mk === THIS_MONTH ? D : daysIn(y, m);
   return {
-    days, byDay, played: days.length, reg, ok, revOk, fullWeeks, bySubj,
-    points: days.length * POINTS.day + ok * POINTS.right + revOk * POINTS.revenge + fullWeeks * POINTS.week,
+    days, byDay, played: days.length, reg, ok, revOk, pracOk, perfect, fullWeeks, bySubj, right: ok + revOk + pracOk,
+    points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + fullWeeks * P.week,
     part: elapsed ? Math.round(days.length / elapsed * 100) : 0,
     acc: reg ? Math.round(ok / reg * 100) : 0,
     weak: Object.entries(miss).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(x => x[0])
@@ -303,6 +315,109 @@ function improved(y, m) {
   return best;
 }
 
+/* ---------- full weeks: the streak and her own path to a token (Avsha, 2026-11-14) ----------
+ * A full week is a calendar week, Sunday to Saturday, with five days played (the month's week bonus cuts weeks at
+ * the month's ends; these do not). Every fourth full week is a token, in a row or not, so a girl far behind on the
+ * month's board still has one to play for; the script grants it (pathTokens_). The streak is the full weeks in a
+ * row, and a week still running never breaks it. The Sheet sends the weeks before this one (the phones hold only
+ * two months of rows); this week is counted here. */
+const PATH = { start: "2026-11-15", every: 4 };
+const weekStart = d => addDays(d, -parseYmd(d).getDay());
+function playedDays(pid) {
+  const n = {};
+  rows().forEach(r => { if (r.p === pid && !r.r) n[r.d] = (n[r.d] || 0) + 1; });
+  return new Set(Object.keys(n).filter(d => n[d] >= 5));
+}
+function weeksOf(pid) {
+  const played = playedDays(pid), cur = weekStart(TODAY), sv = LIVE && FAM.path && FAM.path[pid];
+  const inWeek = w => { let n = 0; for (let i = 0; i < 7; i++) if (played.has(addDays(w, i))) n++; return n; };
+  let full = 0, streak = 0;
+  if (sv) { full = +sv.full || 0; streak = +sv.streak || 0; }
+  else {
+    const first = LIVE ? PATH.start : weekStart([...played].sort()[0] || TODAY);
+    for (let w = first; w < cur; w = addDays(w, 7)) { if (inWeek(w) >= POINTS.weekDays) { full++; streak++; } else streak = 0; }
+  }
+  const now = cur >= PATH.start || !LIVE ? inWeek(cur) : 0;
+  if (now >= POINTS.weekDays) { full++; streak++; }
+  return { full, streak, now, left: PATH.every - full % PATH.every };
+}
+
+/* ---------- what she knows: the map (Avsha, 2026-11-14) ----------
+ * A topic fills with right answers on three different days, in the five, a revenge round or practice: the goal the
+ * app shows beside the points is knowing the material. The Sheet sends the days older than the rows the phone holds. */
+const KNOW = 3;
+function knowOf(prof) {
+  const older = (LIVE && FAM.know && FAM.know[prof.id]) || {}, days = {}, out = {};
+  rows().forEach(r => {
+    if (r.p !== prof.id || !r.ok) return;
+    const k = r.pool + "|" + (QIDX[r.q] ? QIDX[r.q].topic : r.t);
+    (days[k] = days[k] || new Set()).add(r.d);
+  });
+  new Set(Object.keys(older).concat(Object.keys(days))).forEach(k => { out[k] = (+older[k] || 0) + (days[k] ? days[k].size : 0); });
+  return out;
+}
+function topicsOf(prof, pool) {
+  const all = [...new Set((BANKS[pool] || []).map(q => q.topic))], lim = (STUDYING[prof.track] || {})[pool];
+  return lim ? lim.filter(t => all.includes(t)) : all;
+}
+/* Her pools, the one with an exam this week first, each with its topics and how many are known. */
+function knowMap(prof) {
+  const know = knowOf(prof), test = activeTest(prof, TODAY), tp = test && poolFor(prof, test.subj);
+  const pools = trackPools(prof.track).filter(p => (BANKS[p] || []).length);
+  if (tp) pools.sort((a, b) => (b === tp) - (a === tp));
+  return pools.map(pool => {
+    const topics = topicsOf(prof, pool).map(t => ({ t, n: Math.min(KNOW, know[pool + "|" + t] || 0) }));
+    return { pool, test: pool === tp ? test : null, topics, known: topics.filter(x => x.n >= KNOW).length };
+  }).filter(x => x.topics.length);
+}
+
+/* ---------- practice: more questions after the five, if she wants (Avsha, 2026-11-14) ----------
+ * No points for the board. First what she last got wrong, then what she has seen in topics not yet known (the
+ * longest ago first), then new questions of her own share in those topics, then anything seen. Mostly a review, so
+ * the pools the daily five draw on last as long; the subject of an exam this week comes first. Two rounds a day. */
+const PRACTICE = { n: 5, rounds: 2, perTopic: 2 };
+const canPractice = () => !LIVE || (FAM.api | 0) >= 2;   // an older script would score a practice row as a revenge round
+function practiceLeft(pid) {
+  const done = rows().filter(r => r.p === pid && r.d === TODAY && r.r === 2).length;
+  return Math.max(0, PRACTICE.rounds - Math.ceil(done / PRACTICE.n));
+}
+function practiceSet(prof) {
+  const all = rows(), today = new Set(), last = {}, theirs = new Set(), know = knowOf(prof);
+  const pools = trackPools(prof.track).filter(p => (BANKS[p] || []).length);
+  const sis = new Set(pools.flatMap(p => sharers(prof, p).map(x => x.id)).filter(id => id !== prof.id));
+  all.forEach(r => {
+    if (r.p === prof.id) { if (r.d === TODAY) today.add(r.q); if (!last[r.q] || r.d >= last[r.q].d) last[r.q] = { d: r.d, ok: r.ok }; }
+    else if (sis.has(r.p)) theirs.add(r.q);
+  });
+  const can = q => q && pools.includes(q.pool) && studied(prof, q) && !today.has(q.id);
+  const days = q => know[q.pool + "|" + q.topic] || 0;
+  const old = (a, b) => last[a.id].d < last[b.id].d ? -1 : last[a.id].d > last[b.id].d ? 1 : (a.id < b.id ? -1 : 1);
+  const seen = Object.keys(last).map(id => QIDX[id]).filter(can);
+  const missed = seen.filter(q => !last[q.id].ok).sort(old);
+  const learning = seen.filter(q => last[q.id].ok && days(q) < KNOW).sort(old);
+  const fresh = shuffle(pools.flatMap(p => shareOf(prof, p)).filter(q => can(q) && !last[q.id] && !theirs.has(q.id) && days(q) < KNOW),
+                        rng(hash("practice|" + prof.id + "|" + TODAY))).sort((a, b) => days(a) - days(b));
+  const known = seen.filter(q => last[q.id].ok && days(q) >= KNOW).sort(old);
+  let list = missed.concat(learning, fresh, known);
+  const test = activeTest(prof, TODAY), tp = test && poolFor(prof, test.subj);
+  if (tp) list = list.filter(q => q.pool === tp).concat(list.filter(q => q.pool !== tp));
+  const per = {}, out = [];
+  for (const q of list) {
+    const k = q.pool + "|" + q.topic;
+    if ((per[k] || 0) >= PRACTICE.perTopic) continue;
+    per[k] = (per[k] || 0) + 1; out.push(q);
+    if (out.length >= PRACTICE.n) break;
+  }
+  return out;
+}
+
+/* ---------- how fast she answers (Avsha, 2026-11-14) ----------
+ * Each first answer is timed, and nothing on her screen shows a clock. A day with three of the five answered in
+ * under three seconds each is marked as rushed for Dad: a question and four options are not read in that time. */
+const RUSH = { secs: 3, n: 3 };
+const fastOnes = rs => rs.filter(r => +r.s > 0 && +r.s < RUSH.secs).length;
+const median = a => { const x = a.slice().sort((p, q) => p - q), n = x.length; return n ? (n % 2 ? x[(n - 1) / 2] : (x[n / 2 - 1] + x[n / 2]) / 2) : 0; };
+
 /* ---------- example history for the demo (marked as such on screen) ---------- */
 function makeExample() {
   const [py, pm] = prevMonth(Y, M), out = [];
@@ -312,7 +427,7 @@ function makeExample() {
     for (let d = ymd(new Date(py, pm - 1, 1)); d < TODAY; d = addDays(d, 1)) {
       const r = rng(hash("example|" + prof.id + "|" + d));
       if (r() > p || L.rows.some(x => x.p === prof.id && x.d === d)) continue;
-      dailySet(prof, d, L.rows.concat(out)).forEach(q => out.push({ d, p: prof.id, q: q.id, pool: q.pool, t: q.topic, l: q.level, ok: r() < acc ? 1 : 0, r: 0 }));
+      dailySet(prof, d, L.rows.concat(out)).forEach(q => out.push({ d, p: prof.id, q: q.id, pool: q.pool, t: q.topic, l: q.level, ok: r() < acc ? 1 : 0, r: 0, s: Math.round(60 + r() * 240) / 10 }));
     }
   });
   return out;
@@ -333,7 +448,7 @@ async function api(action, body) {
 async function refresh() {
   const s = await api("state");
   FAM = { profiles: s.profiles || [], settings: s.settings || {}, tokens: s.tokens || {}, rows: s.rows || [], tests: s.tests || [],
-          lifetime: s.lifetime || null, tokenLog: s.tokenLog || [] };
+          lifetime: s.lifetime || null, tokenLog: s.tokenLog || [], api: s.api | 0, path: s.path || null, know: s.know || null };
   L.cache = FAM; save();
 }
 async function flush() {
@@ -490,10 +605,10 @@ function weekStrip(pid) {
 function show(v) {
   view = v;
   layer.innerHTML = "";
-  const girlTabs = ["home", "board", "vault", "me"].includes(v);
+  const girlTabs = ["home", "know", "board", "vault", "me"].includes(v);
   tabsEl.hidden = !girlTabs;
   $$("button", tabsEl).forEach(b => b.setAttribute("aria-current", b.dataset.to === v ? "page" : "false"));
-  const html = ({ home: renderHome, board: renderBoard, vault: renderVault, me: renderMe, parent: renderParent,
+  const html = ({ home: renderHome, know: renderKnow, board: renderBoard, vault: renderVault, me: renderMe, parent: renderParent,
                   code: renderCode, who: renderWho, aura: renderAuraPick, error: renderError })[v]();
   app.innerHTML = html;
   app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter");
@@ -505,17 +620,20 @@ const flavorTitle = p => ({ portfolio: "Portfolio", routine: "The season", stage
 function renderHome() {
   const p = me(), st = stats(p.id, Y, M), rk = ranking(Y, M), place = placeOf(rk, p.id);
   const done = playedOn(p.id, TODAY), set = dailySet(p, TODAY), rev = done ? null : revengeFor(p, TODAY, set);
-  const test = activeTest(p, TODAY), wk = weekStrip(p.id), h = NOW.getHours();
+  const test = activeTest(p, TODAY), wk = weekStrip(p.id), ws = weeksOf(p.id), h = NOW.getHours();
   const hi = h < 5 ? "לילה טוב" : h < 12 ? "בוקר טוב" : h < 17 ? "צהריים טובים" : h < 22 ? "ערב טוב" : "לילה טוב";
   let hero;
   if (done) {
-    const e = st.byDay[TODAY] || { ok: 0, revOk: 0 }, pts = POINTS.day + e.ok * POINTS.right + e.revOk * POINTS.revenge;
-    const left = 24 * 60 - (h * 60 + NOW.getMinutes());
+    const e = st.byDay[TODAY] || { ok: 0, revOk: 0 }, pts = dayPoints(e, POINTS);
+    const left = 24 * 60 - (h * 60 + NOW.getMinutes()), more = canPractice() && practiceLeft(p.id) > 0;
     hero = `<section class="glass hero-card">
       <span class="eyebrow">Done for today</span>
       <div class="row" style="align-items:flex-end"><span class="display big num" dir="ltr">${e.ok}/5</span><span class="display grad-text" style="font-size:40px" dir="ltr">+${pts}</span></div>
       <p class="muted">המשימה הבאה נפתחת בעוד ${Math.floor(left / 60)} שעות ו־${left % 60} דקות.</p>
-      <button type="button" class="btn btn-ghost wide" data-act="tab" data-to="board">לטבלה</button></section>`;
+      ${more ? `<button type="button" class="btn btn-primary wide" data-act="practice">עוד תרגול, בלי נקודות</button>
+      <p class="small faint">לא חובה. חמש שאלות ממה שעוד לא מלא במפה שלך; נספר למפה וליעד המשפחתי.</p>` : ""}
+      <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-ghost wide" data-act="tab" data-to="know">למפה</button>
+        <button type="button" class="btn btn-ghost wide" data-act="tab" data-to="board">לטבלה</button></div></section>`;
   } else {
     const subj = {};
     set.forEach(q => { const s = SUBJ[subjOf(q.pool)]; subj[s] = (subj[s] || 0) + 1; });
@@ -525,7 +643,7 @@ function renderHome() {
       <span class="eyebrow">${DAYS_FULL[NOW.getDay()]} · ${D} ב${MONTHS[M - 1]}</span>
       <h1 class="display">${resumed ? `עוד ${set.length - resumed} שאלות` : "חמש שאלות"}</h1>
       <div class="chips">${chips}${test ? `<span class="chip warn">${ICON.cal.replace("<svg", '<svg width="14" height="14"')} מבחן ב${esc(SUBJ[test.subj] || test.subj)} ${inDays(daysBetween(TODAY, test.date))}</span>` : ""}${rev ? `<span class="chip warn">+1 סיבוב נקמה</span>` : ""}</div>
-      <div class="meta"><span>בערך <b>3 דקות</b></span><span>עד <b class="num">${POINTS.day + 5 * POINTS.right + (rev ? POINTS.revenge : 0)}</b> נקודות</span></div>
+      <div class="meta"><span>בערך <b>3 דקות</b></span><span>עד <b class="num">${POINTS.day + 5 * POINTS.right + POINTS.perfect + (rev ? POINTS.revenge : 0)}</b> נקודות</span></div>
       <button type="button" class="btn btn-primary wide" data-act="start">${resumed ? "להמשיך" : "להתחיל"}</button></section>`;
   }
   const tiles = [];
@@ -544,7 +662,9 @@ function renderHome() {
     <button type="button" class="round" data-act="tab" data-to="me" aria-label="ההגדרות שלי">${ICON.me}</button></header>
   ${hero}
   <section class="glass pad stack"><div class="row"><span class="eyebrow">This week</span><span class="small muted"><b class="num" style="color:var(--text)">${Math.min(wk.n, 5)}/5</b> ימים · שבוע מלא = 15 נק׳</span></div>${wk.html}
-    <p class="small faint">חמישה ימים בשבוע מספיקים. אימון או שבת בלי משימה לא שוברים כלום.</p></section>
+    <div class="streak"><span class="flame ${ws.streak ? "on" : ""}">${ICON.flame}</span><b class="n num">${ws.streak}</b>
+      <span class="small muted">${ws.streak === 1 ? "שבוע מלא" : "שבועות מלאים ברצף"}</span>${pathDots(ws)}</div>
+    <p class="small faint">חמישה ימים בשבוע מספיקים. אימון או שבת בלי משימה לא שוברים כלום. כל ${PATH.every} שבועות מלאים שווים אסימון: עוד ${ws.left}.</p></section>
   <div class="stats">
     <div class="glass stat"><b class="num">${st.points}</b><span>נקודות ב${MONTHS[M - 1]}</span></div>
     <div class="glass stat"><b class="num">#${place}</b><span>בטבלה</span></div>
@@ -555,9 +675,33 @@ function renderHome() {
     <div class="grid">${tiles.join("")}</div></section>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Tests</span>
       <button type="button" class="btn btn-ghost btn-sm" data-act="addTest">${ICON.plus.replace("<svg", '<svg width="16" height="16"')} מבחן</button></div>
-    ${upcoming.length ? upcoming.map(t => `<div class="row small"><span>${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` · ${esc(t.note)}` : ""}</span><span class="muted">${DAYS_FULL[parseYmd(t.date).getDay()]} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}</span></div>`).join("")
+    ${upcoming.length ? upcoming.map(t => `<div class="trow"><span>${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` · ${esc(t.note)}` : ""}</span><span class="muted">${DAYS_FULL[parseYmd(t.date).getDay()]} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}</span>${delTest(t)}</div>`).join("")
       : `<p class="small muted">יש מבחן בקרוב? שבוע לפניו, רוב השאלות יהיו מהמקצוע שלו.</p>`}</section>
   ${LIVE ? "" : `<p class="demo">תצוגה לדוגמה: ההיסטוריה עד היום היא נתוני דוגמה.</p>`}`;
+}
+
+/* Her four-week path: a dot for each full week since the last token. */
+const pathDots = ws => `<span class="path" role="img" aria-label="${ws.full % PATH.every} מתוך ${PATH.every} שבועות מלאים לאסימון">${Array.from({ length: PATH.every }, (_, i) => `<i class="${i < ws.full % PATH.every ? "on" : ""}"></i>`).join("")}</span>`;
+/* An exam entered wrong can be taken off: hers by her, anyone's by Dad (nobody could, 2026-11-14). The script
+ * learns "untest" with the version that sends api 2. */
+const canEdit = () => !LIVE || (FAM.api | 0) >= 2;
+const delTest = t => canEdit() ? `<button type="button" class="x" data-act="delTest" data-p="${esc(t.p)}" data-date="${esc(t.date)}" data-subj="${esc(t.subj)}" aria-label="מחיקת המבחן">${ICON.close.replace("<svg", '<svg width="16" height="16"')}</button>` : "";
+/* The map: every topic her class has reached, by subject, and how far each is to known. */
+function renderKnow() {
+  const p = me(), map = knowMap(p), all = map.reduce((n, x) => n + x.topics.length, 0), known = map.reduce((n, x) => n + x.known, 0);
+  const left = practiceLeft(p.id);
+  const cta = !canPractice() ? "" : !playedOn(p.id, TODAY) ? `<p class="small faint">אחרי חמש השאלות של היום אפשר לתרגל כאן עוד, בלי נקודות.</p>`
+    : left ? `<button type="button" class="btn btn-aura wide" data-act="practice">לתרגל עכשיו</button>
+      <p class="small faint">לא חובה. חמש שאלות ממה שעוד לא מלא, בלי נקודות לטבלה; נספר למפה וליעד המשפחתי.</p>`
+    : `<p class="small faint">תרגלת היום שני סבבים. מחר יש עוד.</p>`;
+  return `
+  <header><span class="eyebrow">What I know</span><h1 class="display" style="font-size:52px">מה אני יודעת</h1></header>
+  <section class="glass pad stack"><div class="row"><span><b class="display num" style="font-size:34px">${known}</b> <span class="muted">מתוך ${all} נושאים</span></span></div>
+    <div class="bar"><i style="width:${all ? known / all * 100 : 0}%"></i></div>
+    <p class="small muted">נושא מתמלא אחרי ${KNOW} תשובות נכונות, בשלושה ימים שונים.</p>${cta}</section>
+  ${map.map(x => `<section class="glass pad"><div class="row"><b style="font-size:17px">${SUBJ[subjOf(x.pool)]}</b>
+      <span class="small muted">${x.test ? `<span class="chip warn">מבחן ${inDays(daysBetween(TODAY, x.test.date))}</span> ` : ""}<b class="num" style="color:var(--text)" dir="ltr">${x.known}/${x.topics.length}</b></span></div>
+    <div class="kts">${x.topics.map(t => ktRow(t.t, t.n)).join("")}</div></section>`).join("")}`;
 }
 
 function renderBoard() {
@@ -570,7 +714,9 @@ function renderBoard() {
       <span class="st-pts num">${r.points}<small>נק׳</small></span></li>`;
   }).join("");
   const s = FAM.settings, goal = +s.goal || 250;
-  const fam = FAM.profiles.reduce((t, q) => { const x = stats(q.id, Y, M); return t + x.ok + x.revOk; }, 0);
+  const fam = FAM.profiles.reduce((t, q) => t + stats(q.id, Y, M).right, 0);
+  const [ny, nm] = M === 12 ? [Y + 1, 1] : [Y, M + 1], N = pointsOf(monthKey(ny, nm));
+  const rules = P => `${P.day} על יום עם משימה, ${P.right} על תשובה נכונה${P.perfect ? `, ${P.perfect} על יום מושלם (חמש מחמש)` : ""}, ${P.revenge} על סיבוב נקמה מוצלח`;
   const [py, pm] = prevMonth(Y, M), last = ranking(py, pm), imp = improved(py, pm);
   const champs = last.filter(r => r.points && placeOf(last, r.id) === 1).map(r => profile(r.id));
   return `
@@ -579,16 +725,19 @@ function renderBoard() {
   <ol class="standings">${rowsHTML}</ol>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Family goal</span><span class="num small" dir="ltr"><b>${fam}</b> / ${goal}</span></div>
     <div class="bar"><i style="width:${Math.min(100, fam / goal * 100)}%"></i></div>
-    <p class="small muted">${goal} תשובות נכונות של שלושתכן יחד החודש: ${esc(s.goalReward || "")}.</p></section>
+    <p class="small muted">${goal} תשובות נכונות של שלושתכן יחד החודש${canPractice() ? ", גם בתרגול" : ""}: ${esc(s.goalReward || "")}.</p></section>
+  ${N !== POINTS ? `<section class="glass pad stack"><span class="eyebrow">From ${nm}.${ny}</span>
+    <p class="small"><b>מ־1 ב${MONTHS[nm - 1]} הניקוד משתנה:</b> ${rules(N)}. לדעת שווה יותר, ולהגיע בלי לענות נכון שווה פחות.</p></section>` : ""}
   ${champs.length ? `<section class="glass pad stack"><span class="eyebrow">${MONTHS[pm - 1]}</span>
     <div class="row"><span>${champs.length > 1 ? "האלופות" : "האלופה"}: <b>${champs.map(c => esc(c.name)).join(" ו")}</b></span>${imp ? `<span>השתפרה הכי הרבה: <b>${esc(profile(imp.id).name)}</b> <span class="muted">(+${imp.gain}% דיוק)</span></span>` : ""}</div></section>` : ""}
   <details class="glass pad how"><summary>איך סופרים נקודות <span class="muted">+</span></summary>
-    <ul><li>${POINTS.day} על כל יום עם משימה</li><li>${POINTS.right} על כל תשובה נכונה</li><li>${POINTS.revenge} על סיבוב נקמה מוצלח</li><li>${POINTS.week} על שבוע עם ${POINTS.weekDays} ימי משימה</li>
+    <ul><li>${POINTS.day} על כל יום עם משימה</li><li>${POINTS.right} על כל תשובה נכונה</li>${POINTS.perfect ? `<li>${POINTS.perfect} על יום מושלם, חמש מחמש</li>` : ""}<li>${POINTS.revenge} על סיבוב נקמה מוצלח</li><li>${POINTS.week} על שבוע עם ${POINTS.weekDays} ימי משימה</li>
+    <li>רק התשובה הראשונה נספרת. מה שפספסת חוזר בסוף הסבב עד שהוא נכון, בלי נקודות.</li>
     <li>כל אחת עונה ברמה של הכיתה שלה, אז הניקוד הוגן בין ז׳ לי׳.</li>${s.improvedReward ? `<li>מי שמשתפרת הכי הרבה בדיוק לעומת החודש הקודם: ${esc(s.improvedReward)}.</li>` : ""}</ul></details>`;
 }
 
 function renderVault() {
-  const p = me(), n = +FAM.tokens[p.id] || 0, s = FAM.settings, val = +s.tokenValue || 100;
+  const p = me(), n = +FAM.tokens[p.id] || 0, s = FAM.settings, val = +s.tokenValue || 100, ws = weeksOf(p.id);
   const coins = Array.from({ length: Math.max(10, n) }, (_, i) => i < n
     ? `<span class="coin" style="animation-delay:${i * 0.06}s">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</span>`
     : `<span class="coin empty num">${i + 1}</span>`).join("");
@@ -597,12 +746,14 @@ function renderVault() {
   return `
   <header><span class="eyebrow">Vault</span><h1 class="display" style="font-size:58px">${n} <span class="muted" style="font-size:24px">אסימונים</span></h1></header>
   <section class="glass pad"><div class="coins">${coins}</div></section>
+  <section class="glass pad stack"><div class="row"><span class="eyebrow">Your path</span>${pathDots(ws)}</div>
+    <p class="small muted">כל ${PATH.every} שבועות מלאים (חמישה ימים עם משימה בשבוע) שווים אסימון, גם אם הם לא ברצף. יש לך ${ws.full % PATH.every} מתוך ${PATH.every}.</p></section>
   ${n >= 10 ? `<div class="blackcard"><span class="eyebrow" style="color:var(--gold)">Black card</span><span class="display">${esc(s.prize10 || "הפרס הענק")}</span></div>` : ""}
   ${tier(1, "אפשר לפדות כל אסימון מתי שרוצים", `${val} ₪`)}
   ${tier(5, "חמישה אסימונים שמורים", s.prize5 || "פרס גדול (אבא עוד מחליט)")}
   ${tier(10, "עשרה אסימונים שמורים", s.prize10 || "פרס ענק (אבא עוד מחליט)")}
   <button type="button" class="btn btn-aura wide" data-act="redeem" ${n ? "" : "disabled"}>לפדות אסימון ב־${val} ₪</button>
-  <p class="small muted" style="text-align:center">אלופת החודש מקבלת אסימון ב־1 לחודש הבא.</p>`;
+  <p class="small muted" style="text-align:center">אלופת החודש מקבלת אסימון ב־1 לחודש הבא, וכל אחת מקבלת אחד על כל ${PATH.every} שבועות מלאים.</p>`;
 }
 
 function subjectBars(st) {
@@ -630,7 +781,7 @@ function renderMe() {
   <section class="glass pad stack"><div class="row"><span class="eyebrow">What Dad sees</span><span class="small muted">${st.played} ימים · ${st.acc}% דיוק</span></div>
     ${subjectBars(st)}
     ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(", ")}</p>` : ""}
-    <p class="small faint">אבא רואה בדיוק את זה, וגם אילו שאלות קיבלת. לא יותר.</p></section>
+    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, וכמה זמן לקח לך לענות. לא יותר.</p></section>
   <button type="button" class="glass pad row" data-act="recap" style="text-align:start"><span>הסיכום של ${MONTHS[prevMonth(Y, M)[1] - 1]}</span>${ICON.back.replace("<svg", '<svg width="18" height="18" style="transform:scaleX(-1)"')}</button>
   <section class="glass pad">
     <div class="toggle" style="border-top:0"><span>צלילים</span><button type="button" class="switch" role="switch" aria-checked="${L.sound}" data-act="toggle" data-k="sound" aria-label="צלילים"></button></div>
@@ -668,27 +819,33 @@ const table = (heads, rowsHTML) => `<div class="tbl-wrap"><table class="tbl"><th
 const joinHe = a => a.length < 2 ? (a[0] || "") : a.slice(0, -1).join(", ") + " ו" + a[a.length - 1];
 function todayOf(p) {
   const st = stats(p.id, Y, M), e = st.byDay[TODAY] || { reg: 0, ok: 0, rev: 0, revOk: 0 };
-  const mine = rows().filter(r => r.p === p.id && r.d === TODAY), reg = mine.filter(r => !r.r), rev = mine.filter(r => r.r);
+  const mine = rows().filter(r => r.p === p.id && r.d === TODAY), reg = mine.filter(r => !r.r), rev = mine.filter(r => r.r === 1);
+  const prac = mine.filter(r => r.r === 2), secs = reg.map(r => +r.s).filter(x => x > 0);
   const played = reg.length >= 5;
   let points = 0;
   if (played) {
-    points = POINTS.day + e.ok * POINTS.right + e.revOk * POINTS.revenge;
+    points = dayPoints(e, POINTS);
     /* today's day finished a full week if it is the fifth and last of the week's days so far */
     const wk = st.days.filter(x => Math.floor((+x.d.slice(8) - 1 + new Date(Y, M - 1, 1).getDay()) / 7) === Math.floor((D - 1 + new Date(Y, M - 1, 1).getDay()) / 7));
     if (wk.length === POINTS.weekDays && wk[wk.length - 1].d === TODAY) points += POINTS.week;
   }
   return { played, ok: e.ok, rev: rev.length ? rev[0].ok : null, points, at: (reg[reg.length - 1] || {}).w || "",
-           missed: [...new Set(reg.filter(r => !r.ok).map(r => r.t))], asked: reg.map(r => r.t), week: weekStrip(p.id).n };
+           missed: [...new Set(reg.filter(r => !r.ok).map(r => r.t))], asked: reg.map(r => r.t), week: weekStrip(p.id).n,
+           secs: secs.length ? median(secs) : 0, fast: fastOnes(reg), rushed: played && fastOnes(reg) >= RUSH.n,
+           prac: prac.length, pracOk: prac.filter(r => r.ok).length, wrong: reg.concat(rev).filter(r => !r.ok) };
 }
 function parentToday() {
   const ts = FAM.profiles.map(p => [p, todayOf(p)]), n = ts.filter(([, t]) => t.played).length;
   const missing = ts.filter(([, t]) => !t.played).map(([p]) => esc(p.name));
   const rowsHTML = ts.map(([p, t]) => `<tr><td>${nameCell(p)}</td>
-    <td>${t.played ? `<span dir="ltr"><b class="big num">${t.ok}</b><span class="faint">/5</span></span>` : `<span class="bad-t small">לא שיחקה</span>`}</td>
+    <td>${t.played ? `<span dir="ltr"><b class="big num">${t.ok}</b><span class="faint">/5</span></span>${t.rushed ? `<br><span class="chip bad">מהר מדי</span>` : ""}` : `<span class="bad-t small">לא שיחקה</span>`}</td>
     <td>${t.rev === null ? `<span class="faint">—</span>` : t.rev ? `<span class="good-t" aria-label="ניצחה">✓</span>` : `<span class="bad-t" aria-label="הפסידה">✗</span>`}</td>
     <td class="num">${t.points ? `<b dir="ltr">+${t.points}</b>` : "—"}</td><td class="num">${t.week}</td><td class="num faint">${t.at || "—"}</td></tr>`);
   const detail = ts.map(([p, t]) => `<div class="stack" style="gap:4px"><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span>
-    ${t.played ? `<p class="small"><span class="muted">היום:</span> ${t.asked.map(esc).join(" · ")}</p>${t.missed.length ? `<p class="small"><span class="muted">פספסה:</span> ${t.missed.map(esc).join(" · ")}</p>` : `<p class="small good-t">בלי טעויות</p>`}`
+    ${t.played ? `<p class="small"><span class="muted">היום:</span> ${t.asked.map(esc).join(" · ")}</p>
+      ${t.secs ? `<p class="small"><span class="muted">זמן לשאלה:</span> ${secText(t.secs)} (החציון)${t.rushed ? ` · <span class="bad-t">${t.fast} תשובות בפחות מ־${RUSH.secs} שניות</span>` : ""}</p>` : ""}
+      ${t.prac ? `<p class="small"><span class="muted">תרגלה עוד:</span> ${t.prac} שאלות, ${t.pracOk} נכונות</p>` : ""}
+      ${t.wrong.length ? t.wrong.map(missedRow).join("") : `<p class="small good-t">בלי טעויות</p>`}`
       : `<p class="small"><span class="muted">מחכות לה:</span> ${dailySet(p, TODAY).map(q => esc(q.topic)).join(" · ")}</p>`}</div>`).join("");
   const pairs = {};
   FAM.profiles.filter(p => p.pair).forEach(p => (pairs[p.pair] = pairs[p.pair] || []).push(p));
@@ -702,20 +859,29 @@ function parentToday() {
   ${examsCard()}
   <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>`;
 }
+/* A question she got wrong, whole, with its right answer, so Dad can talk it through with her (he saw only the
+ * topic's name, 2026-11-14), and how long she took over it. */
+const secText = x => `${x < 10 ? Math.round(x * 10) / 10 : Math.round(x)} שניות`;
+function missedRow(r) {
+  const q = QIDX[r.q];
+  return `<div class="rv mq"><span class="mk no">✗</span><span class="t"><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(q ? q.topic : r.t)}${r.r === 1 ? " · נקמה" : ""}</b>${+r.s > 0 ? ` <span class="small faint">${secText(+r.s)}</span>` : ""}
+    ${q ? `<br><span class="muted" ${q.ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</span><br><span class="good-t">✓ <span dir="${optDir(q.options[0])}">${fmt(q.options[0])}</span></span>` : ""}</span></div>`;
+}
 /* Upcoming exams, every girl's, soonest first, as in the evening email; the week of focus is lit. */
 function examsCard() {
   const up = tests().filter(t => t.date >= TODAY && profile(t.p)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
   const rowsHTML = up.slice(0, 12).map(t => { const n = daysBetween(TODAY, t.date), p = profile(t.p);
     // when it is and how long until it share a cell: a fourth column ran off a phone's width
     return `<tr><td class="num"><b>${dateHe(t.date)}</b><br>${n <= TEST_LEAD ? `<span class="chip warn">${inDays(n)}</span>` : `<span class="small muted">${inDays(n)}</span>`}</td>
-      <td>${nameCell(p)}</td><td>${esc(SUBJ[t.subj] || t.subj)}${t.note ? `<br><span class="small faint">${esc(t.note)}</span>` : ""}</td></tr>`; });
-  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Exams</span><span class="small muted">מבחנים קרובים</span></div>
-    ${up.length ? table(["מתי", "", "מקצוע"], rowsHTML) + `<p class="small faint">שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו.</p>`
-      : `<p class="small muted">אין מבחנים ברשימה. הבנות מוסיפות מבחן במסך הבית שלהן (״+ מבחן״).</p>`}</section>`;
+      <td>${nameCell(p)}</td><td style="white-space:normal">${esc(SUBJ[t.subj] || t.subj)}${t.note ? `<br><span class="small faint">${esc(t.note)}</span>` : ""}</td>${canEdit() ? `<td style="padding:0">${delTest(t)}</td>` : ""}</tr>`; });
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Exams</span>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="addTest">${ICON.plus.replace("<svg", '<svg width="16" height="16"')} מבחן</button></div>
+    ${up.length ? table(["מתי", "", "מקצוע"].concat(canEdit() ? [""] : []), rowsHTML) + `<p class="small faint">שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו.</p>`
+      : `<p class="small muted">אין מבחנים ברשימה. אפשר להוסיף כאן, והבנות מוסיפות במסך הבית שלהן (״+ מבחן״).</p>`}</section>`;
 }
 function parentMonth() {
   const rk = ranking(Y, M), s = FAM.settings, lead = rk[0] ? rk[0].points : 0, goal = +s.goal || 250;
-  const fam = rk.reduce((t, r) => t + r.ok + r.revOk, 0);
+  const fam = rk.reduce((t, r) => t + r.right, 0);
   const rowsHTML = rk.map(r => { const p = profile(r.id), pl = placeOf(rk, r.id);
     return `<tr><td class="num" style="${pl === 1 && r.points ? "color:var(--gold)" : "color:var(--text-3)"}"><b>${pl}</b></td><td>${nameCell(p)}</td><td><b class="big num">${r.points}</b></td>
       <td class="num">${r.played}</td><td class="num" dir="ltr" style="text-align:end">${r.acc}%</td><td class="num">${r.fullWeeks}</td><td class="num faint" dir="ltr" style="text-align:end">${lead > r.points ? "−" + (lead - r.points) : "—"}</td></tr>`; });
@@ -758,6 +924,7 @@ function reasonHe(t) {
   const w = /^winner (\d{4})-(\d{2})/.exec(t.reason);
   if (w) return `אלופת ${MONTHS[+w[2] - 1]}`;
   if (/^gift/.test(t.reason)) return "מתנה מאבא";
+  if (/^weeks /.test(t.reason)) return `${PATH.every} שבועות מלאים`;
   if (/^redeemed/.test(t.reason)) return `פדתה ב־${(/\d+/.exec(t.reason) || [FAM.settings.tokenValue || 100])[0]} ₪`;
   return esc(t.reason);
 }
@@ -812,84 +979,222 @@ function renderError() {
 
 /* ---------- the quest ---------- */
 let Q = null;
+/* A round is the day's five (and a revenge round) or a practice round. Its queue is the items in order, and a
+ * question answered wrong joins the end of it again, until she gets it right (Avsha, 2026-11-14: tapping at random
+ * finished a day in seconds and nothing made her read the explanation; now reading it is the quickest way out).
+ * Only the first answer is recorded and scored, with the seconds it took. */
+function newRound(kind, p, items) {
+  return { kind, pid: p.id, items, queue: items.map((_, k) => k), i: 0, res: [], secs: [], fixed: [], combo: 0,
+           fifty: false, halfAt: -1, locked: false, t0: 0, form: "choice", ord: null, typed: "", m: null };
+}
+const idsOf = items => items.map(it => it.q.id).join();
+const cur = () => Q.items[Q.queue[Q.i]];
+const again = () => Q.queue.indexOf(Q.queue[Q.i]) < Q.i;
+const tryNo = () => Q.queue.slice(0, Q.i + 1).filter(k => k === Q.queue[Q.i]).length;
 function startQuest() {
   const p = me(), set = dailySet(p, TODAY), rev = revengeFor(p, TODAY, set);
   const items = set.map(q => ({ q, rev: false }));
   if (rev) items.push({ q: rev, rev: true });
-  Q = { pid: p.id, items, orders: items.map(it => shuffle([0, 1, 2, 3], rng(hash(TODAY + "|" + p.id + "|" + it.q.id)))),
-        i: 0, res: [], combo: 0, fifty: false, locked: false };
-  const saved = L.progress[p.id];
-  if (saved && saved.date === TODAY && saved.ids === items.map(it => it.q.id).join()) Object.assign(Q, { i: saved.i, res: saved.res, fifty: saved.fifty, combo: saved.combo || 0 });
+  Q = newRound("day", p, items);
+  const sv = L.progress[p.id];
+  if (sv && sv.date === TODAY && sv.ids === idsOf(items)) {
+    Object.assign(Q, { i: sv.i, res: sv.res || [], secs: sv.secs || [], fixed: sv.fixed || [], fifty: !!sv.fifty, combo: sv.combo || 0,
+                       halfAt: sv.halfAt == null ? -1 : sv.halfAt });
+    // progress kept by the version before the redo round: what she had missed still comes back
+    Q.queue = Array.isArray(sv.queue) ? sv.queue : Q.queue.concat(Q.queue.filter(k => k < sv.i && !Q.res[k]));
+    // She answered and left before "next": she has seen the answer, so the round moves on. (It used to show the
+    // question again, unanswered: miss, look, leave, come back and get it right.)
+    if (sv.locked) { if (Q.i >= Q.queue.length - 1) { finishQuest(); return; } Q.i++; }
+  }
+  renderQuestion();
+}
+function startPractice() {
+  const p = me(), set = practiceSet(p);
+  if (!set.length) { toast("אין כרגע מה לתרגל. מחר יהיו שאלות חדשות."); return; }
+  Q = newRound("practice", p, set.map(q => ({ q, rev: false })));
   renderQuestion();
 }
 function keepProgress() {
-  L.progress[Q.pid] = { date: TODAY, ids: Q.items.map(it => it.q.id).join(), i: Q.i, res: Q.res, fifty: Q.fifty, combo: Q.combo };
+  if (Q.kind !== "day") return;
+  L.progress[Q.pid] = { date: TODAY, ids: idsOf(Q.items), queue: Q.queue, i: Q.i, res: Q.res, secs: Q.secs, fixed: Q.fixed,
+                        fifty: Q.fifty, halfAt: Q.halfAt, combo: Q.combo, locked: Q.locked };
   save();
 }
+/* How a question is asked (Avsha, 2026-11-14: four options are only recognised, and a tap at random is right a
+ * quarter of the time).
+ * Typed: a math question whose four options are plain numbers, with the same "x =" before them or unit after, is
+ * answered on a number pad; "which of the following" questions and thousands written with a comma stay options,
+ * and a question with "choice": true in its bank does too.
+ * Match: a "What does “word” mean?" question becomes four words to pair with their meanings, hers and three more
+ * of her own share; it is right only with no wrong pair.
+ * 50:50 on a typed question shows it with two of its options. */
+const NUM_OPT = /^\{?\s*((?:[a-zA-Z]\s*=\s*)?)([-−]?\d+(?:\.\d+)?)\s*([^\d{}]*?)\s*\}?$/;
+function typedOf(q) {
+  if (q.choice || subjOf(q.pool) !== "math" || /הבאים|הבאות|בקירוב/.test(q.q)) return null;
+  const m = q.options.map(o => NUM_OPT.exec(o)), tidy = x => x.replace(/\s+/g, " ").trim();
+  if (m.some(x => !x)) return null;
+  const pre = tidy(m[0][1]), suf = m[0][3];
+  if (m.some(x => tidy(x[1]) !== pre || x[3] !== suf)) return null;
+  return { pre, suf, val: parseFloat(m[0][2].replace("−", "-")) };
+}
+const VOCAB = /^What does [“"](.+?)[”"] mean\??$/;
+function matchOf(prof, q) {
+  const m = VOCAB.exec(q.q);
+  if (!m || optDir(q.options[0]) !== "rtl") return null;
+  const pairs = [{ a: m[1], b: q.options[0] }];
+  const cand = shuffle(shareOf(prof, q.pool).filter(x => x.id !== q.id && studied(prof, x)), rng(hash("match|" + q.id + "|" + prof.id + "|" + TODAY)));
+  for (const x of cand) {
+    const w = VOCAB.exec(x.q);
+    if (!w || optDir(x.options[0]) !== "rtl" || pairs.some(y => y.a === w[1] || y.b === x.options[0])) continue;
+    pairs.push({ a: w[1], b: x.options[0] });
+    if (pairs.length === 4) return pairs;
+  }
+  return null;
+}
+const orderOf = (q, n) => shuffle([0, 1, 2, 3], rng(hash(TODAY + "|" + Q.pid + "|" + q.id + (n > 1 ? "|" + n : ""))));
 function quizShell(inner) { return `<div class="quiz" role="dialog" aria-modal="true" aria-label="המשימה של היום"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">${inner}</div></div>`; }
 function segs() {
-  return `<div class="segs">${Q.items.map((it, k) => `<span class="seg ${it.rev ? "rev" : ""} ${k < Q.i || (k === Q.i && Q.locked) ? (Q.res[k] ? "done" : "done bad") : k === Q.i ? "cur" : ""}"><i></i></span>`).join("")}</div>`;
+  const at = Q.queue[Q.i], redo = again();
+  return `<div class="segs">${Q.items.map((it, k) => {
+    const st = Q.res[k] == null ? (k === at ? "cur" : "") : Q.res[k] ? "done" : Q.fixed[k] ? "done fixed" : "done bad";
+    return `<span class="seg ${it.rev ? "rev" : ""} ${st} ${redo && k === at ? "now" : ""}"><i></i></span>`;
+  }).join("")}</div>`;
 }
-function renderQuestion() {
-  const it = Q.items[Q.i], q = it.q, ord = Q.orders[Q.i], ltr = !!q.ltr, keys = ltr ? ["A", "B", "C", "D"] : ["א", "ב", "ג", "ד"];
-  const lv = [1, 2, 3].map(n => `<i class="${n <= q.level ? "on" : ""}"></i>`).join("");
-  const canSpeak = ltr && "speechSynthesis" in window;
+function renderQuestion(keepClock) {
+  const k = Q.queue[Q.i], it = Q.items[k], q = it.q, ltr = !!q.ltr, redo = again(), n = tryNo(), half = Q.halfAt === Q.i;
+  const T = half ? null : typedOf(q), pairs = half || T ? null : matchOf(profile(Q.pid), q);
+  Q.form = T ? "typed" : pairs ? "match" : "choice"; Q.locked = false; Q.typed = ""; Q.m = null;
+  if (!keepClock) Q.t0 = performance.now();
+  const lv = [1, 2, 3].map(x => `<i class="${x <= q.level ? "on" : ""}"></i>`).join("");
+  const canSpeak = ltr && !pairs && "speechSynthesis" in window;
+  let body;
+  if (T) {
+    const he = optDir(T.suf) === "rtl";
+    body = `<div class="typed" id="typed"><span class="tv" dir="ltr">${T.pre ? `<span>${esc(T.pre)}</span>` : ""}<b id="tval"></b><i class="caret"></i>${T.suf && !he ? `<span>${esc(T.suf)}</span>` : ""}</span>${he ? `<span class="unit">${esc(T.suf)}</span>` : ""}</div>
+    <div class="numpad" dir="ltr">${["1", "2", "3", "4", "5", "6", "7", "8", "9", "−", "0", "."].map(c => `<button type="button" data-act="num" data-k="${c}"${c === "−" ? ' aria-label="מינוס"' : ""}>${c}</button>`).join("")}</div>
+    <div class="numrow"><button type="button" class="btn btn-ghost" data-act="num" data-k="del" aria-label="מחיקה">⌫</button><button type="button" class="btn btn-primary" data-act="numGo" id="numGo" disabled>בדיקה</button></div>`;
+  } else if (pairs) {
+    const r = rng(hash("sides|" + q.id + "|" + Q.pid + "|" + TODAY + "|" + n));
+    Q.m = { sel: null, done: 0, miss: 0 };
+    const col = (side, ord) => `<div class="mcol">${ord.map(i => `<button type="button" class="mbtn" data-act="pair" data-side="${side}" data-k="${i}" aria-pressed="false" dir="${side === "a" ? "ltr" : "rtl"}">${esc(pairs[i][side])}</button>`).join("")}</div>`;
+    body = `<div class="match" dir="ltr">${col("a", shuffle([0, 1, 2, 3], r))}${col("b", shuffle([0, 1, 2, 3], r))}</div>`;
+  } else {
+    const ord = Q.ord = orderOf(q, n), keys = ltr ? ["A", "B", "C", "D"] : ["א", "ב", "ג", "ד"], right = ord.indexOf(0);
+    const gone = new Set(half ? shuffle([0, 1, 2, 3].filter(x => x !== right), rng(hash(TODAY + Q.pid + q.id + "half"))).slice(0, 2) : []);
+    body = `<div class="opts" ${ltr ? 'dir="ltr"' : ""}>${ord.map((oi, j) => `<button type="button" class="opt ${gone.has(j) ? "gone" : ""}" data-act="answer" data-j="${j}" ${gone.has(j) ? "disabled" : ""}><span class="k">${keys[j]}</span><span dir="${optDir(q.options[oi])}">${fmt(q.options[oi])}</span></button>`).join("")}</div>`;
+  }
+  const tag = redo ? `<span class="revtag again">${ICON.revenge.replace("<svg", '<svg width="16" height="16"')} שוב, עד שזה נכון</span>`
+    : it.rev ? `<span class="revtag">${ICON.revenge.replace("<svg", '<svg width="16" height="16"')} סיבוב נקמה · <bdi dir="ltr">+${POINTS.revenge}</bdi></span>`
+    : Q.kind === "practice" ? `<span class="revtag again">תרגול · בלי נקודות</span>` : "";
   layer.innerHTML = quizShell(`
     ${segs()}
-    <div class="qhead"><button type="button" class="round" data-act="quit" aria-label="יציאה, ההתקדמות נשמרת">${ICON.close}</button>
+    <div class="qhead"><button type="button" class="round" data-act="quit" aria-label="${Q.kind === "day" ? "יציאה, ההתקדמות נשמרת" : "סיום התרגול"}">${ICON.close}</button>
       <span class="combo" id="combo" ${Q.combo >= 2 ? "" : "hidden"}>${ICON.flame.replace("<svg", '<svg width="20" height="20"')}<span dir="ltr">×${Q.combo}</span></span></div>
-    <div class="qsubj"><span class="chip"><i></i>${SUBJ[subjOf(q.pool)]} · ${esc(q.topic)}</span><span class="lvl-dots" aria-label="רמה ${q.level} מתוך 3">${lv}</span>
-      ${it.rev ? `<span class="revtag">${ICON.revenge.replace("<svg", '<svg width="16" height="16"')} סיבוב נקמה · כפול</span>` : ""}</div>
-    <h2 class="q" ${ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</h2>
-    <div class="opts" ${ltr ? 'dir="ltr"' : ""}>${ord.map((oi, j) => `<button type="button" class="opt" data-act="answer" data-j="${j}"><span class="k">${keys[j]}</span><span dir="${optDir(q.options[oi])}">${fmt(q.options[oi])}</span></button>`).join("")}</div>
-    <div class="qtools"><button type="button" class="tool" data-act="fifty" ${Q.fifty ? "disabled" : ""}>${ICON.half} 50:50${Q.fifty ? " · נוצל" : ""}</button>
-      ${canSpeak ? `<button type="button" class="tool" data-act="listen">${ICON.listen} Listen</button>` : ""}<span class="small faint num" dir="ltr">${Q.i + 1} / ${Q.items.length}</span></div>
+    <div class="qsubj"><span class="chip"><i></i>${SUBJ[subjOf(q.pool)]} · ${esc(q.topic)}</span><span class="lvl-dots" aria-label="רמה ${q.level} מתוך 3">${lv}</span>${tag}</div>
+    ${pairs ? `<h2 class="q">חברי כל מילה לפירוש שלה</h2>` : `<h2 class="q" ${ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</h2>`}
+    ${body}
+    <div class="qtools">${pairs ? "<span></span>" : `<button type="button" class="tool" data-act="fifty" ${Q.fifty ? "disabled" : ""}>${ICON.half} 50:50${Q.fifty ? " · נוצל" : ""}</button>`}
+      ${canSpeak ? `<button type="button" class="tool" data-act="listen">${ICON.listen} Listen</button>` : ""}
+      <span class="small faint num">${redo ? `תיקון · נשארו ${Q.queue.length - Q.i}` : `<bdi dir="ltr">${k + 1} / ${Q.items.length}</bdi>`}</span></div>
     <div id="explain"></div>`);
 }
 function answer(j, btn) {
-  if (Q.locked) return;
+  if (Q.locked || Q.form !== "choice" || btn.disabled) return;
+  const right = Q.ord.indexOf(0);
+  $$(".opt", layer).forEach((b, x) => { b.disabled = true; b.classList.add(x === right ? "right" : x === j ? "wrong" : "dim"); });
+  settle(j === right, btn);
+}
+function numKey(c) {
+  if (Q.locked || Q.form !== "typed") return;
+  let t = Q.typed;
+  if (c === "del") t = t.slice(0, -1);
+  else if (c === "−") t = t.startsWith("−") ? t.slice(1) : "−" + t;
+  else if (c === ".") { if (!t.includes(".")) t += /\d$/.test(t) ? "." : "0."; }
+  else if (t.replace(/\D/g, "").length < 8) t += c;
+  Q.typed = t; SFX.tap();
+  $("#tval", layer).textContent = t;
+  $("#numGo", layer).disabled = !/\d/.test(t);
+}
+function numGo() {
+  if (Q.locked || Q.form !== "typed" || !/\d/.test(Q.typed)) return;
+  const q = cur().q, ok = Math.abs(parseFloat(Q.typed.replace("−", "-")) - typedOf(q).val) < 1e-9, box = $("#typed", layer);
+  box.classList.add(ok ? "right" : "wrong");
+  $$(".numpad, .numrow", layer).forEach(x => x.remove());
+  settle(ok, box, ok ? "" : q.options[0]);
+}
+function pairTap(b) {
+  if (Q.locked || Q.form !== "match" || b.disabled) return;
+  const m = Q.m, sel = m.sel;
+  if (!sel || sel.dataset.side === b.dataset.side) {
+    if (sel) sel.setAttribute("aria-pressed", "false");
+    m.sel = sel === b ? null : b;
+    if (m.sel) b.setAttribute("aria-pressed", "true");
+    SFX.tap(); return;
+  }
+  sel.setAttribute("aria-pressed", "false"); m.sel = null;
+  if (sel.dataset.k === b.dataset.k) {
+    [sel, b].forEach(x => { x.disabled = true; x.classList.add("right"); });
+    m.done++; buzz(10);
+    if (m.done === 4) settle(m.miss === 0, b); else SFX.tap();
+  } else {
+    m.miss++; SFX.bad(); buzz([30, 40, 30]);
+    [sel, b].forEach(x => { x.classList.remove("wrong"); void x.offsetWidth; x.classList.add("wrong"); setTimeout(() => x.classList.remove("wrong"), 450); });
+  }
+}
+/* An answer is in: `shown` is the right answer, when her own does not show it (a typed one). */
+function settle(ok, el, shown) {
   Q.locked = true;
-  const it = Q.items[Q.i], q = it.q, ord = Q.orders[Q.i], right = ord.indexOf(0), ok = j === right;
-  Q.res[Q.i] = ok;
-  $$(".opt", layer).forEach((b, k) => { b.disabled = true; b.classList.add(k === right ? "right" : k === j ? "wrong" : "dim"); });
-  const seg = $$(".seg", layer)[Q.i]; if (seg) seg.className = `seg ${it.rev ? "rev" : ""} done ${ok ? "" : "bad"}`;
-  const rect = btn.getBoundingClientRect(), a = AURAS[auraOf(me())].c;
+  const k = Q.queue[Q.i], it = Q.items[k], q = it.q, redo = again(), day = Q.kind === "day";
+  if (!redo) { Q.res[k] = ok; Q.secs[k] = Math.max(0.1, Math.min(999, Math.round((performance.now() - Q.t0) / 100) / 10)); }
+  else if (ok) Q.fixed[k] = true;
+  if (!ok) Q.queue.push(k);
+  const sg = $(".segs", layer); if (sg) sg.outerHTML = segs();
+  const rect = el.getBoundingClientRect(), a = AURAS[auraOf(me())].c, c = $("#combo", layer);
   if (ok) {
-    Q.combo++; SFX.good(); buzz(15);
-    sparks(rect.left + rect.width / 2, rect.top + rect.height / 2, [a[0], a[1], "#ffffff", "#3EE6A4"], 26, 5);
-    const f = document.createElement("div"); f.className = "fly"; f.dir = "ltr"; f.textContent = "+" + (it.rev ? POINTS.revenge : POINTS.right);
-    f.style.left = (rect.left + rect.width / 2) + "px"; f.style.top = (rect.top - 10) + "px"; document.body.appendChild(f); setTimeout(() => f.remove(), 1100);
-    const c = $("#combo", layer);
-    if (Q.combo >= 2 && c) { c.hidden = false; $("span", c).textContent = "×" + Q.combo; c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); }
-  } else { Q.combo = 0; const c = $("#combo", layer); if (c) c.hidden = true; SFX.bad(); buzz([30, 40, 30]); }
+    SFX.good(); buzz(15);
+    sparks(rect.left + rect.width / 2, rect.top + rect.height / 2, [a[0], a[1], "#ffffff", "#3EE6A4"], redo ? 10 : 26, redo ? 3 : 5);
+    if (!redo) {
+      Q.combo++;
+      if (day) {
+        const f = document.createElement("div"); f.className = "fly"; f.dir = "ltr"; f.textContent = "+" + (it.rev ? POINTS.revenge : POINTS.right);
+        f.style.left = (rect.left + rect.width / 2) + "px"; f.style.top = (rect.top - 10) + "px"; document.body.appendChild(f); setTimeout(() => f.remove(), 1100);
+      }
+      if (Q.combo >= 2 && c) { c.hidden = false; $("span", c).textContent = "×" + Q.combo; c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); }
+    }
+  } else { Q.combo = 0; if (c) c.hidden = true; SFX.bad(); buzz([30, 40, 30]); }
   keepProgress();
-  const last = Q.i === Q.items.length - 1;
-  const head = ok ? ["בול.", "נכון.", "יש.", "מדויק.", "בדיוק ככה."][(Q.i + Q.combo) % 5] : (it.rev ? "עוד לא. היא תחזור." : "כמעט.");
-  $("#explain", layer).innerHTML = `<section class="glass explain ${ok ? "ok" : "no"}"><h3>${head}</h3><p ${q.ltr ? 'dir="ltr"' : ""}>${fmt(q.explain)}</p>
-    <button type="button" class="btn btn-primary wide" data-act="next">${last ? "לתוצאה" : "הבאה"}</button></section>`;
+  const last = Q.i === Q.queue.length - 1, toRedo = !last && Q.i === Q.items.length - 1;
+  const head = ok ? (redo ? "עכשיו כן." : ["בול.", "נכון.", "יש.", "מדויק.", "בדיוק ככה."][(Q.i + Q.combo) % 5])
+    : redo ? "עוד לא. היא תחזור שוב." : "כמעט. היא תחזור בסוף.";
+  $("#explain", layer).innerHTML = `<section class="glass explain ${ok ? "ok" : "no"}"><h3>${head}</h3>
+    ${shown ? `<p>התשובה: <b dir="${optDir(shown)}">${fmt(shown)}</b></p>` : ""}<p ${q.ltr ? 'dir="ltr"' : ""}>${fmt(q.explain)}</p>
+    <button type="button" class="btn btn-primary wide" data-act="next">${last ? (day ? "לתוצאה" : "לסיכום") : toRedo ? "לתיקונים" : "הבאה"}</button></section>`;
   const nb = $("[data-act=next]", layer);
   nb.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "nearest" });
   nb.focus({ preventScroll: true });
 }
 function useFifty() {
-  if (Q.fifty || Q.locked) return;
-  Q.fifty = true; SFX.tap(); keepProgress();
-  const ord = Q.orders[Q.i], right = ord.indexOf(0);
-  shuffle([0, 1, 2, 3].filter(k => k !== right), rng(hash(TODAY + Q.pid + Q.items[Q.i].q.id + "half"))).slice(0, 2)
-    .forEach(k => { const b = $$(".opt", layer)[k]; b.disabled = true; b.classList.add("gone"); });
-  const t = $("[data-act=fifty]", layer); t.disabled = true; t.innerHTML = `${ICON.half} 50:50 · נוצל`;
+  if (Q.fifty || Q.locked || Q.form === "match") return;
+  Q.fifty = true; Q.halfAt = Q.i; SFX.tap(); keepProgress();
+  renderQuestion(true);
 }
 async function finishQuest() {
-  const p = me(), before = stats(p.id, Y, M);
-  const add = Q.items.map((it, k) => ({ d: TODAY, p: p.id, q: it.q.id, pool: it.q.pool, t: it.q.topic, l: it.q.level, ok: Q.res[k] ? 1 : 0, r: it.rev ? 1 : 0 }));
+  const p = me(), day = Q.kind === "day", before = stats(p.id, Y, M), kb = knowOf(p), wb = weeksOf(p.id), add = [];
+  Q.items.forEach((it, k) => {
+    if (Q.res[k] != null) add.push({ d: TODAY, p: p.id, q: it.q.id, pool: it.q.pool, t: it.q.topic, l: it.q.level, ok: Q.res[k] ? 1 : 0,
+                                    r: day ? (it.rev ? 1 : 0) : 2, s: Q.secs[k] || 0 });
+  });
+  if (!add.length) { Q = null; layer.innerHTML = ""; show("home"); return; }
   if (LIVE) L.outbox.push({ p: p.id, d: TODAY, rows: add }); else L.rows.push(...add);
-  delete L.progress[p.id];
+  if (day) delete L.progress[p.id];
   save();
-  const after = stats(p.id, Y, M), gained = after.points - before.points, weekBonus = after.fullWeeks > before.fullWeeks;
-  renderResult(p, gained, weekBonus, after);
-  SFX.done(); buzz([20, 60, 20]);
-  const a = AURAS[auraOf(p)].c;
-  if (Q.res.filter(Boolean).length >= 4) setTimeout(() => sparks(innerWidth / 2, innerHeight * 0.28, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], 140, 9), 250);
+  const after = stats(p.id, Y, M), ka = knowOf(p), wa = weeksOf(p.id), lvl = n => Math.min(KNOW, n || 0);
+  const grew = Object.keys(ka).filter(k => lvl(ka[k]) > lvl(kb[k])).map(k => ({ t: k.slice(k.indexOf("|") + 1), n: lvl(ka[k]) }));
+  if (day) {
+    const tier = renderResult(p, after.points - before.points, after.fullWeeks > before.fullWeeks, after, { grew, wb, wa }), a = AURAS[auraOf(p)].c;
+    if (tier) { SFX.done(); buzz([20, 60, 20]); } else buzz(20);
+    if (tier >= 2) setTimeout(() => sparks(innerWidth / 2, innerHeight * 0.28, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], tier === 3 ? 170 : 80, tier === 3 ? 10 : 7), 250);
+  } else { renderPractice(p, grew); SFX.done(); }
   if (LIVE) flush().then(okd => { if (okd) refresh().catch(() => {}); });
 }
 function flavorBlock(p, items, res, st) {
@@ -917,24 +1222,52 @@ function flavorBlock(p, items, res, st) {
   return `<figure class="glass piece" style="margin:0"><canvas width="640" height="800" data-art="${p.id}|${TODAY}~${aura}~${regOk}"></canvas>
     <figcaption><b dir="ltr">${names[mod(dayIndex(TODAY), 5)]} in ${AURAS[aura].name}</b><span class="small muted" dir="ltr">Nº ${st.played} · ${regOk}/${reg}</span></figcaption></figure>`;
 }
-function renderResult(p, gained, weekBonus, st) {
-  const ok = Q.res.filter(Boolean).length;
-  const list = Q.items.map((it, k) => `<div class="rv"><span class="mk ${Q.res[k] ? "ok" : "no"}">${Q.res[k] ? "✓" : "✗"}</span>
-    <span class="t"><b>${SUBJ[subjOf(it.q.pool)]} · ${esc(it.q.topic)}${it.rev ? " · נקמה" : ""}</b><br><span class="muted" ${it.q.ltr ? 'dir="ltr"' : ""}>${fmt(it.q.q)}</span></span></div>`).join("");
+const ktRow = (t, n) => `<div class="kt ${n >= KNOW ? "known" : n ? "" : "new"}"><bdi>${esc(t)}</bdi><span class="pips" role="img" aria-label="${n} מתוך ${KNOW}">${[1, 2, 3].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span></div>`;
+const reviewList = () => Q.items.map((it, k) => Q.res[k] == null ? "" : `<div class="rv"><span class="mk ${Q.res[k] ? "ok" : "no"}">${Q.res[k] ? "✓" : "✗"}</span>
+    <span class="t"><b>${SUBJ[subjOf(it.q.pool)]} · ${esc(it.q.topic)}${it.rev ? " · נקמה" : ""}</b>${!Q.res[k] && Q.fixed[k] ? ` <span class="small faint">תיקנת</span>` : ""}<br><span class="muted" ${it.q.ltr ? 'dir="ltr"' : ""}>${fmt(it.q.q)}</span></span></div>`).join("");
+/* The screen after the five follows the score (Avsha, 2026-11-14: one right of six got the same big gradient number
+ * and artwork as a perfect day): a perfect day is named and showered, four of five gets sparks, three is plain, and
+ * below that the number is small and grey, what she missed comes first and her artwork after it. Returns the tier. */
+function renderResult(p, gained, weekBonus, st, x) {
+  const reg = Q.items.filter(it => !it.rev).length, regOk = Q.items.reduce((n, it, k) => n + (!it.rev && Q.res[k] ? 1 : 0), 0);
+  const ok = Q.res.filter(Boolean).length, tier = regOk >= reg ? 3 : regOk === reg - 1 ? 2 : regOk >= 3 ? 1 : 0;
+  const fast = Q.secs.filter((t, k) => Q.items[k] && !Q.items[k].rev && t > 0 && t < RUSH.secs).length, notes = [];
+  if (tier === 3 && POINTS.perfect) notes.push(`יום מושלם: עוד ${POINTS.perfect} נקודות.`);
+  if (tier === 0) notes.push("יום קשה. את מה שפספסת כבר תיקנת, וזה יחזור שוב בסיבוב נקמה.");
+  if (x.wa.full > x.wb.full) notes.push(`שבוע מלא${x.wa.streak > 1 ? `, ${x.wa.streak} ברצף` : ""}. ${x.wa.full % PATH.every ? `עוד ${x.wa.left} לאסימון.` : "ארבעה שבועות מלאים: אסימון חדש בכספת."}`);
+  const got = x.grew.filter(g => g.n >= KNOW);
+  if (got.length) notes.push(`במפה שלך, עכשיו את יודעת: ${got.map(g => esc(g.t)).join(", ")}.`);
+  if (fast >= RUSH.n) notes.push(`${fast} תשובות בפחות מ־${RUSH.secs} שניות. שווה לקרוא עד הסוף.`);
+  const review = `<section class="glass pad review"><span class="eyebrow">Today</span>${reviewList()}
+      ${Q.res.some(r => r === false) ? `<p class="small faint">מה שפספסת חוזר בעוד יומיים, בסיבוב נקמה.</p>` : ""}</section>`;
+  const art = flavorBlock(p, Q.items, Q.res, st), more = canPractice() && practiceLeft(p.id) > 0;
   layer.innerHTML = quizShell(`
-    <div class="row"><span class="eyebrow">Done</span><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button></div>
-    <div class="res-top"><span class="display grad-text num" id="gain" data-to="${gained}" dir="ltr">+0</span>
-      <p class="muted"><bdi dir="ltr">${ok}/${Q.items.length}</bdi> נכונות · נקודות לטבלה${weekBonus ? ", כולל 15 על שבוע מלא" : ""}</p></div>
-    ${flavorBlock(p, Q.items, Q.res, st)}
-    <section class="glass pad review"><span class="eyebrow">Today</span>${list}
-      ${Q.res.some(x => !x) ? `<p class="small faint">מה שפספסת חוזר בעוד יומיים, בסיבוב נקמה ששווה כפול.</p>` : ""}</section>
+    <div class="row"><span class="eyebrow">${["Done", "Done", "Well done", "Perfect"][tier]}</span><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button></div>
+    <div class="res-top ${tier ? "" : "low"}"><span class="display num ${tier ? "grad-text" : "muted"}" id="gain" data-to="${gained}" dir="ltr">+0</span>
+      <p class="muted"><bdi dir="ltr">${ok}/${Q.items.length}</bdi> נכונות · נקודות לטבלה${weekBonus ? ", כולל 15 על שבוע מלא" : ""}</p>
+      ${notes.map(t => `<p class="small">${t}</p>`).join("")}</div>
+    ${tier ? art + review : review + art}
     <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-aura wide" data-act="closeQuiz" data-to="board">לטבלה</button>
-      <button type="button" class="btn btn-ghost wide" data-act="closeQuiz">סיום</button></div>`);
+      <button type="button" class="btn btn-ghost wide" data-act="closeQuiz">סיום</button></div>
+    ${more ? `<button type="button" class="btn btn-ghost wide" data-act="practice">עוד תרגול, בלי נקודות (לא חובה)</button>` : ""}`);
   paintArt(layer);
   const el = $("#gain", layer), to = +el.dataset.to;
-  if (REDUCED) { el.textContent = "+" + to; return; }
+  if (REDUCED) { el.textContent = "+" + to; return tier; }
   const t0 = performance.now();
   (function step(t) { const k = Math.min(1, (t - t0) / 1000); el.textContent = "+" + Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); })(t0);
+  return tier;
+}
+function renderPractice(p, grew) {
+  const n = Q.res.filter(r => r != null).length, ok = Q.res.filter(Boolean).length, left = practiceLeft(p.id);
+  layer.innerHTML = quizShell(`
+    <div class="row"><span class="eyebrow">Practice</span><button type="button" class="round" data-act="closeQuiz" data-to="know" aria-label="סגירה">${ICON.close}</button></div>
+    <div class="res-top"><span class="display num" dir="ltr" style="font-size:72px">${ok}/${n}</span>
+      <p class="muted">תרגול, בלי נקודות לטבלה.${ok ? ` ${ok} תשובות נכונות נוספו ליעד המשפחתי.` : ""}</p></div>
+    ${grew.length ? `<section class="glass pad"><span class="eyebrow">On your map</span>${grew.map(g => ktRow(g.t, g.n)).join("")}</section>` : ""}
+    <section class="glass pad review"><span class="eyebrow">This round</span>${reviewList()}</section>
+    <div class="row" style="flex-wrap:nowrap">${left ? `<button type="button" class="btn btn-aura wide" data-act="practice">עוד סבב</button>` : ""}
+      <button type="button" class="btn btn-ghost wide" data-act="closeQuiz" data-to="know">למפה</button></div>
+    ${left ? "" : `<p class="small faint" style="text-align:center">שני סבבים ביום מספיקים. מחר יש עוד.</p>`}`);
 }
 
 /* ---------- the monthly recap, as stories ---------- */
@@ -970,13 +1303,18 @@ function toast(msg) {
   const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
 }
-function testSheet() {
-  const p = me(), subs = subjectsOf(p);
-  sheet(`<h3>מבחן בקרוב</h3><p class="small muted">שבוע לפני המבחן, רוב השאלות יהיו מהמקצוע הזה.</p>
+let TS = null;
+function testSheet(pid, keep) {
+  const dad = view === "parent";
+  TS = { p: pid || (dad ? FAM.profiles[0].id : me().id) };
+  const p = profile(TS.p), subs = subjectsOf(p);
+  sheet(`<h3>מבחן בקרוב</h3><p class="small muted">שבוע לפני המבחן, רוב השאלות ${dad ? "שלה " : ""}יהיו מהמקצוע הזה.</p>
+    ${dad ? `<div class="field"><label>של מי?</label><div class="seg-pick">${FAM.profiles.map(q => `<button type="button" data-act="pickGirl" data-id="${q.id}" aria-pressed="${q.id === TS.p}">${esc(q.name)}</button>`).join("")}</div></div>` : ""}
     <div class="field"><label>מקצוע</label><div class="seg-pick" id="tsub">${subs.map((s, i) => `<button type="button" data-act="pickSub" data-k="${s}" aria-pressed="${i === 0}">${SUBJ[s]}</button>`).join("")}</div></div>
     <div class="field"><label for="tdate">תאריך</label><input id="tdate" type="date" min="${TODAY}" value="${addDays(TODAY, TEST_LEAD)}"></div>
     <div class="field"><label for="tnote">על מה? (לא חובה)</label><input id="tnote" maxlength="40" placeholder="למשל: משוואות"></div>
     <button type="button" class="btn btn-primary wide" data-act="saveTest">שמירה</button>`);
+  if (keep) { $("#tdate").value = keep.date; $("#tnote").value = keep.note; }
 }
 function readPhoto(file) {
   const img = new Image(), url = URL.createObjectURL(file);
@@ -1001,11 +1339,16 @@ document.addEventListener("click", async e => {
   switch (act) {
     case "tab": SFX.tap(); show(b.dataset.to); break;
     case "start": startQuest(); break;
+    case "practice": startPractice(); break;
     case "answer": answer(+b.dataset.j, b); break;
+    case "num": numKey(b.dataset.k); break;
+    case "numGo": numGo(); break;
+    case "pair": pairTap(b); break;
     case "fifty": useFifty(); break;
-    case "listen": speak(Q.items[Q.i].q.q); break;
-    case "next": Q.locked = false; if (Q.i < Q.items.length - 1) { Q.i++; keepProgress(); renderQuestion(); } else finishQuest(); break;
-    case "quit": keepProgress(); Q = null; layer.innerHTML = ""; show("home"); break;
+    case "listen": speak(cur().q.q); break;
+    case "next": if (Q.i < Q.queue.length - 1) { Q.locked = false; Q.i++; keepProgress(); renderQuestion(); } else finishQuest(); break;
+    // leaving the five keeps them for later; leaving a practice round ends it with what she answered
+    case "quit": if (Q.kind === "day") { keepProgress(); Q = null; layer.innerHTML = ""; show("home"); } else finishQuest(); break;
     case "closeQuiz": Q = null; layer.innerHTML = ""; show(b.dataset.to || "home"); break;
     case "recap": openRecap(me().id); break;
     case "storyNext": if (STORY.i < STORY.slides.length - 1) { STORY.i++; renderStory(); } else { clearTimeout(STORY.timer); STORY = null; layer.innerHTML = ""; } break;
@@ -1065,14 +1408,27 @@ document.addEventListener("click", async e => {
     case "closeSheet": layer.innerHTML = ""; break;
     case "ptab": ptab = b.dataset.k; if (parentOK) keepUnlock(); SFX.tap(); show("parent"); break;
     case "addTest": testSheet(); break;
+    case "pickGirl": testSheet(b.dataset.id, { date: $("#tdate").value, note: $("#tnote").value }); break;
+    case "delTest": {
+      const d = b.dataset;
+      sheet(`<h3>למחוק את המבחן?</h3><p class="muted">${esc(SUBJ[d.subj] || d.subj)} · ${dateHe(d.date)}</p>
+        <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-primary wide" data-act="delTestYes" data-p="${esc(d.p)}" data-date="${esc(d.date)}" data-subj="${esc(d.subj)}">למחוק</button><button type="button" class="btn btn-ghost wide" data-act="closeSheet">ביטול</button></div>`);
+      break;
+    }
+    case "delTestYes": {
+      const d = b.dataset;
+      if (LIVE) { try { await api("untest", { p: d.p, date: d.date, subj: d.subj }); await refresh(); } catch (err) { toast("לא נמחק. נסו שוב."); break; } }
+      else { const i = L.tests.findIndex(t => t.p === d.p && t.date === d.date && t.subj === d.subj); if (i >= 0) L.tests.splice(i, 1); save(); }
+      show(view); toast("המבחן נמחק"); break;
+    }
     case "pickSub": $$("#tsub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
     case "saveTest": {
       const sb = $("#tsub [aria-pressed=true]"), date = $("#tdate").value, note = $("#tnote").value.trim();
       if (!sb || !date || date < TODAY) { toast("צריך מקצוע ותאריך"); break; }
-      const t = { p: me().id, date, subj: sb.dataset.k, note };
-      if (LIVE) { try { await api("test", t); await refresh(); } catch (err) { toast("לא נשמר. נסי שוב."); break; } }
+      const t = { p: TS ? TS.p : me().id, date, subj: sb.dataset.k, note };
+      if (LIVE) { try { await api("test", t); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
       else { L.tests.push(t); save(); }
-      show("home"); toast("מצב מבחן נשמר"); break;
+      show(view === "parent" ? "parent" : "home"); toast("המבחן נשמר"); break;
     }
     case "joinCode": {
       const v = $("#code").value.trim();
@@ -1125,7 +1481,8 @@ async function boot() {
   }
 }
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
-if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; } };
+if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
+  round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
