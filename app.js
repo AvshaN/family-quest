@@ -483,14 +483,11 @@ const SFX = {
   coin: () => tone([[1568, 0, 0.12, 0.04, "square"], [2093, 0.06, 0.22, 0.035, "square"]])
 };
 function buzz(p) { if (!L.haptics || !navigator.vibrate) return; try { navigator.vibrate(p); } catch (e) { /* not on iPhone */ } }
-const FX = { parts: [], on: false };
-function sparks(x, y, colors, n, power) {
-  if (REDUCED) return;
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2, v = (0.4 + Math.random()) * power;
-    FX.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - power * 0.35, life: 1, decay: 0.012 + Math.random() * 0.02,
-                    s: 1.5 + Math.random() * 3, c: colors[i % colors.length], sq: Math.random() < 0.4, rot: Math.random() * 6 });
-  }
+/* ---------- motion (Avsha, 2026-11-14: "the girls react well to animations and interesting graphics") ----------
+ * One canvas over the page (#fx) carries the short effects: sparks, a ring off a right answer, motes that fly from
+ * the answer to its place on the round's bar, a comet at a streak of three and five. They stop drawing when done. */
+const FX = { parts: [], acts: [], on: false };
+function fxRun() {
   if (FX.on) return;
   FX.on = true;
   const cv = $("#fx"), ctx = cv.getContext("2d"), dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -505,43 +502,433 @@ function sparks(x, y, colors, n, power) {
       if (p.sq) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.s, -p.s / 2, p.s * 2, p.s); ctx.restore(); }
       else { ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 7); ctx.fill(); }
     }
-    if (FX.parts.length) requestAnimationFrame(frame);
+    ctx.globalAlpha = 1;
+    const now = performance.now();
+    FX.acts = FX.acts.filter(a => a(ctx, now));
+    ctx.globalAlpha = 1;
+    if (FX.parts.length || FX.acts.length) requestAnimationFrame(frame);
     else { ctx.clearRect(0, 0, innerWidth, innerHeight); FX.on = false; }
   })();
+}
+function sparks(x, y, colors, n, power) {
+  if (REDUCED) return;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = (0.4 + Math.random()) * power;
+    FX.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - power * 0.35, life: 1, decay: 0.012 + Math.random() * 0.02,
+                    s: 1.5 + Math.random() * 3, c: colors[i % colors.length], sq: Math.random() < 0.4, rot: Math.random() * 6 });
+  }
+  fxRun();
+}
+function ring(x, y, color, size) {
+  if (REDUCED) return;
+  const t0 = performance.now();
+  FX.acts.push((ctx, now) => {
+    const k = (now - t0) / 560; if (k >= 1) return false;
+    const e = 1 - Math.pow(1 - k, 3);
+    ctx.globalAlpha = (1 - k) * 0.85; ctx.strokeStyle = color; ctx.lineWidth = 3 * (1 - k) + 0.6;
+    ctx.beginPath(); ctx.arc(x, y, 14 + e * (size || 110), 0, 7); ctx.stroke();
+    return true;
+  });
+  fxRun();
+}
+/* Motes with short tails, from (x0, y0) along an arc to (x1, y1). */
+function streamTo(x0, y0, x1, y1, colors, n) {
+  if (REDUCED) return;
+  const t0 = performance.now();
+  const motes = Array.from({ length: n }, (_, i) => ({ d: i * 26 + Math.random() * 50, bx: (Math.random() - 0.5) * 240, by: -30 - Math.random() * 110,
+                                                       c: colors[i % colors.length], s: 1.8 + Math.random() * 2.2 }));
+  FX.acts.push((ctx, now) => {
+    let alive = false;
+    for (const m of motes) {
+      const k = (now - t0 - m.d) / 640;
+      if (k >= 1) continue;
+      alive = true;
+      if (k < 0) continue;
+      const mx = (x0 + x1) / 2 + m.bx, my = Math.min(y0, y1) + m.by;
+      for (let j = 0; j < 7; j++) {
+        const u = Math.max(0, k - j * 0.03), e = u * u * (3 - 2 * u), v = 1 - e;
+        ctx.globalAlpha = (1 - j / 7) * 0.9; ctx.fillStyle = m.c;
+        ctx.beginPath(); ctx.arc(v * v * x0 + 2 * v * e * mx + e * e * x1, v * v * y0 + 2 * v * e * my + e * e * y1, m.s * (1 - j / 9), 0, 7); ctx.fill();
+      }
+    }
+    return alive;
+  });
+  fxRun();
+}
+function comet(colors) {
+  if (REDUCED) return;
+  const t0 = performance.now(), y = innerHeight * (0.13 + Math.random() * 0.08), W = innerWidth;
+  FX.acts.push((ctx, now) => {
+    const k = (now - t0) / 800; if (k >= 1) return false;
+    const x = -60 + (W + 300) * (k * k * (3 - 2 * k)), g = ctx.createLinearGradient(x - 240, 0, x, 0);
+    g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.75, colors[1]); g.addColorStop(1, "#ffffff");
+    ctx.globalAlpha = Math.sin(k * Math.PI); ctx.strokeStyle = g; ctx.lineWidth = 3.5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x - 240, y + 34 * (1 - k)); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill();
+    return true;
+  });
+  fxRun();
+}
+
+/* The living aura: her three colours as slow smoke, drawn by a small shader on a canvas behind everything. It is
+ * the round's mood: it brightens and quickens as right answers follow each other, a ring runs through it from each
+ * one, a miss drains it grey for a moment, and a perfect day turns it gold. Drawn about 120 px across and stretched
+ * (smoke has no detail to lose), every second frame, and not at all while the page is hidden: light enough for the
+ * oldest of the three phones. Without WebGL, or with reduced motion, the three drifting discs stay as they were. */
+const AURA_FS = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2 R; uniform float T, E, D, G, K; uniform vec3 A, B, C; uniform vec3 P[3];
+float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y); }
+float fbm(vec2 p){ float v = 0., a = .5; for (int i = 0; i < 4; i++) { v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= .5; } return v; }
+void main(){
+  vec2 p = (gl_FragCoord.xy - .5 * R) / min(R.x, R.y);
+  vec2 q = vec2(fbm(p * 1.25 + vec2(0., T)), fbm(p * 1.25 + vec2(5.2, -T * .8)));
+  vec2 r = vec2(fbm(p * 1.5 + 2.4 * q + vec2(1.7, 9.2) + .6 * T), fbm(p * 1.5 + 2.4 * q + vec2(8.3, 2.8) - .5 * T));
+  float f = fbm(p * 1.1 + 2.2 * r);
+  vec3 col = mix(A, B, smoothstep(.3, .68, f));
+  col = mix(col, C, smoothstep(.45, .95, length(q)) * .75);
+  col = mix(col, vec3(.95, .77, .42), G * smoothstep(.35, .8, r.x));
+  // wisps of light on near black: the first version sat between 0.1 and 0.4 everywhere and read as one flat colour
+  float l = smoothstep(.1, .6, 1.5 * f * f * f + f * r.y);
+  float lum = (.05 + .8 * l) * (.6 + .6 * E) * (1. - .45 * K);
+  lum *= 1. - .28 * dot(p, p);
+  for (int i = 0; i < 3; i++) {
+    float age = P[i].z;
+    if (age >= 0.) { float d = distance(p, P[i].xy), w = (d - age * 1.5) * 5.5; float ringv = exp(-w * w) * exp(-age * 2.4); lum += ringv * .8; col = mix(col, vec3(1.), ringv * .3); }
+  }
+  col *= lum;
+  float g = dot(col, vec3(.3, .59, .11));
+  col = mix(col, vec3(g) * .55, D);
+  gl_FragColor = vec4(col + vec3(.035, .035, .058), 1.);
+}`;
+const hex3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+const GLA = { gl: null, e: 0.3, eTo: 0.3, dim: 0, gold: 0, calm: 0, calmTo: 0, pulses: [], col: null, colTo: null, phase: Math.random() * 40 };
+/* energy 0-1 (how alive), calm 0-1 (dimmer, under text to read), dim and gold: a moment that fades by itself */
+function auraMood(m) {
+  if (m.energy != null) GLA.eTo = m.energy;
+  if (m.calm != null) GLA.calmTo = m.calm;
+  if (m.dim != null) GLA.dim = m.dim;
+  if (m.gold != null) GLA.gold = m.gold;
+}
+function auraPulse(x, y) { GLA.pulses.push({ x, y, t: performance.now() }); if (GLA.pulses.length > 3) GLA.pulses.shift(); }
+function auraStart() {
+  if (REDUCED || GLA.gl) return;
+  const cv = document.createElement("canvas");
+  cv.id = "auragl"; cv.setAttribute("aria-hidden", "true");
+  let gl = null;
+  try { gl = cv.getContext("webgl", { antialias: false, alpha: false, depth: false, powerPreference: "low-power" }); } catch (e) { gl = null; }
+  if (!gl) return;
+  const shader = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return gl.getShaderParameter(x, gl.COMPILE_STATUS) ? x : null; };
+  const vs = shader(gl.VERTEX_SHADER, "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}"), fs = shader(gl.FRAGMENT_SHADER, AURA_FS);
+  if (!vs || !fs) return;
+  const pr = gl.createProgram();
+  gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
+  gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const at = gl.getAttribLocation(pr, "p");
+  gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
+  const U = {}; ["R", "T", "E", "D", "G", "K", "A", "B", "C"].forEach(n => { U[n] = gl.getUniformLocation(pr, n); });
+  U.P = gl.getUniformLocation(pr, "P[0]");
+  let across = 120, seen = 0, spent = 0;
+  const fit = () => { const k = across / Math.min(innerWidth, innerHeight); cv.width = Math.max(48, Math.round(innerWidth * k)); cv.height = Math.max(48, Math.round(innerHeight * k)); gl.viewport(0, 0, cv.width, cv.height); };
+  fit(); window.addEventListener("resize", fit);
+  document.body.insertBefore(cv, document.body.firstChild);
+  document.documentElement.classList.add("gl");
+  cv.addEventListener("webglcontextlost", () => { GLA.gl = null; cv.remove(); document.documentElement.classList.remove("gl"); });
+  GLA.gl = gl;
+  let last = performance.now(), odd = false;
+  const P = new Float32Array(9);
+  (function frame(now) {
+    if (!GLA.gl) return;
+    requestAnimationFrame(frame);
+    odd = !odd;
+    if (document.hidden || odd) return;
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    // A phone that cannot keep up (under 20 frames a second over its first 60) gets a smaller picture, and if that
+    // is still too much, the drifting discs it had before.
+    if (seen >= 0 && dt < 0.1 && ++seen && (spent += dt) && seen === 60) {
+      if (spent / 60 <= 0.05) seen = -1;
+      else if (across > 80) { across = 72; fit(); seen = 0; spent = 0; }
+      else { GLA.gl = null; cv.remove(); document.documentElement.classList.remove("gl"); return; }
+    }
+    GLA.e += (GLA.eTo - GLA.e) * Math.min(1, dt * 2.5); GLA.calm += (GLA.calmTo - GLA.calm) * Math.min(1, dt * 3);
+    GLA.dim = Math.max(0, GLA.dim - dt * 1.1); GLA.gold = Math.max(0, GLA.gold - dt * 0.12);
+    GLA.phase += dt * (0.05 + 0.13 * GLA.e);
+    if (GLA.colTo) GLA.col = GLA.col ? GLA.col.map((c, i) => c.map((v, j) => v + (GLA.colTo[i][j] - v) * Math.min(1, dt * 2))) : GLA.colTo;
+    const m = Math.min(innerWidth, innerHeight);
+    for (let i = 0; i < 3; i++) {
+      const pu = GLA.pulses[i], age = pu ? (now - pu.t) / 1000 : -1;
+      P[i * 3] = pu ? (pu.x - innerWidth / 2) / m : 0; P[i * 3 + 1] = pu ? (innerHeight / 2 - pu.y) / m : 0; P[i * 3 + 2] = age > 2.5 ? -1 : age;
+    }
+    const c = GLA.col || [[.66, .33, .97], [.93, .28, .6], [.39, .4, .95]];
+    gl.uniform2f(U.R, cv.width, cv.height); gl.uniform1f(U.T, GLA.phase);
+    gl.uniform1f(U.E, GLA.e); gl.uniform1f(U.D, GLA.dim); gl.uniform1f(U.G, Math.min(1, GLA.gold)); gl.uniform1f(U.K, GLA.calm);
+    gl.uniform3fv(U.A, c[0]); gl.uniform3fv(U.B, c[1]); gl.uniform3fv(U.C, c[2]); gl.uniform3fv(U.P, P);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  })(last);
 }
 function speak(text) {
   try { const u = new SpeechSynthesisUtterance(plain(text).replace(/_{2,}/g, "blank")); u.lang = "en-US"; u.rate = 0.95; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { /* no voice */ }
 }
 
 /* ---------- a generative piece a day, for the portfolio ---------- */
-function drawArt(cv, seed, pal, score) {
-  const r = rng(hash(seed)), ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
-  ctx.fillStyle = "#0E0E16"; ctx.fillRect(0, 0, W, H);
-  const g = ctx.createRadialGradient(W * r(), H * r(), 0, W / 2, H / 2, Math.max(W, H) * 0.8);
+/* Her artwork of the day: the same seed gives the same piece. artPlan lays it out, artDraw paints it with the first
+ * k shapes arrived (each grows into place) and, with a time, breathing a little. On the result screen it assembles
+ * shape by shape and then stays alive; the month's small tiles are the finished piece, still. */
+function artPlan(seed, pal, score, W, H) {
+  const r = rng(hash(seed)), u = Math.min(W, H), plan = { gx: W * r(), gy: H * r(), shapes: [], gold: null };
+  for (let i = 0, n = 3 + score * 2; i < n; i++) {
+    const c = pal[Math.floor(r() * pal.length)], kind = Math.floor(r() * 4), al = 0.45 + r() * 0.45, x = W * r(), y = H * r(), rot = r() * Math.PI;
+    const sh = { c, kind, al, x, y, rot };
+    if (kind === 0) sh.rad = u * (0.06 + r() * 0.22);
+    else if (kind === 1) { sh.lw = u * (0.02 + r() * 0.05); sh.rad = u * (0.15 + r() * 0.3); sh.sweep = Math.PI * (0.4 + r()); }
+    else if (kind === 2) sh.w = u * (0.1 + r() * 0.4);
+    plan.shapes.push(sh);
+  }
+  if (score >= 5) plan.gold = { x: W * (0.25 + r() * 0.5), y: H * (0.25 + r() * 0.5) };
+  return plan;
+}
+const easeOut = x => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3);
+function artDraw(ctx, plan, pal, W, H, k, t) {
+  const u = Math.min(W, H);
+  ctx.globalAlpha = 1; ctx.fillStyle = "#0E0E16"; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createRadialGradient(plan.gx, plan.gy, 0, W / 2, H / 2, Math.max(W, H) * 0.8);
   g.addColorStop(0, pal[0] + "66"); g.addColorStop(1, "#0E0E1600");
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  const n = 3 + score * 2, u = Math.min(W, H);
-  for (let i = 0; i < n; i++) {
-    const c = pal[Math.floor(r() * pal.length)], kind = Math.floor(r() * 4);
-    ctx.globalAlpha = 0.45 + r() * 0.45; ctx.fillStyle = c; ctx.strokeStyle = c;
-    ctx.save(); ctx.translate(W * r(), H * r()); ctx.rotate(r() * Math.PI);
-    if (kind === 0) { ctx.beginPath(); ctx.arc(0, 0, u * (0.06 + r() * 0.22), 0, 7); ctx.fill(); }
-    else if (kind === 1) { ctx.lineWidth = u * (0.02 + r() * 0.05); ctx.beginPath(); ctx.arc(0, 0, u * (0.15 + r() * 0.3), 0, Math.PI * (0.4 + r())); ctx.stroke(); }
-    else if (kind === 2) { const w = u * (0.1 + r() * 0.4); ctx.fillRect(-w / 2, -w / 6, w, w / 3); }
-    else { ctx.lineWidth = Math.max(1, u * 0.008); for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.moveTo(-u * 0.3, k * u * 0.03); ctx.lineTo(u * 0.3, k * u * 0.03); ctx.stroke(); } }
+  plan.shapes.forEach((sh, i) => {
+    const e = easeOut(k - i);
+    if (e <= 0) return;
+    const dx = t ? Math.sin(t * 0.5 + i * 1.7) * u * 0.012 : 0, dy = t ? Math.cos(t * 0.4 + i * 2.3) * u * 0.012 : 0, dr = t ? Math.sin(t * 0.3 + i) * 0.03 : 0;
+    ctx.globalAlpha = sh.al * e; ctx.fillStyle = sh.c; ctx.strokeStyle = sh.c;
+    ctx.save(); ctx.translate(sh.x + dx, sh.y + dy + (1 - e) * u * 0.08); ctx.rotate(sh.rot + dr + (1 - e) * 0.6);
+    if (sh.kind === 0) { ctx.beginPath(); ctx.arc(0, 0, sh.rad * (0.2 + 0.8 * e), 0, 7); ctx.fill(); }
+    else if (sh.kind === 1) { ctx.lineWidth = sh.lw; ctx.beginPath(); ctx.arc(0, 0, sh.rad, 0, sh.sweep * e); ctx.stroke(); }
+    else if (sh.kind === 2) ctx.fillRect(-sh.w / 2 * e, -sh.w / 6, sh.w * e, sh.w / 3);
+    else {
+      ctx.lineWidth = Math.max(1, u * 0.008);
+      for (let j = 0; j < 6; j++) { const le = easeOut((k - i) * 1.7 - j * 0.12); ctx.beginPath(); ctx.moveTo(-u * 0.3, j * u * 0.03); ctx.lineTo(-u * 0.3 + u * 0.6 * le, j * u * 0.03); ctx.stroke(); }
+    }
     ctx.restore();
-  }
-  if (score >= 5) {
+  });
+  const ge = plan.gold ? easeOut((k - plan.shapes.length) * 0.8) : 0;
+  if (ge > 0) {
     ctx.globalAlpha = 0.95; ctx.strokeStyle = "#F2C56B"; ctx.lineWidth = Math.max(1.5, u * 0.012);
-    ctx.beginPath(); ctx.arc(W * (0.25 + r() * 0.5), H * (0.25 + r() * 0.5), u * 0.12, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(plan.gold.x, plan.gold.y, u * 0.12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ge); ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
+function drawArt(cv, seed, pal, score) {
+  artDraw(cv.getContext("2d"), artPlan(seed, pal, score, cv.width, cv.height), pal, cv.width, cv.height, 99, 0);
+}
+/* A canvas that draws while it is on the page, at most `fps` times a second. draw(seconds since it began). */
+function animate(cv, draw, fps) {
+  if (REDUCED) { draw(60); return; }
+  const t0 = performance.now(), gap = 1000 / (fps || 60);
+  let last = 0;
+  (function frame(now) {
+    if (!cv.isConnected) return;
+    requestAnimationFrame(frame);
+    if (document.hidden || now - last < gap - 4) return;
+    last = now; draw((now - t0) / 1000);
+  })(t0);
+}
+function liveArt(cv, seed, pal, score) {
+  const ctx = cv.getContext("2d"), plan = artPlan(seed, pal, score, cv.width, cv.height), n = plan.shapes.length + 2;
+  animate(cv, t => artDraw(ctx, plan, pal, cv.width, cv.height, t >= 50 ? 99 : Math.max(0, t - 0.6) * (n / 2.6), t >= 50 ? 0 : t), 30);
+}
 function paintArt(root) {
   $$("canvas[data-art]", root).forEach(cv => {
-    const [seed, aura, score] = cv.dataset.art.split("~");
-    drawArt(cv, seed, AURAS[aura] ? AURAS[aura].c : AURAS.orchid.c, +score);
+    const [seed, aura, score] = cv.dataset.art.split("~"), pal = AURAS[aura] ? AURAS[aura].c : AURAS.orchid.c;
+    if (cv.closest(".piece")) liveArt(cv, seed, pal, +score); else drawArt(cv, seed, pal, +score);
   });
+  $$("canvas.appar", root).forEach(liveAppar);
+  $$("canvas.stagecv", root).forEach(liveStage);
+  $$("canvas.sky", root).forEach(liveSky);
+  $$("[data-count]", root).forEach((el, i) => countUp(el, +el.dataset.count, 2, 500 + i * 450));
+}
+function countUp(el, to, dec, delay) {
+  if (REDUCED) { el.textContent = to.toFixed(dec); return; }
+  el.textContent = (0).toFixed(dec);
+  setTimeout(() => {
+    const t0 = performance.now();
+    (function step(now) { const k = Math.min(1, (now - t0) / 800); el.textContent = (to * easeOut(k)).toFixed(dec); if (k < 1 && el.isConnected) requestAnimationFrame(step); })(t0);
+  }, delay);
+}
+const sized = cv => { const dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight, ctx = cv.getContext("2d");
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineCap = "round"; ctx.lineJoin = "round"; return { ctx, W, H }; };
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* The gymnast's result: the day's apparatus, performed in her colours as long as the screen is open. Rope, hoop,
+ * ball, clubs, ribbon (APPARATUS); how wide it moves follows her execution score, and a perfect day is in gold. */
+function liveAppar(cv) {
+  const { ctx, W, H } = sized(cv), kind = +cv.dataset.appar, amp = 0.55 + 0.45 * Math.min(1, (+cv.dataset.e || 0) / 10), gold = cv.dataset.gold === "1";
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, gold ? "#F2C56B" : cssVar("--a1")); grad.addColorStop(0.5, cssVar("--a2")); grad.addColorStop(1, gold ? "#FFE9B0" : cssVar("--a3"));
+  const ghosts = (n, step, fn) => { for (let g = n; g >= 0; g--) { ctx.globalAlpha = g ? 0.5 * Math.pow(1 - g / (n + 1), 2) : 1; fn(g * step, g); } ctx.globalAlpha = 1; };
+  animate(cv, t => {
+    ctx.clearRect(0, 0, W, H); ctx.strokeStyle = grad; ctx.fillStyle = grad;
+    if (kind === 4) {            // ribbon: the stick's tip draws loops, and a band follows it, turning over as it goes
+      const mid = x => [W / 2 + Math.cos(x * 1.7) * W * 0.34 * amp + Math.cos(x * 3.9) * W * 0.06, H / 2 + Math.sin(x * 2.5) * H * 0.3 * amp + Math.sin(x * 4.7) * H * 0.1];
+      let prev = null;
+      for (let i = 0, N = 70; i < N; i++) {
+        const x = t - i * 0.02, a = mid(x), b = mid(x - 0.02), ang = Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI / 2;
+        const sway = Math.sin(i * 0.28 - t * 7) * Math.min(11, i * 0.5), half = 1 + 7.5 * Math.abs(Math.cos(i * 0.16 - t * 2.4));
+        const c = [a[0] + Math.cos(ang) * sway, a[1] + Math.sin(ang) * sway], e = [[c[0] + Math.cos(ang) * half, c[1] + Math.sin(ang) * half], [c[0] - Math.cos(ang) * half, c[1] - Math.sin(ang) * half]];
+        if (prev) { ctx.globalAlpha = 0.92 * Math.pow(1 - i / N, 1.2); ctx.beginPath(); ctx.moveTo(prev[0][0], prev[0][1]); ctx.lineTo(e[0][0], e[0][1]); ctx.lineTo(e[1][0], e[1][1]); ctx.lineTo(prev[1][0], prev[1][1]); ctx.fill(); }
+        prev = e;
+      }
+      ctx.globalAlpha = 1; const tip = mid(t), hand = mid(t + 0.09);
+      ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tip[0], tip[1]); ctx.lineTo(tip[0] + (hand[0] - tip[0]) * 1.6, tip[1] + (hand[1] - tip[1]) * 1.6 + 10); ctx.stroke(); ctx.strokeStyle = grad;
+    } else if (kind === 1) {     // hoop: tossed and spinning
+      ghosts(6, 0.04, (back, g) => {
+        const x = t - back, cx = W / 2 + Math.sin(x * 0.9) * W * 0.3, cy = H * 0.62 - Math.abs(Math.sin(x * 1.6)) * H * 0.24 * amp, R = H * 0.34;
+        ctx.lineWidth = g ? 1.8 : 4.2; ctx.beginPath(); ctx.ellipse(cx, cy, Math.max(1.5, R * Math.abs(Math.cos(x * 3.4))), R, Math.sin(x * 1.3) * 0.5, 0, 7); ctx.stroke();
+      });
+    } else if (kind === 2) {     // ball: thrown from hand to hand in high arcs, turning, with the path it took behind it
+      const pos = x => { const u = x * 0.62, ph = u - Math.floor(u), dir = Math.floor(u) % 2 ? -1 : 1; return [W / 2 + dir * (ph - 0.5) * W * 0.62, H - 30 - Math.sin(ph * Math.PI) * (H - 62) * amp]; };
+      const r = H * 0.14, c = pos(t);
+      ctx.lineWidth = 2;
+      for (let i = 1; i < 26; i++) { const a = pos(t - i * 0.022), b = pos(t - (i + 1) * 0.022); if (Math.abs(a[0] - b[0]) > 40) continue; ctx.globalAlpha = 0.5 * (1 - i / 26); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+      ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(c[0], c[1], r, 0, 7); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(c[0], c[1], r, 0, 7); ctx.clip();        // a band round it, so the turning shows
+      ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.ellipse(c[0], c[1], r, Math.max(0.5, r * Math.abs(Math.sin(t * 3.1))), t * 1.4, 0, 7); ctx.stroke();
+      const hl = ctx.createRadialGradient(c[0] - r * 0.35, c[1] - r * 0.4, 0, c[0], c[1], r); hl.addColorStop(0, "rgba(255,255,255,.55)"); hl.addColorStop(0.5, "rgba(255,255,255,0)");
+      ctx.fillStyle = hl; ctx.fillRect(c[0] - r, c[1] - r, 2 * r, 2 * r); ctx.restore(); ctx.strokeStyle = grad; ctx.fillStyle = grad;
+    } else if (kind === 3) {     // clubs: two, turning in opposite hands, tossed in turn
+      [-1, 1].forEach(side => ghosts(6, 0.022, (back, g) => {
+        const x = t - back, cx = W / 2 + side * W * 0.2 + Math.sin(x * 1.1) * 12, cy = H * 0.56 - Math.pow(Math.abs(Math.sin(x * 1.5 + (side > 0 ? 1.57 : 0))), 2) * H * 0.26 * amp;
+        const a = x * 7.5 * side, L = H * 0.3, ex = cx + Math.cos(a) * L, ey = cy + Math.sin(a) * L, sx = cx - Math.cos(a) * L * 0.45, sy = cy - Math.sin(a) * L * 0.45;
+        ctx.lineWidth = g ? 2 : 3.2; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.beginPath(); ctx.arc(ex, ey, g ? 4 : 6.5, 0, 7); ctx.fill();
+        if (!g) { ctx.beginPath(); ctx.arc(sx, sy, 2.6, 0, 7); ctx.fill(); }
+      }));
+    } else {                     // rope: turning between two hands, thick as it comes to the front
+      const x0 = W * 0.2, x1 = W * 0.8, y0 = H * 0.42;
+      ghosts(7, 0.028, (back, g) => {
+        const ph = (t - back) * 6.2, depth = (Math.sin(ph) + 1) / 2, sag = Math.cos(ph) * H * 0.5 * amp;
+        ctx.lineWidth = (g ? 1.2 : 1.6) + 2.6 * depth; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(W / 2, y0 + sag * 2, x1, y0); ctx.stroke();
+      });
+      [x0, x1].forEach(x => { ctx.beginPath(); ctx.arc(x, y0, 4.5, 0, 7); ctx.fill(); });
+    }
+    if (gold) for (let i = 0; i < 9; i++) {   // a perfect routine glitters
+      const a = Math.max(0, Math.sin(t * 2.2 + i * 2.1)), x = W * (0.08 + 0.84 * ((i * 0.618) % 1)), y = H * (0.12 + 0.76 * ((i * 0.383 + 0.2) % 1));
+      ctx.globalAlpha = a * 0.9; ctx.fillStyle = "#FFE9B0"; ctx.beginPath(); ctx.arc(x, y, 1.2 + a * 1.6, 0, 7); ctx.fill(); ctx.fillStyle = grad; ctx.globalAlpha = 1;
+    }
+  }, 60);
+}
+/* The stage: spotlights sweeping in her colours, the sound in bars (as many lit as she got right), the crowd's
+ * lights below, and fireworks over an encore. */
+function liveStage(cv) {
+  const { ctx, W, H } = sized(cv), lit = +cv.dataset.lit || 6, tier = +cv.dataset.tier || 0, cols = [cssVar("--a1"), cssVar("--a2"), cssVar("--a3")];
+  const N = 26, bw = W / N, crowd = 14 + tier * 10, r = rng(hash("stage" + TODAY));
+  const dots = Array.from({ length: crowd }, () => ({ x: r(), y: r(), p: r() * 6 }));
+  animate(cv, t => {
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 2 + Math.min(2, tier); i++) {   // beams
+      const x0 = W * (0.15 + 0.7 * i / Math.max(1, 1 + Math.min(2, tier))), a = Math.sin(t * (0.5 + i * 0.13) + i * 2.1) * 0.5, x1 = x0 + Math.tan(a) * H;
+      const g = ctx.createLinearGradient(x0, 0, x1, H); g.addColorStop(0, cols[i % 3] + "88"); g.addColorStop(1, cols[i % 3] + "00");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0 - 3, 0); ctx.lineTo(x0 + 3, 0); ctx.lineTo(x1 + H * 0.22, H); ctx.lineTo(x1 - H * 0.22, H); ctx.fill();
+    }
+    ctx.globalCompositeOperation = "source-over";
+    const base = H - 22, bars = ctx.createLinearGradient(0, base, 0, base - H * 0.5); bars.addColorStop(0, cols[0]); bars.addColorStop(1, cols[1]);
+    for (let i = 0; i < N; i++) {                        // the sound
+      const on = i < lit, h = on ? H * 0.5 * (0.18 + 0.82 * Math.abs(Math.sin(t * (2.1 + (i % 5) * 0.6) + i * 1.3)) * Math.abs(Math.sin(t * 0.9 + i * 0.37))) : H * 0.05;
+      ctx.fillStyle = on ? bars : "rgba(255,255,255,.13)"; ctx.fillRect(i * bw + 1.5, base - h, bw - 3, h);
+    }
+    for (const d of dots) {                              // the crowd's lights
+      ctx.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.7 + d.p)); ctx.fillStyle = "#FFF3D6";
+      ctx.beginPath(); ctx.arc(W * (0.04 + 0.92 * d.x) + Math.sin(t * 1.2 + d.p) * 3, base + 5 + d.y * 14, 1.5, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (tier === 3) for (let b = 0; b < 2; b++) {         // encore
+      const cyc = (t / 1.5 + b * 0.5), n = Math.floor(cyc), age = cyc - n, rr = rng(hash("fw" + n + b)), cx = W * (0.2 + 0.6 * rr()), cy = H * (0.15 + 0.25 * rr()), c = b ? "#F2C56B" : cols[n % 3];
+      for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, d = easeOut(age) * H * 0.3; ctx.globalAlpha = Math.max(0, 1 - age * 1.15); ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d + age * age * 14, 2, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+  }, 60);
+}
+/* The map's sky: a star for every topic her class has reached, in a cluster for each subject. A topic she has begun
+ * is a coloured star, one she knows is bright, and the known ones of a subject are joined into its constellation. A
+ * topic that became known since she last looked flares up. */
+function liveSky(cv) {
+  const { ctx, W, H } = sized(cv), p = me(), map = knowMap(p), cols = [cssVar("--a1"), cssVar("--a2")];
+  L.sky = L.sky || {};
+  const seen = new Set(L.sky[p.id] || []), first = !L.sky[p.id], nowKnown = [], cn = Math.ceil(map.length / 2) || 1, stars = [];
+  map.forEach((x, i) => {
+    const row = i % 2, col = Math.floor(i / 2), r = rng(hash("sky|" + x.pool));
+    const cx = W * ((col + 0.5 + (row ? 0.28 : -0.05)) / (cn + 0.25)), cy = H * (row ? 0.7 : 0.3) + (r() - 0.5) * 16, spin = r() * 6;
+    x.at = [cx, cy];
+    x.topics.forEach((tp, j) => {
+      const a = spin + j * 2.39996, d = 7 + 11.5 * Math.sqrt(j + 0.3), key = x.pool + "|" + tp.t;
+      const st = { x: Math.max(8, Math.min(W - 8, cx + Math.cos(a) * d * 1.25)), y: Math.max(8, Math.min(H - 20, cy + Math.sin(a) * d * 0.85)), n: tp.n, ph: r() * 6, i: stars.length, g: i,
+                   nova: tp.n >= KNOW && !seen.has(key) && !first };
+      if (tp.n >= KNOW) nowKnown.push(key);
+      stars.push(st);
+    });
+  });
+  L.sky[p.id] = nowKnown; save();
+  const lines = map.map((x, i) => stars.filter(st => st.g === i && st.n >= KNOW).sort((a, b) => Math.atan2(a.y - x.at[1], a.x - x.at[0]) - Math.atan2(b.y - x.at[1], b.x - x.at[0])));
+  const novas = stars.filter(st => st.nova);
+  if (novas.length && !REDUCED) setTimeout(() => { if (!cv.isConnected) return; const b = cv.getBoundingClientRect(); novas.forEach(st => sparks(b.left + st.x, b.top + st.y, [cols[0], cols[1], "#ffffff", "#F2C56B"], 40, 4)); SFX.good(); }, 1500);
+  animate(cv, t => {
+    ctx.clearRect(0, 0, W, H);
+    lines.forEach(ls => {                                 // the constellations draw themselves
+      if (ls.length < 2) return;
+      const k = Math.max(0, Math.min(1, (t - 0.9) / 1.4)) * (ls.length - 1);
+      ctx.strokeStyle = "rgba(255,255,255,.34)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ls[0].x, ls[0].y);
+      for (let i = 1; i < ls.length; i++) { const e = Math.max(0, Math.min(1, k - (i - 1))); if (e <= 0) break; ctx.lineTo(ls[i - 1].x + (ls[i].x - ls[i - 1].x) * e, ls[i - 1].y + (ls[i].y - ls[i - 1].y) * e); }
+      ctx.stroke();
+    });
+    for (const st of stars) {
+      const born = Math.max(0, Math.min(1, (t - st.i * 0.022) / 0.5)), tw = 0.72 + 0.28 * Math.sin(t * (1.1 + (st.i % 4) * 0.35) + st.ph);
+      if (!born) continue;
+      if (st.n >= KNOW) {
+        const fl = st.nova ? Math.max(0, 1 - Math.abs(t - 1.6) / 0.9) : 0, R = (11 + 3 * tw + fl * 26) * born, g = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, R);
+        g.addColorStop(0, "rgba(255,255,255,.95)"); g.addColorStop(0.18, cols[st.i % 2] + "cc"); g.addColorStop(1, cols[st.i % 2] + "00");
+        ctx.globalAlpha = born * (0.75 + 0.25 * tw); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(st.x, st.y, R, 0, 7); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 1; const f = (5 + 3 * tw + fl * 16) * born;
+        ctx.beginPath(); ctx.moveTo(st.x - f, st.y); ctx.lineTo(st.x + f, st.y); ctx.moveTo(st.x, st.y - f); ctx.lineTo(st.x, st.y + f); ctx.stroke();
+      } else if (st.n > 0) {
+        ctx.globalAlpha = born * (0.55 + 0.4 * tw); ctx.fillStyle = cols[st.n - 1] || cols[0]; ctx.beginPath(); ctx.arc(st.x, st.y, 1.6 + st.n * 0.7, 0, 7); ctx.fill();
+        ctx.globalAlpha = born * 0.18; ctx.beginPath(); ctx.arc(st.x, st.y, 5 + st.n * 1.5, 0, 7); ctx.fill();
+      } else { ctx.globalAlpha = born * 0.3 * tw; ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(st.x, st.y, 1.1, 0, 7); ctx.fill(); }
+    }
+    const sh = (t % 9) / 0.7;                               // now and then, a shooting star
+    if (sh < 1) { const x = W * 0.9 - sh * W * 0.5, y = 10 + sh * H * 0.3, g = ctx.createLinearGradient(x + 40, y - 24, x, y); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(255,255,255,.8)");
+      ctx.globalAlpha = Math.sin(sh * Math.PI); ctx.strokeStyle = g; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + 40, y - 24); ctx.lineTo(x, y); ctx.stroke(); }
+    ctx.globalAlpha = Math.max(0, Math.min(1, t / 0.8)) * 0.55; ctx.fillStyle = "#F3F1F7"; ctx.font = '500 11px Heebo, system-ui, sans-serif'; ctx.textAlign = "center";
+    map.forEach(x => ctx.fillText(SUBJ[subjOf(x.pool)] || "", x.at[0], Math.min(H - 5, x.at[1] + 46)));
+    ctx.globalAlpha = 1;
+  }, 30);
+}
+/* A new token is a moment (they are rare: a month won, four full weeks, a gift): the coin spins in under turning
+ * rays, the aura turns gold. Shown once, the next time she is on her home screen. */
+function tokenCheck() {
+  const p = me();
+  if (!p || view !== "home" || layer.innerHTML) return;
+  L.seenTok = L.seenTok || {};
+  const n = +FAM.tokens[p.id] || 0, was = L.seenTok[p.id];
+  if (was === n) return;
+  L.seenTok[p.id] = n; save();
+  if (was == null || n < was) return;
+  const lastIn = tokenLog().filter(t => t.p === p.id && t.change > 0).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0)[0];
+  auraMood({ energy: 1, gold: 1.4 });
+  layer.innerHTML = `<div class="ceremony" role="dialog" aria-modal="true" aria-label="אסימון חדש"><div class="rays" aria-hidden="true"></div>
+    <div class="coin3d" aria-hidden="true"><div class="face">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</div><div class="face back"><span class="num">${+FAM.settings.tokenValue || 100}</span></div></div>
+    <span class="eyebrow" style="color:var(--gold)">New token</span>
+    <h2 class="display">${n - was > 1 ? `${n - was} אסימונים חדשים` : "אסימון חדש"}</h2>
+    ${lastIn ? `<p class="muted">${reasonHe(lastIn)}</p>` : ""}
+    <button type="button" class="btn btn-primary" data-act="closeQuiz" data-to="vault">לכספת</button></div>`;
+  SFX.coin(); buzz([30, 50, 30, 50, 60]);
+  setTimeout(() => { if ($(".ceremony", layer)) { sparks(innerWidth / 2, innerHeight * 0.34, ["#F2C56B", "#FFE9B0", "#ffffff"], 170, 9); SFX.done(); } }, 1050);
 }
 
 /* ---------- icons ---------- */
@@ -585,6 +972,7 @@ let deferredInstall = null;
 function applyAura(key) {
   const a = AURAS[key] || AURAS.orchid, root = document.documentElement;
   root.style.setProperty("--a1", a.c[0]); root.style.setProperty("--a2", a.c[1]); root.style.setProperty("--a3", a.c[2]);
+  GLA.colTo = a.c.map(hex3);
   const meta = $('meta[name="theme-color"]'); if (meta) meta.setAttribute("content", "#09090F");
 }
 const initial = n => (String(n || "?").trim()[0] || "?");
@@ -614,6 +1002,8 @@ function show(v) {
   app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter");
   paintArt(app);
   window.scrollTo(0, 0);
+  auraMood({ calm: 0, energy: v === "parent" ? 0.15 : v === "know" ? 0.2 : 0.32 });
+  if (v === "home") setTimeout(tokenCheck, 500);
 }
 const flavorTitle = p => ({ portfolio: "Portfolio", routine: "The season", stage: "Setlist" })[p.flavor] || "החודש";
 
@@ -696,7 +1086,8 @@ function renderKnow() {
     : `<p class="small faint">תרגלת היום שני סבבים. מחר יש עוד.</p>`;
   return `
   <header><span class="eyebrow">What I know</span><h1 class="display" style="font-size:52px">מה אני יודעת</h1></header>
-  <section class="glass pad stack"><div class="row"><span><b class="display num" style="font-size:34px">${known}</b> <span class="muted">מתוך ${all} נושאים</span></span></div>
+  <section class="glass pad stack skybox"><canvas class="sky" role="img" aria-label="${known} נושאים שאת יודעת מתוך ${all}"></canvas>
+    <div class="row"><span><b class="display num" style="font-size:34px">${known}</b> <span class="muted">מתוך ${all} נושאים</span></span></div>
     <div class="bar"><i style="width:${all ? known / all * 100 : 0}%"></i></div>
     <p class="small muted">נושא מתמלא אחרי ${KNOW} תשובות נכונות, בשלושה ימים שונים.</p>${cta}</section>
   ${map.map(x => `<section class="glass pad"><div class="row"><b style="font-size:17px">${SUBJ[subjOf(x.pool)]}</b>
@@ -1008,6 +1399,13 @@ function startQuest() {
   }
   renderQuestion();
 }
+/* The round opens out of the button that started it. */
+function iris(b) {
+  const q = $(".quiz", layer), r = b.getBoundingClientRect();
+  if (!q || REDUCED) return;
+  q.style.setProperty("--ox", (r.left + r.width / 2) + "px"); q.style.setProperty("--oy", (r.top + r.height / 2) + "px");
+  q.classList.add("iris");
+}
 function startPractice() {
   const p = me(), set = practiceSet(p);
   if (!set.length) { toast("אין כרגע מה לתרגל. מחר יהיו שאלות חדשות."); return; }
@@ -1065,6 +1463,7 @@ function renderQuestion(keepClock) {
   const T = half ? null : typedOf(q), pairs = half || T ? null : matchOf(profile(Q.pid), q);
   Q.form = T ? "typed" : pairs ? "match" : "choice"; Q.locked = false; Q.typed = ""; Q.m = null;
   if (!keepClock) Q.t0 = performance.now();
+  auraMood({ calm: 1, energy: Math.min(1, Q.combo / 5) });
   const lv = [1, 2, 3].map(x => `<i class="${x <= q.level ? "on" : ""}"></i>`).join("");
   const canSpeak = ltr && !pairs && "speechSynthesis" in window;
   let body;
@@ -1152,16 +1551,21 @@ function settle(ok, el, shown) {
   const rect = el.getBoundingClientRect(), a = AURAS[auraOf(me())].c, c = $("#combo", layer);
   if (ok) {
     SFX.good(); buzz(15);
-    sparks(rect.left + rect.width / 2, rect.top + rect.height / 2, [a[0], a[1], "#ffffff", "#3EE6A4"], redo ? 10 : 26, redo ? 3 : 5);
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2, bar = $$(".seg", layer)[k];
+    sparks(cx, cy, [a[0], a[1], "#ffffff", "#3EE6A4"], redo ? 10 : 22, redo ? 3 : 5);
+    ring(cx, cy, redo ? "#ffffff" : a[0], redo ? 60 : 120); auraPulse(cx, cy);
     if (!redo) {
       Q.combo++;
+      if (bar) { const br = bar.getBoundingClientRect(); streamTo(cx, cy, br.left + br.width / 2, br.top + 2, [a[0], a[1], "#ffffff"], 10); }
+      auraMood({ energy: Math.min(1, Q.combo / 5) });
+      if (Q.combo === 3 || Q.combo === 5) comet(a);
       if (day) {
         const f = document.createElement("div"); f.className = "fly"; f.dir = "ltr"; f.textContent = "+" + (it.rev ? POINTS.revenge : POINTS.right);
         f.style.left = (rect.left + rect.width / 2) + "px"; f.style.top = (rect.top - 10) + "px"; document.body.appendChild(f); setTimeout(() => f.remove(), 1100);
       }
       if (Q.combo >= 2 && c) { c.hidden = false; $("span", c).textContent = "×" + Q.combo; c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); }
     }
-  } else { Q.combo = 0; if (c) c.hidden = true; SFX.bad(); buzz([30, 40, 30]); }
+  } else { Q.combo = 0; if (c) c.hidden = true; SFX.bad(); buzz([30, 40, 30]); auraMood({ dim: 1, energy: 0 }); }
   keepProgress();
   const last = Q.i === Q.queue.length - 1, toRedo = !last && Q.i === Q.items.length - 1;
   const head = ok ? (redo ? "עכשיו כן." : ["בול.", "נכון.", "יש.", "מדויק.", "בדיוק ככה."][(Q.i + Q.combo) % 5])
@@ -1193,8 +1597,9 @@ async function finishQuest() {
   if (day) {
     const tier = renderResult(p, after.points - before.points, after.fullWeeks > before.fullWeeks, after, { grew, wb, wa }), a = AURAS[auraOf(p)].c;
     if (tier) { SFX.done(); buzz([20, 60, 20]); } else buzz(20);
+    auraMood({ calm: 0.35, energy: [0.12, 0.45, 0.75, 1][tier], gold: tier === 3 ? 1.3 : 0 });
     if (tier >= 2) setTimeout(() => sparks(innerWidth / 2, innerHeight * 0.28, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], tier === 3 ? 170 : 80, tier === 3 ? 10 : 7), 250);
-  } else { renderPractice(p, grew); SFX.done(); }
+  } else { renderPractice(p, grew); SFX.done(); auraMood({ calm: 0.35, energy: 0.5 }); }
   if (LIVE) flush().then(okd => { if (okd) refresh().catch(() => {}); });
 }
 function flavorBlock(p, items, res, st) {
@@ -1203,18 +1608,16 @@ function flavorBlock(p, items, res, st) {
   if (p.flavor === "routine") {
     let dsc = 0; items.forEach((it, k) => { if (res[k]) dsc += 1 + 0.5 * it.q.level; });
     const e = Math.max(0, 10 - 1.3 * (total - ok));
-    return `<section class="glass routine" style="padding-bottom:62px"><div class="row"><span class="eyebrow">Routine · ${APPARATUS[mod(dayIndex(TODAY), 5)]}</span><span class="eyebrow num">${D}.${M}</span></div>
-      <div class="scores num" dir="ltr"><div><small>D</small><b>${dsc.toFixed(2)}</b></div><div><small>E</small><b>${e.toFixed(2)}</b></div><div class="tot"><small>TOTAL</small><b class="grad-text">${(dsc + e).toFixed(2)}</b></div></div>
-      <p class="small muted">D: כל תשובה נכונה לפי הקושי שלה. E: עשר, פחות 1.30 על כל טעות.</p>
-      <svg class="ribbon" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="rg"><stop offset="0" style="stop-color:var(--a1)"/><stop offset="1" style="stop-color:var(--a2)"/></linearGradient></defs>
-        <path d="M-10 52 C 60 -6, 110 84, 170 36 S 270 -4, 320 40 S 380 62, 412 18" fill="none" stroke="url(#rg)" stroke-width="3" stroke-linecap="round"/></svg></section>`;
+    return `<section class="glass routine"><div class="row"><span class="eyebrow">Routine · ${APPARATUS[mod(dayIndex(TODAY), 5)]}</span><span class="eyebrow num">${D}.${M}</span></div>
+      <canvas class="appar" data-appar="${mod(dayIndex(TODAY), 5)}" data-e="${e.toFixed(2)}" data-gold="${ok === total ? 1 : 0}" aria-hidden="true"></canvas>
+      <div class="scores num" dir="ltr"><div><small>D</small><b data-count="${dsc.toFixed(2)}">${dsc.toFixed(2)}</b></div><div><small>E</small><b data-count="${e.toFixed(2)}">${e.toFixed(2)}</b></div><div class="tot"><small>TOTAL</small><b class="grad-text" data-count="${(dsc + e).toFixed(2)}">${(dsc + e).toFixed(2)}</b></div></div>
+      <p class="small muted">D: כל תשובה נכונה לפי הקושי שלה. E: עשר, פחות 1.30 על כל טעות.</p></section>`;
   }
   if (p.flavor === "stage") {
     const lit = 6 + regOk * 3;
-    const bars = Array.from({ length: 22 }, (_, i) => `<i class="${i < lit ? "" : "off"}" style="height:${30 + ((i * 37) % 70)}%;animation-delay:${(i % 5) * 0.11}s"></i>`).join("");
     const head = regOk === reg ? "Encore" : regOk >= reg - 1 ? "Standing ovation" : regOk >= 3 ? "Great set" : "Soundcheck";
     const sub = regOk === reg ? "הקהל לא מוכן ללכת הביתה." : regOk >= 3 ? "הקהל איתך." : "חזרה גנרלית. מחר על הבמה.";
-    return `<section class="glass stage"><span class="eyebrow">Live · track ${st.played} · ${MONTHS[M - 1]}</span><div class="eq" aria-hidden="true">${bars}</div>
+    return `<section class="glass stage"><span class="eyebrow">Live · track ${st.played} · ${MONTHS[M - 1]}</span><canvas class="stagecv" data-lit="${Math.min(26, lit + 2)}" data-tier="${regOk === reg ? 3 : regOk >= reg - 1 ? 2 : regOk >= 3 ? 1 : 0}" aria-hidden="true"></canvas>
       <span class="display grad-text" style="font-size:48px">${head}</span><p class="muted">${sub}</p>
       <div class="stars" aria-label="${regOk} מתוך ${reg}">${Array.from({ length: reg }, (_, i) => `<span class="${i < regOk ? "on" : ""}" style="animation-delay:${0.2 + i * 0.12}s">★</span>`).join("")}</div></section>`;
   }
@@ -1250,6 +1653,7 @@ function renderResult(p, gained, weekBonus, st, x) {
     <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-aura wide" data-act="closeQuiz" data-to="board">לטבלה</button>
       <button type="button" class="btn btn-ghost wide" data-act="closeQuiz">סיום</button></div>
     ${more ? `<button type="button" class="btn btn-ghost wide" data-act="practice">עוד תרגול, בלי נקודות (לא חובה)</button>` : ""}`);
+  $(".quiz-in", layer).classList.add("reveal");
   paintArt(layer);
   const el = $("#gain", layer), to = +el.dataset.to;
   if (REDUCED) { el.textContent = "+" + to; return tier; }
@@ -1268,6 +1672,7 @@ function renderPractice(p, grew) {
     <div class="row" style="flex-wrap:nowrap">${left ? `<button type="button" class="btn btn-aura wide" data-act="practice">עוד סבב</button>` : ""}
       <button type="button" class="btn btn-ghost wide" data-act="closeQuiz" data-to="know">למפה</button></div>
     ${left ? "" : `<p class="small faint" style="text-align:center">שני סבבים ביום מספיקים. מחר יש עוד.</p>`}`);
+  $(".quiz-in", layer).classList.add("reveal");
 }
 
 /* ---------- the monthly recap, as stories ---------- */
@@ -1338,8 +1743,8 @@ document.addEventListener("click", async e => {
   if (act === "storyNext" && e.target.closest("[data-act=storyClose]")) return;
   switch (act) {
     case "tab": SFX.tap(); show(b.dataset.to); break;
-    case "start": startQuest(); break;
-    case "practice": startPractice(); break;
+    case "start": startQuest(); iris(b); break;
+    case "practice": startPractice(); iris(b); break;
     case "answer": answer(+b.dataset.j, b); break;
     case "num": numKey(b.dataset.k); break;
     case "numGo": numGo(); break;
@@ -1454,7 +1859,9 @@ window.addEventListener("online", () => { if (LIVE) flush(); });
 
 /* ---------- start ---------- */
 function allPools() { return [...new Set(FAM.profiles.flatMap(p => trackPools(p.track)))]; }
+new MutationObserver(() => document.body.classList.toggle("deep", !!$(".quiz, .story, .ceremony", layer))).observe(layer, { childList: true });
 async function boot() {
+  auraStart();
   if (LIVE) {
     const k = new URLSearchParams(location.search).get("k");
     /* The code stays in the address: on an iPhone the home-screen copy keeps its own storage, and the address it is saved from carries the code into it. */
@@ -1482,7 +1889,7 @@ async function boot() {
 }
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
-  round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows };
+  round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

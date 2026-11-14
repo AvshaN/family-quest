@@ -63,6 +63,23 @@ tests with the girls and gives feedback; Claude writes the code.
   (`practiceSet`): after the five, two optional rounds a day, mostly what she
   has seen (missed first), so the pools last. The Sheet sends `path` and
   `know` for what is older than the two months of rows the phones hold.
+- **Motion** (Avsha, 2026-11-14: the girls react well to animation and
+  interesting graphics, "not a simple drawing with a couple frames"). The
+  aura is a small WebGL shader behind everything (`auraStart`, `auraMood`,
+  `auraPulse`): 120 px across and stretched, every second frame; it drops to
+  72 px, then back to the three CSS discs, on a phone under 20 frames a
+  second, and the discs are also what reduced motion or no WebGL gets. While
+  a round, story or ceremony is open, `body.deep` hides the page under it so
+  the one aura shows through. `#fx` carries the short effects (`sparks`,
+  `ring`, `streamTo`, `comet`). `paintArt(root)` starts every living canvas
+  in a screen: her artwork assembling (`liveArt`; `artPlan` keeps a day's
+  piece the same for ever), the gymnast's apparatus of the day (`liveAppar`),
+  the stage (`liveStage`), the map's sky (`liveSky`), all through `animate`,
+  which stops when the canvas leaves the page. A new token is a ceremony
+  (`tokenCheck`). The oldest phone is an old Xiaomi; the others are iPhone
+  14 and 16. None of this was seen on a real phone: ask how it runs there.
+  Check motion with frames at set times (Playwright with
+  `--use-gl=swiftshader`), and run once with `reducedMotion: 'reduce'`.
 - **The daily pick** (`shareOf`, `take`): each pool has one fixed shuffled
   order (`permOf`); girls who share a pool (same `pair`) split it by that
   order, alternate questions each, so the twins never share a question. Each
