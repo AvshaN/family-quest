@@ -1399,11 +1399,17 @@ function startQuest() {
   }
   renderQuestion();
 }
-/* The round opens out of the button that started it. */
-function iris(b) {
-  const q = $(".quiz", layer), r = b.getBoundingClientRect();
+/* The round opens out of the button that started it: a disc of her colours floods out from where the button was
+ * (r, read before the screen changed) and thins away over the first question. It is a picture over the page that
+ * takes no taps. The first version clipped the round itself to a growing circle, and a clip also cuts taps: a quick
+ * tap outside the circle in the first half second was lost (found by the live test, 2026-11-14). */
+function iris(r) {
+  const q = $(".quiz", layer);
   if (!q || REDUCED) return;
-  q.style.setProperty("--ox", (r.left + r.width / 2) + "px"); q.style.setProperty("--oy", (r.top + r.height / 2) + "px");
+  const x = r.left + r.width / 2, y = r.top + r.height / 2, d = 2.3 * Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  const f = document.createElement("div");
+  f.className = "irisfx"; f.style.cssText = `left:${x - d / 2}px;top:${y - d / 2}px;width:${d}px;height:${d}px`;
+  document.body.appendChild(f); setTimeout(() => f.remove(), 800);
   q.classList.add("iris");
 }
 function startPractice() {
@@ -1743,8 +1749,8 @@ document.addEventListener("click", async e => {
   if (act === "storyNext" && e.target.closest("[data-act=storyClose]")) return;
   switch (act) {
     case "tab": SFX.tap(); show(b.dataset.to); break;
-    case "start": startQuest(); iris(b); break;
-    case "practice": startPractice(); iris(b); break;
+    case "start": { const r = b.getBoundingClientRect(); startQuest(); iris(r); break; }
+    case "practice": { const r = b.getBoundingClientRect(); startPractice(); if (Q) iris(r); break; }
     case "answer": answer(+b.dataset.j, b); break;
     case "num": numKey(b.dataset.k); break;
     case "numGo": numGo(); break;

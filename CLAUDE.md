@@ -80,6 +80,9 @@ tests with the girls and gives feedback; Claude writes the code.
   14 and 16. None of this was seen on a real phone: ask how it runs there.
   Check motion with frames at set times (Playwright with
   `--use-gl=swiftshader`), and run once with `reducedMotion: 'reduce'`.
+  An effect over the page must take no taps (`pointer-events:none`), and a
+  clip on a screen also cuts its taps: the round first opened through a
+  growing `clip-path` circle and quick taps outside it were lost.
 - **The daily pick** (`shareOf`, `take`): each pool has one fixed shuffled
   order (`permOf`); girls who share a pool (same `pair`) split it by that
   order, alternate questions each, so the twins never share a question. Each
@@ -185,6 +188,10 @@ tests with the girls and gives feedback; Claude writes the code.
   `ranking` and more, to answer right or wrong through real taps.
 - The real Sheet can be read with the Google Sheets connector (the file is
   "Aura" in Avsha's Drive). Never repeat the family code or PIN in chat.
+- **A failed test stops the push.** On 2026-11-14 a live walk failed, the
+  output was piped through a grep that hid the reason, and the push in the
+  same command went out: the tap-blocking opening was live for ten minutes.
+  Run the tests, read their end, then push in a separate step.
 - After changing app files, bump `VERSION` in `sw.js` so phones update.
 - **Check the push reached the site**: the live `sw.js` should show the new
   `VERSION` within a few minutes. GitHub Pages publishes each push to main
