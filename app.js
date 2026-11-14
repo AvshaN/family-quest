@@ -154,16 +154,23 @@ function demoFamily() {
     rows: [], tests: []
   };
 }
-const profile = id => FAM.profiles.find(p => p.id === id) || null;
-const me = () => profile(L.me) || null;
+/* Dad's test profile (Avsha, 2026-11-14: "a test profile similar to the girls, accessible from the parent profile,
+ * where I can experiment with entering wrong/right answers without impacting the total score"). While SANDBOX is set
+ * the app is a girl's app for a profile called "test" that only this phone knows: it follows the questions of the
+ * girl he picked (her track, topics and result style; not her half of a shared pool), its answers and exams are
+ * kept in this phone's memory (L.sand), and nothing of it is sent to the Sheet or counted for the girls. */
+let SANDBOX = null;
+const profile = id => FAM.profiles.find(p => p.id === id) || (SANDBOX && SANDBOX.p.id === id ? SANDBOX.p : null);
+const me = () => SANDBOX ? SANDBOX.p : (profile(L.me) || null);
+const everyone = () => SANDBOX ? FAM.profiles.concat(SANDBOX.p) : FAM.profiles;
 const auraOf = p => (p && (L.auras[p.id] || p.aura)) || "orchid";
 function rows() {
-  const src = LIVE ? FAM.rows.concat(...L.outbox.map(b => b.rows)) : L.rows.concat(EXAMPLE);
+  const src = (LIVE ? FAM.rows.concat(...L.outbox.map(b => b.rows)) : L.rows.concat(EXAMPLE)).concat(SANDBOX ? L.sand.rows : []);
   const seen = new Set(), out = [];
   for (const r of src) { const k = `${r.d}|${r.p}|${r.q}|${r.r | 0}`; if (!seen.has(k)) { seen.add(k); out.push(r); } }
   return out;
 }
-const tests = () => LIVE ? (FAM.tests || []) : L.tests;
+const tests = () => (LIVE ? (FAM.tests || []) : L.tests).concat(SANDBOX ? L.sand.tests : []);
 
 /* ---------- question banks ---------- */
 const BANKS = {}, QIDX = {};
@@ -295,7 +302,7 @@ function stats(pid, y, m) {
   };
 }
 function ranking(y, m) {
-  return FAM.profiles.map(p => Object.assign({ id: p.id }, stats(p.id, y, m)))
+  return everyone().map(p => Object.assign({ id: p.id }, stats(p.id, y, m)))
     .sort((a, b) => b.points - a.points || b.acc - a.acc || b.played - a.played || (a.id < b.id ? -1 : 1));
 }
 /* Equal points, accuracy and days share a place: on 2026-11-11 all three finished 3/5 and the board had
@@ -376,7 +383,7 @@ function knowMap(prof) {
  * longest ago first), then new questions of her own share in those topics, then anything seen. Mostly a review, so
  * the pools the daily five draw on last as long; the subject of an exam this week comes first. Two rounds a day. */
 const PRACTICE = { n: 5, rounds: 2, perTopic: 2 };
-const canPractice = () => !LIVE || (FAM.api | 0) >= 2;   // an older script would score a practice row as a revenge round
+const canPractice = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 2;   // an older script would score a practice row as a revenge round
 function practiceLeft(pid) {
   const done = rows().filter(r => r.p === pid && r.d === TODAY && r.r === 2).length;
   return Math.max(0, PRACTICE.rounds - Math.ceil(done / PRACTICE.n));
@@ -998,7 +1005,8 @@ function show(v) {
   $$("button", tabsEl).forEach(b => b.setAttribute("aria-current", b.dataset.to === v ? "page" : "false"));
   const html = ({ home: renderHome, know: renderKnow, board: renderBoard, vault: renderVault, me: renderMe, parent: renderParent,
                   code: renderCode, who: renderWho, aura: renderAuraPick, error: renderError })[v]();
-  app.innerHTML = html;
+  app.innerHTML = (SANDBOX && girlTabs ? `<div class="sandbar"><span><b>פרופיל ניסיון</b><br><span class="small">נשאר בטלפון הזה. לא נשמר בגיליון ולא נספר לבנות.</span></span>
+    <span class="sandbtns"><button type="button" class="btn btn-ghost btn-sm" data-act="sandReset">איפוס</button><button type="button" class="btn btn-primary btn-sm" data-act="sandExit">חזרה</button></span></div>` : "") + html;
   app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter");
   paintArt(app);
   window.scrollTo(0, 0);
@@ -1074,7 +1082,7 @@ function renderHome() {
 const pathDots = ws => `<span class="path" role="img" aria-label="${ws.full % PATH.every} מתוך ${PATH.every} שבועות מלאים לאסימון">${Array.from({ length: PATH.every }, (_, i) => `<i class="${i < ws.full % PATH.every ? "on" : ""}"></i>`).join("")}</span>`;
 /* An exam entered wrong can be taken off: hers by her, anyone's by Dad (nobody could, 2026-11-14). The script
  * learns "untest" with the version that sends api 2. */
-const canEdit = () => !LIVE || (FAM.api | 0) >= 2;
+const canEdit = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 2;
 const delTest = t => canEdit() ? `<button type="button" class="x" data-act="delTest" data-p="${esc(t.p)}" data-date="${esc(t.date)}" data-subj="${esc(t.subj)}" aria-label="מחיקת המבחן">${ICON.close.replace("<svg", '<svg width="16" height="16"')}</button>` : "";
 /* The map: every topic her class has reached, by subject, and how far each is to known. */
 function renderKnow() {
@@ -1105,7 +1113,7 @@ function renderBoard() {
       <span class="st-pts num">${r.points}<small>נק׳</small></span></li>`;
   }).join("");
   const s = FAM.settings, goal = +s.goal || 250;
-  const fam = FAM.profiles.reduce((t, q) => t + stats(q.id, Y, M).right, 0);
+  const fam = everyone().reduce((t, q) => t + stats(q.id, Y, M).right, 0);
   const [ny, nm] = M === 12 ? [Y + 1, 1] : [Y, M + 1], N = pointsOf(monthKey(ny, nm));
   const rules = P => `${P.day} על יום עם משימה, ${P.right} על תשובה נכונה${P.perfect ? `, ${P.perfect} על יום מושלם (חמש מחמש)` : ""}, ${P.revenge} על סיבוב נקמה מוצלח`;
   const [py, pm] = prevMonth(Y, M), last = ranking(py, pm), imp = improved(py, pm);
@@ -1158,7 +1166,7 @@ function renderMe() {
   const sw = Object.entries(AURAS).map(([k, a]) => `<button type="button" class="sw" data-act="aura" data-k="${k}" aria-pressed="${k === cur}">
     <i style="background:radial-gradient(circle at 30% 30%,${a.c[2]},${a.c[0]} 45%,${a.c[1]})"></i>${a.name}</button>`).join("");
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent), standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
-  const others = LIVE ? "" : `<section class="glass pad stack"><span class="eyebrow">Demo</span><p class="small muted">בתצוגה לדוגמה אפשר לעבור בין הבנות ולראות את המסך של אבא.</p>
+  const others = LIVE || SANDBOX ? "" : `<section class="glass pad stack"><span class="eyebrow">Demo</span><p class="small muted">בתצוגה לדוגמה אפשר לעבור בין הבנות ולראות את המסך של אבא.</p>
     <div class="chips">${FAM.profiles.map(q => `<button type="button" class="chip" data-act="become" data-id="${q.id}">${esc(q.name)}</button>`).join("")}
     <button type="button" class="chip" data-act="parent">${ICON.lock.replace("<svg", '<svg width="14" height="14"')} אבא</button></div></section>`;
   return `
@@ -1181,7 +1189,7 @@ function renderMe() {
   ${!standalone && ios ? `<section class="glass pad stack"><span class="eyebrow">Home screen</span><p class="small muted">באייפון: כפתור השיתוף בספארי ואז ״הוספה למסך הבית״. ככה זה נפתח כמו אפליקציה.</p></section>` : ""}
   ${!standalone && deferredInstall ? `<button type="button" class="btn btn-ghost wide" data-act="install">להוסיף למסך הבית</button>` : ""}
   ${others}
-  ${LIVE ? `<button type="button" class="link" style="align-self:center" data-act="forget">זה לא הטלפון שלי</button>` : ""}`;
+  ${LIVE && !SANDBOX ? `<button type="button" class="link" style="align-self:center" data-act="forget">זה לא הטלפון שלי</button>` : ""}`;
 }
 
 /* ---------- Dad's screen ---------- */
@@ -1339,6 +1347,9 @@ function parentSettings() {
     <button type="button" class="btn btn-primary" data-act="savePrizes">שמירה</button></section>
   <section class="glass pad stack"><span class="eyebrow">Give a token</span><p class="small muted">מעבר לאסימון של אלופת החודש. היא תראה אותו בכספת.</p>
     <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="grant" data-id="${p.id}">${dot(p)} +1 ל${esc(p.name)}</button>`).join("")}</div></section>
+  <section class="glass pad stack"><span class="eyebrow">Test profile</span>
+    <p class="small muted">פרופיל ניסיון, כמו של הבנות, שקיים רק בטלפון הזה: אפשר לענות נכון ולא נכון, לתרגל ולראות כל מסך. שום דבר ממנו לא נשלח לגיליון, לא נספר בטבלה של הבנות ולא מגיע למייל. בוחרים של מי השאלות:</p>
+    <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="sandbox" data-id="${p.id}">${dot(p)} כמו ${esc(p.name)}</button>`).join("")}</div></section>
   <section class="glass pad stack"><span class="eyebrow">Email</span><p class="small muted">סיכום עם הטבלאות האלה מגיע כל ערב סמוך ל־${+s.digestHour || 21}:00, וב־1 לחודש מגיעה הטבלה הסופית.</p></section>
   ${LIVE ? `<button type="button" class="link" style="align-self:center" data-act="forget">זה לא הטלפון שלי</button>` : ""}`;
 }
@@ -1497,6 +1508,7 @@ function renderQuestion(keepClock) {
       <span class="combo" id="combo" ${Q.combo >= 2 ? "" : "hidden"}>${ICON.flame.replace("<svg", '<svg width="20" height="20"')}<span dir="ltr">×${Q.combo}</span></span></div>
     <div class="qsubj"><span class="chip"><i></i>${SUBJ[subjOf(q.pool)]} · ${esc(q.topic)}</span><span class="lvl-dots" aria-label="רמה ${q.level} מתוך 3">${lv}</span>${tag}</div>
     ${pairs ? `<h2 class="q">חברי כל מילה לפירוש שלה</h2>` : `<h2 class="q" ${ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</h2>`}
+    ${SANDBOX && !pairs ? `<p class="small faint sandhint">ניסיון · התשובה הנכונה: <b dir="${optDir(q.options[0])}">${fmt(q.options[0])}</b></p>` : ""}
     ${body}
     <div class="qtools">${pairs ? "<span></span>" : `<button type="button" class="tool" data-act="fifty" ${Q.fifty ? "disabled" : ""}>${ICON.half} 50:50${Q.fifty ? " · נוצל" : ""}</button>`}
       ${canSpeak ? `<button type="button" class="tool" data-act="listen">${ICON.listen} Listen</button>` : ""}
@@ -1595,7 +1607,7 @@ async function finishQuest() {
                                     r: day ? (it.rev ? 1 : 0) : 2, s: Q.secs[k] || 0 });
   });
   if (!add.length) { Q = null; layer.innerHTML = ""; show("home"); return; }
-  if (LIVE) L.outbox.push({ p: p.id, d: TODAY, rows: add }); else L.rows.push(...add);
+  if (SANDBOX) L.sand.rows.push(...add); else if (LIVE) L.outbox.push({ p: p.id, d: TODAY, rows: add }); else L.rows.push(...add);
   if (day) delete L.progress[p.id];
   save();
   const after = stats(p.id, Y, M), ka = knowOf(p), wa = weeksOf(p.id), lvl = n => Math.min(KNOW, n || 0);
@@ -1606,7 +1618,7 @@ async function finishQuest() {
     auraMood({ calm: 0.35, energy: [0.12, 0.45, 0.75, 1][tier], gold: tier === 3 ? 1.3 : 0 });
     if (tier >= 2) setTimeout(() => sparks(innerWidth / 2, innerHeight * 0.28, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], tier === 3 ? 170 : 80, tier === 3 ? 10 : 7), 250);
   } else { renderPractice(p, grew); SFX.done(); auraMood({ calm: 0.35, energy: 0.5 }); }
-  if (LIVE) flush().then(okd => { if (okd) refresh().catch(() => {}); });
+  if (LIVE && !SANDBOX) flush().then(okd => { if (okd) refresh().catch(() => {}); });
 }
 function flavorBlock(p, items, res, st) {
   const ok = res.filter(Boolean).length, total = res.length, reg = items.filter(it => !it.rev).length;
@@ -1767,7 +1779,7 @@ document.addEventListener("click", async e => {
     case "aura": {
       const p = me(); L.auras[p.id] = b.dataset.k; save(); applyAura(b.dataset.k); SFX.tap();
       $$("[data-act=aura]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-      if (LIVE) api("profile", { p: p.id, aura: b.dataset.k }).catch(() => {});
+      if (LIVE && !SANDBOX) api("profile", { p: p.id, aura: b.dataset.k }).catch(() => {});
       break;
     }
     case "photo": $("#photoFile").click(); break;
@@ -1818,6 +1830,16 @@ document.addEventListener("click", async e => {
     }
     case "closeSheet": layer.innerHTML = ""; break;
     case "ptab": ptab = b.dataset.k; if (parentOK) keepUnlock(); SFX.tap(); show("parent"); break;
+    case "sandbox": {
+      const g = profile(b.dataset.id);
+      L.sand = L.sand || { rows: [], tests: [] };
+      SANDBOX = { p: { id: "test", name: "ניסיון", track: g.track, pair: "", slot: 0, flavor: g.flavor, aura: g.aura } };
+      save(); applyAura(auraOf(SANDBOX.p)); show("home"); break;
+    }
+    case "sandExit": SANDBOX = null; Q = null; applyAura("chrome"); show("parent"); break;
+    case "sandReset":
+      L.sand = { rows: [], tests: [] }; delete L.progress.test; if (L.sky) delete L.sky.test; if (L.seenTok) delete L.seenTok.test;
+      save(); show("home"); toast("הפרופיל אופס: אפשר לשחק את היום מחדש"); break;
     case "addTest": testSheet(); break;
     case "pickGirl": testSheet(b.dataset.id, { date: $("#tdate").value, note: $("#tnote").value }); break;
     case "delTest": {
@@ -1828,8 +1850,9 @@ document.addEventListener("click", async e => {
     }
     case "delTestYes": {
       const d = b.dataset;
-      if (LIVE) { try { await api("untest", { p: d.p, date: d.date, subj: d.subj }); await refresh(); } catch (err) { toast("לא נמחק. נסו שוב."); break; } }
-      else { const i = L.tests.findIndex(t => t.p === d.p && t.date === d.date && t.subj === d.subj); if (i >= 0) L.tests.splice(i, 1); save(); }
+      const mine = SANDBOX ? L.sand.tests : L.tests;
+      if (LIVE && !SANDBOX) { try { await api("untest", { p: d.p, date: d.date, subj: d.subj }); await refresh(); } catch (err) { toast("לא נמחק. נסו שוב."); break; } }
+      else { const i = mine.findIndex(t => t.p === d.p && t.date === d.date && t.subj === d.subj); if (i >= 0) mine.splice(i, 1); save(); }
       show(view); toast("המבחן נמחק"); break;
     }
     case "pickSub": $$("#tsub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
@@ -1837,7 +1860,8 @@ document.addEventListener("click", async e => {
       const sb = $("#tsub [aria-pressed=true]"), date = $("#tdate").value, note = $("#tnote").value.trim();
       if (!sb || !date || date < TODAY) { toast("צריך מקצוע ותאריך"); break; }
       const t = { p: TS ? TS.p : me().id, date, subj: sb.dataset.k, note };
-      if (LIVE) { try { await api("test", t); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
+      if (SANDBOX) { L.sand.tests.push(t); save(); }
+      else if (LIVE) { try { await api("test", t); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
       else { L.tests.push(t); save(); }
       show(view === "parent" ? "parent" : "home"); toast("המבחן נשמר"); break;
     }

@@ -163,6 +163,14 @@ tests with the girls and gives feedback; Claude writes the code.
   His PIN unlock lasts the session (`keepUnlock`, sessionStorage): the phone's pull-down
   reload keeps him in, on the same tab; reopening the app, leaving his screen or a girl
   claiming the phone asks for it again (2026-11-14).
+- **Dad's test profile** (`SANDBOX`, entered from his Settings tab; Avsha,
+  2026-11-14): a girl's app for a profile "test" that only his phone knows,
+  following the questions of the girl he picks. Its answers and exams live
+  in `L.sand`; nothing of it is sent (every `api` call and the outbox are
+  skipped while `SANDBOX` is set), it is on the board only on his phone and
+  only while he is in it, the right answer is written under each question,
+  and "reset" lets him play the day again. A new write to the Sheet needs
+  the same `!SANDBOX` guard; `walk`-style tests should count POSTs.
 - **Ties share a place** (`placeOf` / `placeOf_`): equal points, accuracy
   and days. A tie for first on the 1st gives each girl in it a token.
 - **Banks:** `data/bank/<pool>.json`, format in `data/README.md`;

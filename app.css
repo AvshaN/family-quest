@@ -470,3 +470,10 @@ button.chip{min-height:44px;padding:4px 14px}
 @keyframes coinin{from{transform:translateY(60vh) rotateY(-1260deg) scale(.3);opacity:0}30%{opacity:1}to{transform:none}}
 @keyframes coinidle{0%,100%{transform:rotateY(-16deg)}50%{transform:rotateY(16deg)}}
 @media (prefers-reduced-motion: reduce){.quiz.iris .quiz-in,.irisfx,.quiz-in.reveal>*,.ceremony *,.wd.today.on i,.streak .flame.on svg{animation:none!important}}
+
+/* Dad's test profile: a bar over the girl's screens that says so, with the way back */
+.sandbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:18px;border:1px dashed var(--gold);background:rgba(242,197,107,.09);color:var(--gold);font-size:14px;line-height:1.35}
+.sandbar .small{color:var(--text-2)}
+.sandbtns{display:flex;gap:6px;flex:none}
+.sandhint{margin-top:-8px}
+.sandhint b{color:var(--gold);font-weight:600}

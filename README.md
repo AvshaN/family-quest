@@ -28,6 +28,7 @@ No accounts, no server, no cost.
 | Her own look | Each girl picks her colours ("aura") and her photo or drawing. Each has her own result screen: a generative art piece, a gymnastics score (D + E), or a live set. |
 | Motion | Her colours are a living background that brightens with a streak of right answers, greys at a miss and turns gold on a perfect day. Her result piece moves: the artwork assembles, the gymnast's apparatus of the day performs, the stage plays. The map has a sky of stars, one per topic, and a new token arrives with a ceremony. |
 | Monthly recap | Her last month, as a story. |
+| Dad's test profile | From his Settings tab: a profile like the girls', on his phone only, to try right and wrong answers, practice and every screen. Nothing of it reaches the Sheet or the girls' board. |
 | Dad's screen | Behind a PIN: each girl's month, weak topics, today's questions, what she got wrong with the right answers, how long she took (a rushed day is marked), exams he can add or take off, and the evening email. |
 
 ## Files
