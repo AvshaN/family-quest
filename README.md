@@ -18,6 +18,8 @@ No accounts, no server, no cost.
 |---|---|
 | The daily five | 2 math, 2 English, 1 from her other subjects (biology for the eldest, art for one twin). The twins never get the same question. |
 | The round | Only her first answer counts, and it is timed (no clock on her screen). A question she misses comes back at the end of the round until she gets it right. Math with a number for an answer is typed on a number pad; vocabulary is four words to match with their meanings. |
+| "Not learned yet" | A mark she can put on any question. She still answers it; Dad sees the question on his screen and in the evening email. |
+| Weakest topic | One of her two math questions a day comes from the topic she misses most. |
 | Revenge round | A question she missed comes back two days later for points. |
 | The map | "What I know": every topic her class has reached, filling up with right answers on three different days. |
 | Practice | After the five, up to two optional rounds a day on what the map still lacks. No points for the board; it counts for the map and the family goal. |

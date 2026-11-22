@@ -21,7 +21,8 @@ var TABS = {
   // photo: her picture as she chose it in the app, as text (a data URL, under 49,000 characters), for her sisters' phones
   Profiles: ["id", "name", "track", "pair", "slot", "flavor", "aura", "photo"],
   // revenge: 0 one of the daily five, 1 a revenge round, 2 practice (no points). secs: how long her first answer took.
-  Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge", "secs"],
+  // flag: the question's text, when she marked it "we have not learned this yet" (empty otherwise)
+  Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge", "secs", "flag"],
   Tokens: ["when", "profile", "change", "reason"],
   Tests: ["when", "profile", "date", "subject", "note"]
 };
@@ -43,7 +44,7 @@ var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, week: 1
                  ["", { day: 10, right: 4, perfect: 0, revenge: 8, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 3;   // 3: photos
+var API = 4;   // 3: photos; 4: "not learned yet" marks
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
 var WEEK_DAYS = 5;
@@ -181,13 +182,15 @@ function submit_(b) {
     if (kind === 1 && revenge++ >= 1) return;
     have[key] = true;
     add.push([now, b.d, b.p, String(r.q), String(r.pool), String(r.t || ""), Number(r.l) || 1, r.ok ? 1 : 0, kind,
-              Math.max(0, Math.min(999, Number(r.s) || 0))]);
+              Math.max(0, Math.min(999, Number(r.s) || 0)), String(r.f || "").slice(0, 300)]);
   });
   var tokens = 0;
   if (add.length) {
     var sh = sheet_("Answers");
     // a Sheet set up before the seconds were kept has no heading for them
-    if (String(sh.getDataRange().getValues()[0][9] || "") !== "secs") sh.getRange(1, 10).setValue("secs");
+    var head = sh.getDataRange().getValues()[0];
+    if (String(head[9] || "") !== "secs") sh.getRange(1, 10).setValue("secs");
+    if (String(head[10] || "") !== "flag") sh.getRange(1, 11).setValue("flag");
     sh.getRange(sh.getLastRow() + 1, 1, add.length, add[0].length).setValues(add);
     tokens = pathTokens_(b.p);
   }
@@ -361,7 +364,8 @@ function report_(today, y, m) {
                missed: unique_(reg.filter(function (x) { return !x.ok; }).map(function (x) { return x.t; })),
                secs: secs.length ? (secs.length % 2 ? secs[half] : (secs[half - 1] + secs[half]) / 2) : 0,
                fast: fast, rushed: reg.length >= 5 && fast >= RUSH.n,
-               prac: prac.length, pracOk: prac.filter(function (x) { return x.ok; }).length },
+               prac: prac.length, pracOk: prac.filter(function (x) { return x.ok; }).length,
+               flags: todays.filter(function (x) { return x.f; }).map(function (x) { return { t: x.t, q: x.f, ok: x.ok }; }) },
       week: weekDays_(rows, p.id, today),
       month: { place: placeOf_(rank, mo), points: mo.points, played: mo.played, acc: mo.acc, weeks: mo.full,
                right: mo.right, gap: lead - mo.points, weak: weak_(rows, p.id, mk) },
@@ -469,6 +473,11 @@ function focusSection_(r) {
     var bits = [];
     if (g.today.rushed) bits.push("<span style='color:" + C.bad + "'>ענתה מהר מדי: " + g.today.fast + " מחמש התשובות בפחות מ־" + RUSH.secs + " שניות</span>");
     if (g.today.missed.length) bits.push("פספסה היום: " + g.today.missed.map(esc_).join(" · "));
+    // what she marked "we have not learned this yet" today, quoted, for a parent to judge
+    g.today.flags.forEach(function (x) {
+      bits.push("<b>סימנה ״עוד לא למדנו״</b> (" + esc_(x.t) + ", " + (x.ok ? "ענתה נכון" : "טעתה") + "):<br><span dir='" + (/[\u0590-\u05FF]/.test(x.q) ? "rtl" : "ltr") +
+        "' style='display:block;color:" + C.soft + "'>" + esc_(x.q).replace(/\{([^}]*)\}/g, "<span dir='ltr' style='unicode-bidi:isolate;display:inline-block'>$1</span>") + "</span>");
+    });
     if (g.today.prac) bits.push("תרגלה עוד, בלי נקודות: " + g.today.pracOk + " נכונות מתוך " + g.today.prac);
     if (g.month.weak.length) bits.push("כדאי לחזק החודש: " + g.month.weak.map(esc_).join(" · "));
     return bits.length ? "<p style='margin:0 0 10px;font-size:14px;line-height:1.6'>" + who_(g) + "<br>" + bits.join("<br>") + "</p>" : "";
@@ -592,7 +601,7 @@ function profiles_() {
 function answers_() {
   return sheet_("Answers").getDataRange().getValues().slice(1).filter(function (r) { return r[2] !== ""; }).map(function (r) {
     return { d: dateText_(r[1]), p: String(r[2]), q: String(r[3]), pool: String(r[4]), t: String(r[5]), l: Number(r[6]) || 1,
-             ok: Number(r[7]) ? 1 : 0, r: Number(r[8]) === 2 ? 2 : Number(r[8]) ? 1 : 0, s: Number(r[9]) || 0, w: r[0] instanceof Date ? Utilities.formatDate(r[0], TZ, "HH:mm") : "" };
+             ok: Number(r[7]) ? 1 : 0, r: Number(r[8]) === 2 ? 2 : Number(r[8]) ? 1 : 0, s: Number(r[9]) || 0, f: String(r[10] || ""), w: r[0] instanceof Date ? Utilities.formatDate(r[0], TZ, "HH:mm") : "" };
   });
 }
 function tokenRows_() {

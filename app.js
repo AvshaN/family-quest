@@ -216,7 +216,28 @@ const EXAM_TOPICS = [
   { track: "g10-bio", subj: "eng", date: "2026-11-24", topics: ["Vocabulary: Test 2", "Reading"] }
 ];
 const examTopics = (prof, test) => { const e = test && EXAM_TOPICS.find(x => x.track === prof.track && x.subj === test.subj && x.date === test.date); return e ? e.topics : null; };
-function take(prof, pool, n, date, src, focus) {
+/* Her weakest topic in a pool (Avsha, 2026-11-22: the twins' misses pile up in a topic or two, one's in signed
+ * numbers and the other's in perimeter and area, while the daily pick spreads over the whole pool): over the last
+ * four weeks a miss counts one and a right answer takes half off, and the topic with the most left over is it. One
+ * of her two math questions a day is drawn from it, a new question of the topic if there is one (the revenge round
+ * already brings back the very questions she missed). A topic she or her classmate marked "not learned yet" in
+ * that time is left out: more of it would be more of what was not taught. */
+const WEAK = { days: 28, right: 0.5 };
+function weakTopic(prof, pool, date, src) {
+  const score = {}, missed = {}, off = new Set(), mates = new Set(sharers(prof, pool).map(x => x.id));
+  src.forEach(r => {
+    if (r.pool !== pool || r.d >= date || daysBetween(r.d, date) > WEAK.days) return;
+    const q = QIDX[r.q], t = q && q.topic;
+    if (!q || !studied(prof, q)) return;
+    if (r.f && mates.has(r.p)) off.add(t);
+    if (r.p !== prof.id) return;
+    score[t] = (score[t] || 0) + (r.ok ? -WEAK.right : 1);
+    if (!r.ok && !(missed[t] >= r.d)) missed[t] = r.d;
+  });
+  return Object.keys(missed).filter(t => score[t] > 0 && !off.has(t))
+    .sort((a, b) => score[b] - score[a] || (missed[a] < missed[b] ? 1 : missed[a] > missed[b] ? -1 : (a < b ? -1 : 1)))[0] || null;
+}
+function take(prof, pool, n, date, src, focus, weak) {
   const share = shareOf(prof, pool), now = share.filter(q => studied(prof, q)), mine = now.length ? now : share;
   const last = {}, theirs = new Set(), others = new Set(sharers(prof, pool).map(p => p.id).filter(id => id !== prof.id));
   src.forEach(r => {
@@ -225,7 +246,11 @@ function take(prof, pool, n, date, src, focus) {
   });
   const fresh = mine.filter(q => !last[q.id] && !theirs.has(q.id));
   const seen = mine.filter(q => last[q.id]).sort((a, b) => last[a.id] < last[b.id] ? -1 : last[a.id] > last[b.id] ? 1 : 0);
-  const order = fresh.concat(seen);
+  let order = fresh.concat(seen);
+  // a question of the topic she has not met; failing that one she met a week ago or more, so that a small topic
+  // does not send the same few questions round every other day
+  const w = weak && !focus && order.find(q => q.topic === weak && (!last[q.id] || daysBetween(last[q.id], date) >= 7));
+  if (w) { const rest = order.filter(q => q !== w); order = rest.slice(0, 1).concat(w, rest.slice(1)); }   // the second of the two
   return (focus ? order.filter(q => focus.includes(q.topic)).concat(order.filter(q => !focus.includes(q.topic))) : order).slice(0, n);
 }
 function otherPool(prof, date) {
@@ -256,7 +281,7 @@ function dailySet(prof, date, src) {
   slots = slots.map((p, i) => p && (BANKS[p] || []).length ? p : (i % 2 ? t.eng : t.math));
   const need = {}, got = {}, used = {};
   slots.forEach(p => { need[p] = (need[p] || 0) + 1; });
-  for (const p in need) got[p] = take(prof, p, need[p], date, src, p === tp ? examTopics(prof, test) : null);
+  for (const p in need) got[p] = take(prof, p, need[p], date, src, p === tp ? examTopics(prof, test) : null, p === t.math ? weakTopic(prof, p, date, src) : null);
   return slots.map(p => { used[p] = used[p] || 0; return got[p][used[p]++]; }).filter(Boolean);
 }
 /* A question she missed 2-21 days ago comes back as a revenge round, until she wins it. */
@@ -975,6 +1000,7 @@ const ICON = {
   flame: I('<path d="M12 3c.8 3.8 5 5.6 5 10.4A5 5 0 0 1 7 13.4c0-2.3 1.3-3.8 2.2-4.6 0 1.6.8 2.7 1.8 2.7C11 8.2 10.6 5.6 12 3z"/>'),
   lock: I('<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
   image: I('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 16l-5-5-8 8"/>'),
+  flag: I('<path d="M6 21V4h11.5l-2.5 4 2.5 4H6"/>'),
   revenge: I('<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4.5v4h-4"/>'),
   crown: I('<path d="M4 8l4.2 4L12 6l3.8 6L20 8l-1.6 10H5.6z"/>'),
   star: I('<path d="M12 3.5l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 17l-5.3 2.9 1.2-6-4.5-4.1 6-.7z"/>')
@@ -1323,6 +1349,7 @@ function parentToday() {
   return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Today</span><span class="small muted">${n === ts.length ? "כולן שיחקו" : `${n} מתוך ${ts.length} שיחקו${missing.length ? ` · חסרה: ${joinHe(missing)}` : ""}`}</span></div>
     ${table(["", "ציון", "נקמה", "נקודות", "השבוע", "שעה"], rowsHTML)}</section>
   ${examsCard()}
+  ${canFlag() ? flagsCard() : ""}
   <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>`;
 }
 /* A question she got wrong, whole, with its right answer, so Dad can talk it through with her (he saw only the
@@ -1332,6 +1359,16 @@ function missedRow(r) {
   const q = QIDX[r.q];
   return `<div class="rv mq"><span class="mk no">✗</span><span class="t"><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(q ? q.topic : r.t)}${r.r === 1 ? " · נקמה" : ""}</b>${+r.s > 0 ? ` <span class="small faint">${secText(+r.s)}</span>` : ""}
     ${q ? `<br><span class="muted" ${q.ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</span><br><span class="good-t">✓ <span dir="${optDir(q.options[0])}">${fmt(q.options[0])}</span></span>` : ""}</span></div>`;
+}
+/* What the girls marked "not learned yet" in the last two weeks, the newest first: who, the question, how she did. */
+function flagsCard() {
+  const fl = rows().filter(r => r.f && profile(r.p) && daysBetween(r.d, TODAY) <= FLAG.days).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0);
+  const list = fl.slice(0, 20).map(r => { const q = QIDX[r.q], p = profile(r.p), text = fmt(q ? q.q : r.f);
+    return `<div class="rv mq"><span class="mk flagmk">${ICON.flag}</span><span class="t"><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span> <span class="small faint">${+r.d.slice(8)}.${+r.d.slice(5, 7)} · ${r.ok ? "ענתה נכון" : "טעתה"}</span>
+      <br><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(q ? q.topic : r.t)}</b><br><span class="muted" dir="${optDir(q ? q.q : r.f)}">${text}</span></span></div>`; }).join("");
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Not learned yet</span><span class="small muted">עוד לא למדנו</span></div>
+    ${list || `<p class="small muted">כשאחת הבנות מסמנת בשאלה ״עוד לא למדנו את זה״, השאלה מופיעה כאן ובמייל של הערב.</p>`}
+    ${list ? `<p class="small faint">הן עונות על השאלה בכל מקרה. נושא שבאמת עוד לא נלמד אפשר לכבות עד שהכיתה תגיע אליו.</p>` : ""}</section>`;
 }
 /* Upcoming exams, every girl's, soonest first, as in the evening email; the week of focus is lit. */
 function examsCard() {
@@ -1482,7 +1519,7 @@ let Q = null;
  * Only the first answer is recorded and scored, with the seconds it took. */
 function newRound(kind, p, items) {
   return { kind, pid: p.id, items, queue: items.map((_, k) => k), i: 0, res: [], secs: [], fixed: [], combo: 0,
-           fifty: false, halfAt: -1, locked: false, t0: 0, form: "choice", ord: null, typed: "", m: null };
+           fifty: false, halfAt: -1, locked: false, t0: 0, form: "choice", ord: null, typed: "", m: null, flags: [] };
 }
 const idsOf = items => items.map(it => it.q.id).join();
 const cur = () => Q.items[Q.queue[Q.i]];
@@ -1498,7 +1535,7 @@ function startQuest() {
   const sv = L.progress[p.id];
   if (sv && sv.date === TODAY && sv.ids === idsOf(items)) {
     Object.assign(Q, { i: sv.i, res: sv.res || [], secs: sv.secs || [], fixed: sv.fixed || [], fifty: !!sv.fifty, combo: sv.combo || 0,
-                       halfAt: sv.halfAt == null ? -1 : sv.halfAt });
+                       halfAt: sv.halfAt == null ? -1 : sv.halfAt, flags: sv.flags || [] });
     // progress kept by the version before the redo round: what she had missed still comes back
     Q.queue = Array.isArray(sv.queue) ? sv.queue : Q.queue.concat(Q.queue.filter(k => k < sv.i && !Q.res[k]));
     // She answered and left before "next": she has seen the answer, so the round moves on. (It used to show the
@@ -1529,9 +1566,17 @@ function startPractice() {
 function keepProgress() {
   if (Q.kind !== "day") return;
   L.progress[Q.pid] = { date: TODAY, ids: idsOf(Q.items), queue: Q.queue, i: Q.i, res: Q.res, secs: Q.secs, fixed: Q.fixed,
-                        fifty: Q.fifty, halfAt: Q.halfAt, combo: Q.combo, locked: Q.locked };
+                        fifty: Q.fifty, halfAt: Q.halfAt, combo: Q.combo, locked: Q.locked, flags: Q.flags };
   save();
 }
+/* "We have not learned this yet" (Avsha, 2026-11-22: the twins' math is not yet limited to what their class has
+ * reached, and a girl has no way to say so but to complain): a mark she can put on any question, before or after
+ * answering. She answers it all the same and it counts as any other. The mark goes to the Sheet with her answer
+ * (the question's text, so the evening email can quote it), and Dad's Today lists the last two weeks' marks. The
+ * script keeps it from version 4 on, so the button waits for that. */
+const FLAG = { days: 14 };
+const canFlag = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 4;
+const flagText = on => on ? "סימנת שעוד לא למדתן את זה. אבא יראה, ועדיין צריך לענות." : "עוד לא למדנו את זה";
 /* How a question is asked (Avsha, 2026-11-14: four options are only recognised, and a tap at random is right a
  * quarter of the time).
  * Typed: a math question whose four options are plain numbers, with the same "x =" before them or unit after, is
@@ -1558,10 +1603,12 @@ function matchOf(prof, q) {
   for (const x of cand) {
     const w = VOCAB.exec(x.q);
     if (!w || optDir(x.options[0]) !== "rtl" || pairs.some(y => y.a === w[1] || y.b === x.options[0])) continue;
+    // A fifth meaning that belongs to none of the four words (Avsha, 2026-11-22: in their first eleven days all
+    // three got every matching right, 20 of 20, since the last pair of four is given away by the other three).
+    if (pairs.length === 4) { pairs.decoy = x.options[0]; break; }
     pairs.push({ a: w[1], b: x.options[0] });
-    if (pairs.length === 4) return pairs;
   }
-  return null;
+  return pairs.length === 4 ? pairs : null;
 }
 const orderOf = (q, n) => shuffle([0, 1, 2, 3], rng(hash(TODAY + "|" + Q.pid + "|" + q.id + (n > 1 ? "|" + n : ""))));
 function quizShell(inner) { return `<div class="quiz" role="dialog" aria-modal="true" aria-label="המשימה של היום"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">${inner}</div></div>`; }
@@ -1589,8 +1636,8 @@ function renderQuestion(keepClock) {
   } else if (pairs) {
     const r = rng(hash("sides|" + q.id + "|" + Q.pid + "|" + TODAY + "|" + n));
     Q.m = { sel: null, done: 0, miss: 0 };
-    const col = (side, ord) => `<div class="mcol">${ord.map(i => `<button type="button" class="mbtn" data-act="pair" data-side="${side}" data-k="${i}" aria-pressed="false" dir="${side === "a" ? "ltr" : "rtl"}">${esc(pairs[i][side])}</button>`).join("")}</div>`;
-    body = `<div class="match" dir="ltr">${col("a", shuffle([0, 1, 2, 3], r))}${col("b", shuffle([0, 1, 2, 3], r))}</div>`;
+    const col = (side, ord) => `<div class="mcol">${ord.map(i => `<button type="button" class="mbtn" data-act="pair" data-side="${side}" data-k="${i}" aria-pressed="false" dir="${side === "a" ? "ltr" : "rtl"}">${esc(i === "x" ? pairs.decoy : pairs[i][side])}</button>`).join("")}</div>`;
+    body = `<div class="match" dir="ltr">${col("a", shuffle([0, 1, 2, 3], r))}${col("b", shuffle(pairs.decoy ? [0, 1, 2, 3, "x"] : [0, 1, 2, 3], r))}</div>`;
   } else {
     const ord = Q.ord = orderOf(q, n), keys = ltr ? ["A", "B", "C", "D"] : ["א", "ב", "ג", "ד"], right = ord.indexOf(0);
     const gone = new Set(half ? shuffle([0, 1, 2, 3].filter(x => x !== right), rng(hash(TODAY + Q.pid + q.id + "half"))).slice(0, 2) : []);
@@ -1604,13 +1651,14 @@ function renderQuestion(keepClock) {
     <div class="qhead"><button type="button" class="round" data-act="quit" aria-label="${Q.kind === "day" ? "יציאה, ההתקדמות נשמרת" : "סיום התרגול"}">${ICON.close}</button>
       <span class="combo" id="combo" ${Q.combo >= 2 ? "" : "hidden"}>${ICON.flame.replace("<svg", '<svg width="20" height="20"')}<span dir="ltr">×${Q.combo}</span></span></div>
     <div class="qsubj"><span class="chip"><i></i>${SUBJ[subjOf(q.pool)]} · ${esc(q.topic)}</span><span class="lvl-dots" aria-label="רמה ${q.level} מתוך 3">${lv}</span>${tag}</div>
-    ${pairs ? `<h2 class="q">חברי כל מילה לפירוש שלה</h2>` : `<h2 class="q" ${ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</h2>`}
+    ${pairs ? `<h2 class="q">חברי כל מילה לפירוש שלה</h2>${pairs.decoy ? `<p class="small muted" style="margin-top:-10px">יש פירוש אחד מיותר.</p>` : ""}` : `<h2 class="q" ${ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</h2>`}
     ${SANDBOX && !pairs ? `<p class="small faint sandhint">ניסיון · התשובה הנכונה: <b dir="${optDir(q.options[0])}">${fmt(q.options[0])}</b></p>` : ""}
     ${body}
     <div class="qtools">${pairs ? "<span></span>" : `<button type="button" class="tool" data-act="fifty" ${Q.fifty ? "disabled" : ""}>${ICON.half} 50:50${Q.fifty ? " · נוצל" : ""}</button>`}
       ${FORMULAS[q.pool] ? `<button type="button" class="tool" data-act="formulas" data-pool="${q.pool}"><b class="fsign" dir="ltr">ƒ</b> נוסחאות</button>` : ""}
       ${canSpeak ? `<button type="button" class="tool" data-act="listen">${ICON.listen} Listen</button>` : ""}
       <span class="small faint num">${redo ? `תיקון · נשארו ${Q.queue.length - Q.i}` : `<bdi dir="ltr">${k + 1} / ${Q.items.length}</bdi>`}</span></div>
+    ${canFlag() ? `<button type="button" class="flag" data-act="flag" aria-pressed="${!!Q.flags[k]}">${ICON.flag}<span>${flagText(Q.flags[k])}</span></button>` : ""}
     <div id="explain"></div>`);
 }
 function answer(j, btn) {
@@ -1650,7 +1698,7 @@ function pairTap(b) {
   if (sel.dataset.k === b.dataset.k) {
     [sel, b].forEach(x => { x.disabled = true; x.classList.add("right"); });
     m.done++; buzz(10);
-    if (m.done === 4) settle(m.miss === 0, b); else SFX.tap();
+    if (m.done === 4) { $$(".mbtn:not(.right)", layer).forEach(x => { x.disabled = true; x.classList.add("dim"); }); settle(m.miss === 0, b); } else SFX.tap();
   } else {
     m.miss++; SFX.bad(); buzz([30, 40, 30]);
     [sel, b].forEach(x => { x.classList.remove("wrong"); void x.offsetWidth; x.classList.add("wrong"); setTimeout(() => x.classList.remove("wrong"), 450); });
@@ -1702,7 +1750,7 @@ async function finishQuest() {
   const p = me(), day = Q.kind === "day", before = stats(p.id, Y, M), kb = knowOf(p), wb = weeksOf(p.id), add = [];
   Q.items.forEach((it, k) => {
     if (Q.res[k] != null) add.push({ d: TODAY, p: p.id, q: it.q.id, pool: it.q.pool, t: it.q.topic, l: it.q.level, ok: Q.res[k] ? 1 : 0,
-                                    r: day ? (it.rev ? 1 : 0) : 2, s: Q.secs[k] || 0 });
+                                    r: day ? (it.rev ? 1 : 0) : 2, s: Q.secs[k] || 0, f: Q.flags[k] ? it.q.q.slice(0, 300) : "" });
   });
   if (!add.length) { Q = null; layer.innerHTML = ""; show("home"); return; }
   if (SANDBOX) L.sand.rows.push(...add); else if (LIVE) L.outbox.push({ p: p.id, d: TODAY, rows: add }); else L.rows.push(...add);
@@ -1862,6 +1910,7 @@ document.addEventListener("click", async e => {
     case "numGo": numGo(); break;
     case "pair": pairTap(b); break;
     case "fifty": useFifty(); break;
+    case "flag": { const k = Q.queue[Q.i]; Q.flags[k] = !Q.flags[k]; keepProgress(); b.setAttribute("aria-pressed", String(!!Q.flags[k])); $("span", b).textContent = flagText(Q.flags[k]); SFX.tap(); break; }
     case "formulas": openFormulas(b.dataset.pool); break;
     case "closeFormulas": case "formulasDone": { const f = $(".formbg"); if (f) f.remove(); break; }
     case "listen": speak(cur().q.q); break;
@@ -2018,7 +2067,7 @@ async function boot() {
 }
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
-  round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura };
+  round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

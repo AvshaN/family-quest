@@ -29,7 +29,7 @@ tests with the girls and gives feedback; Claude writes the code.
   Answers, Tokens, Tests. API: GET `state | photos`, POST `submit | profile |
   test | untest | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
   `monthlyClose`. `state` sends `api` (2 since 2026-11-14, 3 since
-  2026-11-22: photos): the app is live
+  2026-11-22: photos, 4 the same day: "not learned yet" marks): the app is live
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
   only when `api` is 2. Test a build against the old script too.
@@ -64,6 +64,21 @@ tests with the girls and gives feedback; Claude writes the code.
   (`practiceSet`): after the five, two optional rounds a day, mostly what she
   has seen (missed first), so the pools last. The Sheet sends `path` and
   `know` for what is older than the two months of rows the phones hold.
+- **"Not learned yet"** (`canFlag`, `flagsCard`; Avsha, 2026-11-22): a girl
+  can mark any question "we have not learned this yet". She answers it all
+  the same and it counts. The mark is the question's text in the Answers
+  tab's `flag` column; Dad's Today lists two weeks of them and the evening
+  email quotes the day's. **At the start of a session, read that column**:
+  it is how the girls say what `STUDYING` has wrong, the twins' math above
+  all (still unlimited). Tell Avsha what you found before switching a topic
+  off.
+- **Her weakest topic** (`weakTopic`, `WEAK`): of her two math questions a
+  day, the second is from the studied topic with most misses left over the
+  last four weeks (a miss one, a right answer half off), a question she has
+  not met or met a week ago or more. A topic marked "not learned yet" by her
+  or her twin is left out.
+- **Matching has a fifth meaning** (`pairs.decoy`): in their first eleven
+  days all three got every matching right, 20 of 20.
 - **A day is played once.** `flush` keeps a batch in `FAM.rows` when the
   Sheet has taken it. It used to drop it from the outbox and wait for the
   next `state`: for a second or three the day looked unplayed, the home
@@ -119,7 +134,8 @@ tests with the girls and gives feedback; Claude writes the code.
   safe; deleting or reordering only changes what comes next.
   `tools/simulate_days.js` plays the coming days and reports repeats (from
   2026-11-13: the twins' math runs out on 28-29 Nov; the eldest's none in 30
-  days).
+  days; from 2026-11-22, with 36 more grade-7 questions on signed numbers and
+  on perimeter and area, the twins' math first repeats on 4-5 Dec).
 - **What each class has reached** (`STUDYING` in `app.js`, by track and
   pool): a listed pool gives only those topics, in the five and in revenge
   rounds. The eldest complained on 2026-11-13 of probability and modals she
