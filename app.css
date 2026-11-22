@@ -477,3 +477,11 @@ button.chip{min-height:44px;padding:4px 14px}
 .sandbtns{display:flex;gap:6px;flex:none}
 .sandhint{margin-top:-8px}
 .sandhint b{color:var(--gold);font-weight:600}
+
+/* the formula sheet over a math question (openFormulas in app.js) */
+.formulas{max-height:86vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.formulas section{display:flex;flex-direction:column;gap:2px}
+.frow{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-top:1px solid var(--hair)}
+.formulas section .frow:first-of-type{border-top:0}
+.frow .fx{font-family:var(--f-display);font-size:22px;line-height:1.3;text-align:left;white-space:pre-wrap}
+.fsign{font-family:Georgia,serif;font-style:italic;font-weight:400;font-size:17px}

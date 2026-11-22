@@ -26,9 +26,10 @@ tests with the girls and gives feedback; Claude writes the code.
 - `app.js` is the whole app, no build step. `config.js` holds the Apps
   Script URL; empty means demo mode (example history, localStorage only).
 - `backend/Code.gs` runs inside the Sheet. Tabs: Settings, Profiles,
-  Answers, Tokens, Tests. API: GET `state`, POST `submit | profile | test |
-  untest | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
-  `monthlyClose`. `state` sends `api` (2 since 2026-11-14): the app is live
+  Answers, Tokens, Tests. API: GET `state | photos`, POST `submit | profile |
+  test | untest | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
+  `monthlyClose`. `state` sends `api` (2 since 2026-11-14, 3 since
+  2026-11-22: photos): the app is live
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
   only when `api` is 2. Test a build against the old script too.
@@ -63,6 +64,30 @@ tests with the girls and gives feedback; Claude writes the code.
   (`practiceSet`): after the five, two optional rounds a day, mostly what she
   has seen (missed first), so the pools last. The Sheet sends `path` and
   `know` for what is older than the two months of rows the phones hold.
+- **A day is played once.** `flush` keeps a batch in `FAM.rows` when the
+  Sheet has taken it. It used to drop it from the outbox and wait for the
+  next `state`: for a second or three the day looked unplayed, the home
+  screen drawn then kept its start button, and on 2026-11-22 one twin played
+  her day twice for a second revenge round. `startQuest` also refuses a
+  played day, and `submit_` takes five questions and one revenge round a day.
+- **What an exam covers** (`EXAM_TOPICS`, by track, subject and date): when
+  Avsha sends an exam's page, list its topics there, and for its week the
+  subject's three questions and the practice come from them first (four
+  practice rounds a day in an exam week, two otherwise). The eldest's
+  English test of 24.11.2026 was her sheet "Module E - Test 2 Vocabulary":
+  each of its 43 words is asked by translation (matched), by definition and
+  in a sentence (`Vocabulary: Test 2`, 129 questions).
+- **The formula sheet** (`FORMULAS`, `openFormulas`; the eldest, 2026-11-22):
+  a math question has a "formulas" button that opens the sheet her class is
+  handed in tests, whole, over the question. Only what the Ministry's sheet
+  gives, for the topics her class has reached: add a section as a topic with
+  formulas opens (trigonometry and probability wait). The twins have none.
+- **Photos** (the girls, 2026-11-22: "the others should see my picture"):
+  her photo is also a cell of the Profiles tab (192 px, under 40,000
+  characters), `state` carries a stamp of each (`pic`), and a phone fetches
+  the photos (`photos`) only when a stamp is new (`sharePhoto`,
+  `fetchPhotos`, `L.pics`). Her Me screen says who sees it and lets her take
+  it off. Never in the repo, never in the test profile.
 - **Motion** (Avsha, 2026-11-14: the girls react well to animation and
   interesting graphics, "not a simple drawing with a couple frames"). The
   aura is a small WebGL shader behind everything (`auraStart`, `auraMood`,

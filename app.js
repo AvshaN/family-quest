@@ -208,7 +208,15 @@ function shareOf(prof, pool) {
 }
 /* Questions a twin has answered never come to the other: adding questions to a bank reshuffles its order and so
  * the halves, and a question one twin met last week could otherwise land in the other's half. */
-function take(prof, pool, n, date, src) {
+/* What an exam covers, when Avsha sends its page: for its week the three questions of its subject, and practice,
+ * come from these topics first. The eldest's English test of 24.11.2026 is the word list "Module E - Test 2
+ * Vocabulary" (43 words, each asked by translation, by definition and in a sentence) and reading texts (her own note
+ * on the exam). Without an entry the week draws on everything her class has reached in the subject. */
+const EXAM_TOPICS = [
+  { track: "g10-bio", subj: "eng", date: "2026-11-24", topics: ["Vocabulary: Test 2", "Reading"] }
+];
+const examTopics = (prof, test) => { const e = test && EXAM_TOPICS.find(x => x.track === prof.track && x.subj === test.subj && x.date === test.date); return e ? e.topics : null; };
+function take(prof, pool, n, date, src, focus) {
   const share = shareOf(prof, pool), now = share.filter(q => studied(prof, q)), mine = now.length ? now : share;
   const last = {}, theirs = new Set(), others = new Set(sharers(prof, pool).map(p => p.id).filter(id => id !== prof.id));
   src.forEach(r => {
@@ -217,7 +225,8 @@ function take(prof, pool, n, date, src) {
   });
   const fresh = mine.filter(q => !last[q.id] && !theirs.has(q.id));
   const seen = mine.filter(q => last[q.id]).sort((a, b) => last[a.id] < last[b.id] ? -1 : last[a.id] > last[b.id] ? 1 : 0);
-  return fresh.concat(seen).slice(0, n);
+  const order = fresh.concat(seen);
+  return (focus ? order.filter(q => focus.includes(q.topic)).concat(order.filter(q => !focus.includes(q.topic))) : order).slice(0, n);
 }
 function otherPool(prof, date) {
   const opts = (TRACKS[prof.track] || TRACKS.g7).other.filter(([p]) => (BANKS[p] || []).length);
@@ -247,7 +256,7 @@ function dailySet(prof, date, src) {
   slots = slots.map((p, i) => p && (BANKS[p] || []).length ? p : (i % 2 ? t.eng : t.math));
   const need = {}, got = {}, used = {};
   slots.forEach(p => { need[p] = (need[p] || 0) + 1; });
-  for (const p in need) got[p] = take(prof, p, need[p], date, src);
+  for (const p in need) got[p] = take(prof, p, need[p], date, src, p === tp ? examTopics(prof, test) : null);
   return slots.map(p => { used[p] = used[p] || 0; return got[p][used[p]++]; }).filter(Boolean);
 }
 /* A question she missed 2-21 days ago comes back as a revenge round, until she wins it. */
@@ -382,11 +391,11 @@ function knowMap(prof) {
  * No points for the board. First what she last got wrong, then what she has seen in topics not yet known (the
  * longest ago first), then new questions of her own share in those topics, then anything seen. Mostly a review, so
  * the pools the daily five draw on last as long; the subject of an exam this week comes first. Two rounds a day. */
-const PRACTICE = { n: 5, rounds: 2, perTopic: 2 };
+const PRACTICE = { n: 5, rounds: 2, examRounds: 4, perTopic: 2 };   // in the week of an exam, up to four rounds a day
 const canPractice = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 2;   // an older script would score a practice row as a revenge round
 function practiceLeft(pid) {
   const done = rows().filter(r => r.p === pid && r.d === TODAY && r.r === 2).length;
-  return Math.max(0, PRACTICE.rounds - Math.ceil(done / PRACTICE.n));
+  return Math.max(0, (activeTest(profile(pid), TODAY) ? PRACTICE.examRounds : PRACTICE.rounds) - Math.ceil(done / PRACTICE.n));
 }
 function practiceSet(prof) {
   const all = rows(), today = new Set(), last = {}, theirs = new Set(), know = knowOf(prof);
@@ -408,10 +417,18 @@ function practiceSet(prof) {
   let list = missed.concat(learning, fresh, known);
   const test = activeTest(prof, TODAY), tp = test && poolFor(prof, test.subj);
   if (tp) list = list.filter(q => q.pool === tp).concat(list.filter(q => q.pool !== tp));
+  // An exam with known topics: what she missed in them, then what she has not met (a known topic's too: the exam
+  // asks every word), then what she has, the longest ago first. As many of one topic in a round as there are.
+  const focus = examTopics(prof, test), inF = q => !!focus && q.pool === tp && focus.includes(q.topic);
+  if (focus) {
+    const unmet = shuffle(shareOf(prof, tp).filter(q => can(q) && inF(q) && !last[q.id] && !theirs.has(q.id)), rng(hash("exam|" + prof.id + "|" + TODAY)));
+    const first = missed.filter(inF).concat(unmet, seen.filter(q => last[q.id].ok && inF(q)).sort(old));
+    list = first.concat(list.filter(q => !first.includes(q)));
+  }
   const per = {}, out = [];
   for (const q of list) {
     const k = q.pool + "|" + q.topic;
-    if ((per[k] || 0) >= PRACTICE.perTopic) continue;
+    if (!inF(q) && (per[k] || 0) >= PRACTICE.perTopic) continue;
     per[k] = (per[k] || 0) + 1; out.push(q);
     if (out.length >= PRACTICE.n) break;
   }
@@ -444,7 +461,7 @@ function makeExample() {
 async function api(action, body) {
   const url = String(CFG.apiUrl).trim();
   let r;
-  if (action === "state") r = await fetch(`${url}?action=state&code=${encodeURIComponent(L.code)}`, { redirect: "follow" });
+  if (action === "state" || action === "photos") r = await fetch(`${url}?action=${action}&code=${encodeURIComponent(L.code)}`, { redirect: "follow" });
   else r = await fetch(url, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" },
                               body: JSON.stringify(Object.assign({ action, code: L.code }, body || {})) });
   if (!r.ok) throw new Error("http " + r.status);
@@ -460,7 +477,10 @@ async function refresh() {
 }
 async function flush() {
   while (L.outbox.length) {
-    try { await api("submit", L.outbox[0]); L.outbox.shift(); save(); } catch (e) { return false; }
+    // The rows stay in what the phone holds once the Sheet has them. They used to leave the outbox here and come
+    // back only with the next reading of the Sheet, a second or three later: in between the day looked unplayed,
+    // and its home screen, drawn then, kept the start button (one twin played 22.11 twice, for a second revenge round).
+    try { const b = L.outbox[0]; await api("submit", b); if (FAM && FAM.rows) FAM.rows = FAM.rows.concat(b.rows); L.outbox.shift(); save(); } catch (e) { return false; }
   }
   return true;
 }
@@ -983,8 +1003,54 @@ function applyAura(key) {
   const meta = $('meta[name="theme-color"]'); if (meta) meta.setAttribute("content", "#09090F");
 }
 const initial = n => (String(n || "?").trim()[0] || "?");
+/* Her photo, for her sisters too (the girls asked, 2026-11-22: "the others should see my profile picture"). It was
+ * kept on her own phone only. Now it is also a cell of the family's Sheet (192 px, under 40,000 characters: a cell
+ * holds 50,000), the Sheet's state carries a stamp of each girl's photo, and a phone fetches the photos themselves
+ * only when a stamp is new to it. Her colours were shared already. */
+const PIC_OK = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/, PIC_MAX = 40000;
+const canShare = () => LIVE && !SANDBOX && !!FAM && (FAM.api | 0) >= 3;
+function fitPhoto(src) {
+  return new Promise((done, fail) => {
+    const img = new Image();
+    img.onload = () => {
+      const S = 192, cv = document.createElement("canvas"); cv.width = cv.height = S;
+      const k = Math.max(S / img.width, S / img.height), w = img.width * k, h = img.height * k;
+      cv.getContext("2d").drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+      let q = 0.82, out = cv.toDataURL("image/jpeg", q);
+      while (out.length > PIC_MAX && q > 0.35) { q -= 0.12; out = cv.toDataURL("image/jpeg", q); }
+      done(out);
+    };
+    img.onerror = fail; img.src = src;
+  });
+}
+/* Sends her photo if the Sheet has not got this one (also the photo she chose before photos were shared). */
+async function sharePhoto() {
+  const p = me();
+  if (!p || !canShare()) return;
+  L.picSent = L.picSent || {};
+  const mine = L.avatars[p.id] || "", sig = mine ? String(hash(mine)) : "";
+  if ((L.picSent[p.id] || "") === sig) return;
+  try {
+    const d = mine ? await fitPhoto(mine) : "";
+    if (d && (!PIC_OK.test(d) || d.length > PIC_MAX)) return;
+    await api("profile", { p: p.id, photo: d });
+    L.picSent[p.id] = sig; save();
+  } catch (e) { /* the next opening tries again */ }
+}
+async function fetchPhotos() {
+  if (!LIVE || !FAM || (FAM.api | 0) < 3) return;
+  L.pics = L.pics || {};
+  if (!FAM.profiles.some(p => (p.pic || "") !== ((L.pics[p.id] || {}).v || ""))) return;
+  try {
+    const r = await api("photos");
+    FAM.profiles.forEach(p => { const d = r.photos && r.photos[p.id]; if (d && PIC_OK.test(d)) L.pics[p.id] = { v: p.pic || "", d }; else delete L.pics[p.id]; });
+    save();
+    if (BOOTED && !layer.innerHTML && view === "board") show("board");
+  } catch (e) { /* the next opening tries again */ }
+}
+let BOOTED = false;
 function avatar(p, cls) {
-  const a = AURAS[auraOf(p)] || AURAS.orchid, img = L.avatars[p.id];
+  const a = AURAS[auraOf(p)] || AURAS.orchid, img = L.avatars[p.id] || ((L.pics || {})[p.id] || {}).d;
   return `<span class="av ${cls || ""}" style="--a1:${a.c[0]};--a2:${a.c[1]}" aria-hidden="true">${img ? `<img src="${img}" alt="">` : esc(initial(p.name))}</span>`;
 }
 function weekStrip(pid) {
@@ -1028,7 +1094,7 @@ function renderHome() {
       <span class="eyebrow">Done for today</span>
       <div class="row" style="align-items:flex-end"><span class="display big num" dir="ltr">${e.ok}/5</span><span class="display grad-text" style="font-size:40px" dir="ltr">+${pts}</span></div>
       <p class="muted">המשימה הבאה נפתחת בעוד ${Math.floor(left / 60)} שעות ו־${left % 60} דקות.</p>
-      ${more ? `<button type="button" class="btn btn-primary wide" data-act="practice">עוד תרגול, בלי נקודות</button>
+      ${more ? `<button type="button" class="btn btn-primary wide" data-act="practice">${test ? `תרגול למבחן ב${esc(SUBJ[test.subj] || test.subj)}` : "עוד תרגול, בלי נקודות"}</button>
       <p class="small faint">לא חובה. חמש שאלות ממה שעוד לא מלא במפה שלך; נספר למפה וליעד המשפחתי.</p>` : ""}
       <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-ghost wide" data-act="tab" data-to="know">למפה</button>
         <button type="button" class="btn btn-ghost wide" data-act="tab" data-to="board">לטבלה</button></div></section>`;
@@ -1091,7 +1157,7 @@ function renderKnow() {
   const cta = !canPractice() ? "" : !playedOn(p.id, TODAY) ? `<p class="small faint">אחרי חמש השאלות של היום אפשר לתרגל כאן עוד, בלי נקודות.</p>`
     : left ? `<button type="button" class="btn btn-aura wide" data-act="practice">לתרגל עכשיו</button>
       <p class="small faint">לא חובה. חמש שאלות ממה שעוד לא מלא, בלי נקודות לטבלה; נספר למפה וליעד המשפחתי.</p>`
-    : `<p class="small faint">תרגלת היום שני סבבים. מחר יש עוד.</p>`;
+    : `<p class="small faint">זה מספיק תרגול להיום. מחר יש עוד.</p>`;
   return `
   <header><span class="eyebrow">What I know</span><h1 class="display" style="font-size:52px">מה אני יודעת</h1></header>
   <section class="glass pad stack skybox"><canvas class="sky" role="img" aria-label="${known} נושאים שאת יודעת מתוך ${all}"></canvas>
@@ -1175,6 +1241,7 @@ function renderMe() {
     <button type="button" data-act="photo" aria-label="החלפת תמונה">${avatar(p, "lg ring")}</button>
     <h1 class="display" style="font-size:44px">${esc(p.name)}</h1>
     <button type="button" class="link" data-act="photo">${L.avatars[p.id] ? "להחליף תמונה" : "להוסיף תמונה או ציור שלך"}</button>
+    ${canShare() ? `<p class="small faint" style="margin-top:-8px">האחיות שלך ואבא רואים את התמונה ואת הצבעים שלך.${L.avatars[p.id] ? ` <button type="button" class="link" style="min-height:0;font-size:13px" data-act="photoOff">להסיר את התמונה</button>` : ""}</p>` : ""}
     <input type="file" id="photoFile" accept="image/*" hidden></section>
   <section class="glass pad stack"><span class="eyebrow">Your aura</span><div class="swatches">${sw}</div></section>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">What Dad sees</span><span class="small muted">${st.played} ימים · ${st.acc}% דיוק</span></div>
@@ -1379,6 +1446,34 @@ function renderError() {
     <button type="button" class="link" style="align-self:center" data-act="resetCode">להקליד קוד אחר</button></div>`;
 }
 
+/* ---------- the formula sheet (the eldest, 2026-11-22) ----------
+ * In a math test her class is handed a sheet of formulas, and the app asked the same questions without it: her
+ * example was "what can be said of x² + 2x + 5 = 0?", which wants the roots' formula. A math question now has a
+ * "formulas" button that opens the sheet over it: what the Ministry's sheet gives for the topics her class has
+ * reached, and no more (the rule about the sign under the root is hers to know). The whole sheet every time, as in
+ * the test: picking the formula is part of the question. Add a section when a topic with formulas opens. */
+const FORMULAS = {
+  "g10-math": [
+    ["אלגברה", [["נוסחאות הכפל המקוצר", "{(a ± b)² = a² ± 2ab + b²}"], ["", "{(a + b)(a − b) = a² − b²}"],
+                ["שורשי המשוואה {ax² + bx + c = 0}", "{x₁,₂ = (−b ± √(b² − 4ac)) / 2a}"]]],
+    ["הישר", [["שיפוע דרך שתי נקודות", "{m = (y₂ − y₁) / (x₂ − x₁)}"], ["משוואת הישר", "{y = mx + n}"],
+              ["ישר ששיפועו {m} דרך {(x₁, y₁)}", "{y − y₁ = m(x − x₁)}"], ["ישרים מקבילים", "{m₁ = m₂}"], ["ישרים מאונכים", "{m₁ · m₂ = −1}"]]],
+    ["נקודות", [["אמצע קטע", "{x = (x₁ + x₂) / 2}   {y = (y₁ + y₂) / 2}"], ["מרחק בין שתי נקודות", "{d = √((x₂ − x₁)² + (y₂ − y₁)²)}"]]],
+    ["גאומטריה", [["משפט פיתגורס", "{a² + b² = c²}"], ["שטח משולש", "{S = (a · h) / 2}"], ["שטח מקבילית", "{S = a · h}"],
+                  ["שטח מעוין", "{S = (d₁ · d₂) / 2}"], ["שטח טרפז", "{S = ((a + b) · h) / 2}"]]]
+  ]
+};
+function openFormulas(pool) {
+  const f = FORMULAS[pool];
+  if (!f || $(".formbg")) return;
+  const el = document.createElement("div");
+  el.className = "sheet-bg formbg"; el.dataset.act = "closeFormulas";
+  el.innerHTML = `<div class="sheet formulas" role="dialog" aria-modal="true" aria-label="דף נוסחאות"><h3>דף נוסחאות</h3>
+    ${f.map(([head, list]) => `<section><span class="eyebrow">${esc(head)}</span>${list.map(([name, text]) => `<div class="frow">${name ? `<span class="small muted">${fmt(name)}</span>` : ""}<span class="fx" dir="ltr">${fmt(text)}</span></div>`).join("")}</section>`).join("")}
+    <button type="button" class="btn btn-primary wide" data-act="formulasDone">חזרה לשאלה</button></div>`;
+  document.body.appendChild(el);
+}
+
 /* ---------- the quest ---------- */
 let Q = null;
 /* A round is the day's five (and a revenge round) or a practice round. Its queue is the items in order, and a
@@ -1394,7 +1489,9 @@ const cur = () => Q.items[Q.queue[Q.i]];
 const again = () => Q.queue.indexOf(Q.queue[Q.i]) < Q.i;
 const tryNo = () => Q.queue.slice(0, Q.i + 1).filter(k => k === Q.queue[Q.i]).length;
 function startQuest() {
-  const p = me(), set = dailySet(p, TODAY), rev = revengeFor(p, TODAY, set);
+  const p = me();
+  if (playedOn(p.id, TODAY)) { show("home"); return; }
+  const set = dailySet(p, TODAY), rev = revengeFor(p, TODAY, set);
   const items = set.map(q => ({ q, rev: false }));
   if (rev) items.push({ q: rev, rev: true });
   Q = newRound("day", p, items);
@@ -1511,6 +1608,7 @@ function renderQuestion(keepClock) {
     ${SANDBOX && !pairs ? `<p class="small faint sandhint">ניסיון · התשובה הנכונה: <b dir="${optDir(q.options[0])}">${fmt(q.options[0])}</b></p>` : ""}
     ${body}
     <div class="qtools">${pairs ? "<span></span>" : `<button type="button" class="tool" data-act="fifty" ${Q.fifty ? "disabled" : ""}>${ICON.half} 50:50${Q.fifty ? " · נוצל" : ""}</button>`}
+      ${FORMULAS[q.pool] ? `<button type="button" class="tool" data-act="formulas" data-pool="${q.pool}"><b class="fsign" dir="ltr">ƒ</b> נוסחאות</button>` : ""}
       ${canSpeak ? `<button type="button" class="tool" data-act="listen">${ICON.listen} Listen</button>` : ""}
       <span class="small faint num">${redo ? `תיקון · נשארו ${Q.queue.length - Q.i}` : `<bdi dir="ltr">${k + 1} / ${Q.items.length}</bdi>`}</span></div>
     <div id="explain"></div>`);
@@ -1618,7 +1716,7 @@ async function finishQuest() {
     auraMood({ calm: 0.35, energy: [0.12, 0.45, 0.75, 1][tier], gold: tier === 3 ? 1.3 : 0 });
     if (tier >= 2) setTimeout(() => sparks(innerWidth / 2, innerHeight * 0.28, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], tier === 3 ? 170 : 80, tier === 3 ? 10 : 7), 250);
   } else { renderPractice(p, grew); SFX.done(); auraMood({ calm: 0.35, energy: 0.5 }); }
-  if (LIVE && !SANDBOX) flush().then(okd => { if (okd) refresh().catch(() => {}); });
+  if (LIVE && !SANDBOX) flush().then(okd => { if (okd) refresh().then(fetchPhotos).catch(() => {}); });
 }
 function flavorBlock(p, items, res, st) {
   const ok = res.filter(Boolean).length, total = res.length, reg = items.filter(it => !it.rev).length;
@@ -1689,7 +1787,7 @@ function renderPractice(p, grew) {
     <section class="glass pad review"><span class="eyebrow">This round</span>${reviewList()}</section>
     <div class="row" style="flex-wrap:nowrap">${left ? `<button type="button" class="btn btn-aura wide" data-act="practice">עוד סבב</button>` : ""}
       <button type="button" class="btn btn-ghost wide" data-act="closeQuiz" data-to="know">למפה</button></div>
-    ${left ? "" : `<p class="small faint" style="text-align:center">שני סבבים ביום מספיקים. מחר יש עוד.</p>`}`);
+    ${left ? "" : `<p class="small faint" style="text-align:center">זה מספיק תרגול להיום. מחר יש עוד.</p>`}`);
   $(".quiz-in", layer).classList.add("reveal");
 }
 
@@ -1740,16 +1838,12 @@ function testSheet(pid, keep) {
   if (keep) { $("#tdate").value = keep.date; $("#tnote").value = keep.note; }
 }
 function readPhoto(file) {
-  const img = new Image(), url = URL.createObjectURL(file);
-  img.onload = () => {
-    const S = 256, cv = document.createElement("canvas"); cv.width = cv.height = S;
-    const k = Math.max(S / img.width, S / img.height), w = img.width * k, h = img.height * k;
-    cv.getContext("2d").drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+  const url = URL.createObjectURL(file);
+  fitPhoto(url).then(d => {
     URL.revokeObjectURL(url);
-    L.avatars[me().id] = cv.toDataURL("image/jpeg", 0.85); save(); show("me"); toast("נשמר בטלפון שלך בלבד");
-  };
-  img.onerror = () => toast("לא הצלחתי לקרוא את התמונה");
-  img.src = url;
+    L.avatars[me().id] = d; save(); show("me");
+    if (canShare()) { toast("נשמר. גם האחיות שלך רואות את התמונה."); sharePhoto(); } else toast("נשמר בטלפון שלך בלבד");
+  }).catch(() => toast("לא הצלחתי לקרוא את התמונה"));
 }
 
 /* ---------- one handler for every tap ---------- */
@@ -1757,17 +1851,19 @@ document.addEventListener("click", async e => {
   const b = e.target.closest("[data-act]");
   if (!b) return;
   const act = b.dataset.act;
-  if (act === "closeSheet" && e.target !== b) return;
+  if ((act === "closeSheet" || act === "closeFormulas") && e.target !== b) return;
   if (act === "storyNext" && e.target.closest("[data-act=storyClose]")) return;
   switch (act) {
     case "tab": SFX.tap(); show(b.dataset.to); break;
-    case "start": { const r = b.getBoundingClientRect(); startQuest(); iris(r); break; }
+    case "start": { const r = b.getBoundingClientRect(); startQuest(); if (Q) iris(r); break; }
     case "practice": { const r = b.getBoundingClientRect(); startPractice(); if (Q) iris(r); break; }
     case "answer": answer(+b.dataset.j, b); break;
     case "num": numKey(b.dataset.k); break;
     case "numGo": numGo(); break;
     case "pair": pairTap(b); break;
     case "fifty": useFifty(); break;
+    case "formulas": openFormulas(b.dataset.pool); break;
+    case "closeFormulas": case "formulasDone": { const f = $(".formbg"); if (f) f.remove(); break; }
     case "listen": speak(cur().q.q); break;
     case "next": if (Q.i < Q.queue.length - 1) { Q.locked = false; Q.i++; keepProgress(); renderQuestion(); } else finishQuest(); break;
     // leaving the five keeps them for later; leaving a practice round ends it with what she answered
@@ -1783,6 +1879,7 @@ document.addEventListener("click", async e => {
       break;
     }
     case "photo": $("#photoFile").click(); break;
+    case "photoOff": delete L.avatars[me().id]; save(); show("me"); sharePhoto(); toast("התמונה הוסרה"); break;
     case "toggle": L[b.dataset.k] = !L[b.dataset.k]; save(); b.setAttribute("aria-checked", String(L[b.dataset.k])); SFX.tap(); break;
     case "install": if (deferredInstall) { deferredInstall.prompt(); deferredInstall = null; } break;
     case "become": L.me = b.dataset.id; save(); applyAura(auraOf(me())); show("home"); break;
@@ -1902,8 +1999,8 @@ async function boot() {
       if (L.cache) FAM = L.cache; else { show("error"); return; }
     }
     await loadBanks(allPools());
-    if (L.parent) { takeUnlock(); applyAura("chrome"); show("parent"); return; }
-    if (!me()) { show("who"); return; }
+    if (L.parent) { takeUnlock(); applyAura("chrome"); show("parent"); BOOTED = true; fetchPhotos(); return; }
+    if (!me()) { show("who"); BOOTED = true; fetchPhotos(); return; }
   } else {
     FAM = demoFamily();
     await loadBanks(allPools());
@@ -1912,6 +2009,8 @@ async function boot() {
   }
   applyAura(auraOf(me()));
   show("home");
+  BOOTED = true;
+  if (LIVE) sharePhoto().then(fetchPhotos);
   if (LIVE && L.seenRecap !== THIS_MONTH && D <= 7) {
     const [py, pm] = prevMonth(Y, M);
     if (stats(me().id, py, pm).played) { L.seenRecap = THIS_MONTH; save(); openRecap(me().id); }

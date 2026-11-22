@@ -4,6 +4,7 @@
  * This script lives inside the Sheet (Extensions > Apps Script) and is deployed as a web app
  * (SETUP.md has the steps). The app on the girls' phones talks to it:
  *   GET  ?action=state&code=...   the family, this month's and last month's answers, tokens, tests
+ *   GET  ?action=photos&code=...  each girl's photo (state carries only a stamp of each, so phones fetch them rarely)
  *   POST {action, code, ...}      submit | profile | test | untest | redeem | pin | grant | settings
  * and two daily timers run here:
  *   nightlyDigest   the evening email to the parent: today, the month and all time, in tables
@@ -17,7 +18,8 @@
 var TZ = "Asia/Jerusalem";
 var TABS = {
   Settings: ["key", "value", "what it is"],
-  Profiles: ["id", "name", "track", "pair", "slot", "flavor", "aura"],
+  // photo: her picture as she chose it in the app, as text (a data URL, under 49,000 characters), for her sisters' phones
+  Profiles: ["id", "name", "track", "pair", "slot", "flavor", "aura", "photo"],
   // revenge: 0 one of the daily five, 1 a revenge round, 2 practice (no points). secs: how long her first answer took.
   Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge", "secs"],
   Tokens: ["when", "profile", "change", "reason"],
@@ -41,7 +43,7 @@ var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, week: 1
                  ["", { day: 10, right: 4, perfect: 0, revenge: 8, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 2;
+var API = 3;   // 3: photos
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
 var WEEK_DAYS = 5;
@@ -97,6 +99,7 @@ function doGet(e) {
   return guard_(function () {
     var p = (e && e.parameter) || {};
     checkCode_(p.code);
+    if (p.action === "photos") return { ok: true, photos: photos_() };
     if (p.action !== "state") throw new Error("unknown action");
     return state_();
   });
@@ -162,12 +165,20 @@ function submit_(b) {
   needProfile_(b.p);
   var rows = Array.isArray(b.rows) ? b.rows : [];
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.d)) || !rows.length || rows.length > 8) throw new Error("bad submission");
-  var have = {};
-  answers_().forEach(function (r) { if (r.p === b.p && r.d === b.d) have[r.q + "|" + r.r] = true; });
+  // A day is five questions and at most one revenge round: a phone that played a day twice (22.11.2026, before the
+  // app held on to what it had sent) had its five dropped here as known, but its second revenge round was new.
+  var have = {}, regular = 0, revenge = 0;
+  answers_().forEach(function (r) {
+    if (r.p !== b.p || r.d !== b.d) return;
+    have[r.q + "|" + r.r] = true;
+    if (r.r === 0) regular++; else if (r.r === 1) revenge++;
+  });
   var now = new Date(), add = [];
   rows.forEach(function (r) {
     var kind = Number(r.r) === 2 ? 2 : r.r ? 1 : 0, key = String(r.q) + "|" + kind;
     if (have[key] || r.p !== b.p || r.d !== b.d) return;
+    if (kind === 0 && regular++ >= 5) return;
+    if (kind === 1 && revenge++ >= 1) return;
     have[key] = true;
     add.push([now, b.d, b.p, String(r.q), String(r.pool), String(r.t || ""), Number(r.l) || 1, r.ok ? 1 : 0, kind,
               Math.max(0, Math.min(999, Number(r.s) || 0))]);
@@ -183,13 +194,34 @@ function submit_(b) {
   return { ok: true, added: add.length, tokens: tokens };
 }
 
+var PIC_OK = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;
 function setProfile_(b) {
   needProfile_(b.p);
-  var allowed = ["orchid", "lagoon", "ember", "cherry", "matcha", "chrome"];
-  if (allowed.indexOf(b.aura) < 0) throw new Error("bad aura");
-  var sh = sheet_("Profiles"), v = sh.getDataRange().getValues();
-  for (var i = 1; i < v.length; i++) if (String(v[i][0]) === b.p) sh.getRange(i + 1, 7).setValue(b.aura);
+  var sh = sheet_("Profiles"), v = sh.getDataRange().getValues(), row = 0;
+  for (var i = 1; i < v.length; i++) if (String(v[i][0]) === b.p) row = i + 1;
+  if (b.aura !== undefined) {
+    if (["orchid", "lagoon", "ember", "cherry", "matcha", "chrome"].indexOf(b.aura) < 0) throw new Error("bad aura");
+    sh.getRange(row, 7).setValue(b.aura);
+  }
+  if (b.photo !== undefined) {   // "" takes her photo off
+    var ph = String(b.photo);
+    if (ph && (!PIC_OK.test(ph) || ph.length > 49000)) throw new Error("bad photo");
+    if (String(v[0][7] || "") !== "photo") sh.getRange(1, 8).setValue("photo");
+    sh.getRange(row, 8).setValue(ph);
+  }
   return { ok: true };
+}
+function photos_() {
+  var out = {};
+  sheet_("Profiles").getDataRange().getValues().slice(1).forEach(function (r) { if (r[0] !== "" && PIC_OK.test(String(r[7] || ""))) out[String(r[0])] = String(r[7]); });
+  return out;
+}
+/* A short stamp of a photo: its length and a sum over it, so a phone can tell a new photo without fetching it. */
+function picStamp_(v) {
+  var t = String(v || ""), h = 7;
+  if (!t) return "";
+  for (var i = 0; i < t.length; i += 53) h = (h * 31 + t.charCodeAt(i)) % 1000000007;
+  return t.length + "." + h;
 }
 
 function addTest_(b) {
@@ -554,7 +586,7 @@ function setSetting_(k, v) {
 function profiles_() {
   return sheet_("Profiles").getDataRange().getValues().slice(1).filter(function (r) { return r[0] !== ""; }).map(function (r) {
     return { id: String(r[0]), name: String(r[1]), track: String(r[2]), pair: String(r[3] || ""), slot: Number(r[4]) || 0,
-             flavor: String(r[5] || ""), aura: String(r[6] || "orchid") };
+             flavor: String(r[5] || ""), aura: String(r[6] || "orchid"), pic: picStamp_(r[7]) };
   });
 }
 function answers_() {

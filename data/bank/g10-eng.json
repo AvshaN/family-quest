@@ -2560,5 +2560,1321 @@
     ],
     "explain": "To improve (לשפר, להשתפר) is to get better.",
     "ltr": true
+  },
+  {
+    "id": "g10-eng-184",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “a mask” mean?",
+    "options": [
+      "מסכה",
+      "תחפושת",
+      "כובע",
+      "משקפיים"
+    ],
+    "explain": "“The doctor wore a mask during the operation.”",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-185",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “a laugh” mean?",
+    "options": [
+      "צחוק",
+      "בכי",
+      "צעקה",
+      "חיוך"
+    ],
+    "explain": "“She has a loud, happy laugh.” The verb is the same word: to laugh.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-186",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “to request” mean?",
+    "options": [
+      "לבקש (באופן רשמי)",
+      "לדרוש בכוח",
+      "לסרב",
+      "להציע"
+    ],
+    "explain": "“You can request a seat by the window.” A request = בקשה.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-187",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “to rob” mean?",
+    "options": [
+      "לשדוד",
+      "להציל",
+      "לרמות במבחן",
+      "לשבור"
+    ],
+    "explain": "“Two men robbed the bank.” A robber = שודד; a robbery = שוד.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-188",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “to cure” mean?",
+    "options": [
+      "לרפא",
+      "להדביק במחלה",
+      "לבדוק",
+      "לנתח"
+    ],
+    "explain": "“The new medicine cured her.” A cure = תרופה, מרפא.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-189",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “to participate” mean?",
+    "options": [
+      "להשתתף",
+      "לצפות מהצד",
+      "לנצח",
+      "לארגן"
+    ],
+    "explain": "“Everyone participated in the game.” Participate in something.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-190",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “to plant” mean?",
+    "options": [
+      "לשתול, לנטוע",
+      "לקטוף",
+      "להשקות",
+      "לעקור"
+    ],
+    "explain": "“We planted a lemon tree in the garden.” A plant = צמח.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-191",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “casual” mean?",
+    "options": [
+      "לא רשמי, יומיומי",
+      "חגיגי",
+      "יקר",
+      "מסוכן"
+    ],
+    "explain": "“Casual clothes” are clothes like jeans and a T-shirt.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-192",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “anxious” mean?",
+    "options": [
+      "חרד, מודאג",
+      "רגוע",
+      "גאה",
+      "עייף"
+    ],
+    "explain": "“He felt anxious before the interview.” The noun is anxiety.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-193",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “average” mean?",
+    "options": [
+      "ממוצע",
+      "מקסימלי",
+      "נדיר",
+      "מדויק"
+    ],
+    "explain": "“The average age in our class is sixteen.”",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-194",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “painless” mean?",
+    "options": [
+      "ללא כאב",
+      "כואב מאוד",
+      "ללא פחד",
+      "חסר טעם"
+    ],
+    "explain": "Pain + less = without pain. “The treatment is painless.”",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-195",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “a debt” mean?",
+    "options": [
+      "חוב",
+      "חיסכון",
+      "משכורת",
+      "מתנה"
+    ],
+    "explain": "“He paid his debts.” The b is silent: we say “det”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-196",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “a mixture” mean?",
+    "options": [
+      "תערובת",
+      "תוספת",
+      "מתכון",
+      "חתיכה"
+    ],
+    "explain": "“A mixture of flour and water.” The verb is to mix.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-197",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “a costume” mean?",
+    "options": [
+      "תחפושת",
+      "מנהג",
+      "לקוח",
+      "מחיר"
+    ],
+    "explain": "“A Purim costume.” Don’t confuse it with custom (מנהג) or customer (לקוח).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-198",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “a disagreement” mean?",
+    "options": [
+      "אי־הסכמה, מחלוקת",
+      "הסכם",
+      "אכזבה",
+      "היעלמות"
+    ],
+    "explain": "Dis + agreement: when people do not agree.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-199",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “a certificate” mean?",
+    "options": [
+      "תעודה",
+      "תחרות",
+      "טקס",
+      "ביטחון"
+    ],
+    "explain": "“A birth certificate”; “a certificate for finishing the course”.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-200",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “incredibly” mean?",
+    "options": [
+      "מאוד, באופן שלא ייאמן",
+      "בקושי",
+      "לצערי",
+      "בדרך כלל"
+    ],
+    "explain": "“She is incredibly talented.” Incredible = hard to believe.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-201",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “common” mean?",
+    "options": [
+      "נפוץ, שכיח",
+      "נדיר",
+      "מסובך",
+      "פרטי"
+    ],
+    "explain": "“A common mistake” is a mistake that many people make.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-202",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “unreasonable” mean?",
+    "options": [
+      "לא הגיוני, לא סביר",
+      "לא ידוע",
+      "לא חוקי",
+      "לא נוח"
+    ],
+    "explain": "Un + reasonable. “Unreasonable prices” are much too high.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-203",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “fear” mean?",
+    "options": [
+      "פחד",
+      "כעס",
+      "עצב",
+      "הפתעה"
+    ],
+    "explain": "“A fear of spiders.” The verb is the same word: to fear.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-204",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “an expert” mean?",
+    "options": [
+      "מומחה",
+      "מתחיל",
+      "מתנדב",
+      "יועץ משפטי"
+    ],
+    "explain": "“An expert on ancient history.” An expert in / on a subject.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-205",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “to claim” mean?",
+    "options": [
+      "לטעון",
+      "להוכיח",
+      "להודות",
+      "להכחיש"
+    ],
+    "explain": "“He claims he was at home.” To claim = to say it is true, without proof.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-206",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “certain” mean?",
+    "options": [
+      "בטוח, ודאי",
+      "מבולבל",
+      "נרגש",
+      "סקרן"
+    ],
+    "explain": "“I’m certain I locked the door.” Certainly = בוודאי.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-207",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “an ancestor” mean?",
+    "options": [
+      "אב קדמון",
+      "צאצא",
+      "שכן",
+      "יורש"
+    ],
+    "explain": "“Our ancestors lived in Spain.” The opposite is a descendant.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-208",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “treatment” mean?",
+    "options": [
+      "טיפול",
+      "אבחנה",
+      "מחלה",
+      "ניסוי"
+    ],
+    "explain": "“Medical treatment.” The verb is to treat.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-209",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “to involve” mean?",
+    "options": [
+      "לכלול, לערב",
+      "להמציא",
+      "להזמין",
+      "להתפתח"
+    ],
+    "explain": "“The job involves a lot of travelling.” To be involved in = להיות מעורב ב־.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-210",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "What does “to improve” mean?",
+    "options": [
+      "לשפר, להשתפר",
+      "להוכיח",
+      "לאשר",
+      "להחמיר"
+    ],
+    "explain": "“Her English improved a lot.” The noun is improvement.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-211",
+    "topic": "Vocabulary: Test 2",
+    "level": 1,
+    "q": "What does “to absorb” mean?",
+    "options": [
+      "לספוג",
+      "לסחוט",
+      "לייבש",
+      "לשפוך"
+    ],
+    "explain": "“The towel absorbed the water.”",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-212",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “something you wear over your face to hide or protect it”?",
+    "options": [
+      "a mask",
+      "a costume",
+      "a certificate",
+      "a landscape"
+    ],
+    "explain": "A mask: something you wear over your face to hide or protect it.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-213",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “everything you can see when you look across a large area of land”?",
+    "options": [
+      "a landscape",
+      "a mixture",
+      "a mask",
+      "capacity"
+    ],
+    "explain": "A landscape: everything you can see when you look across a large area of land.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-214",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “the sound you make when you think something is funny”?",
+    "options": [
+      "a laugh",
+      "fear",
+      "a claim",
+      "a request"
+    ],
+    "explain": "A laugh: the sound you make when you think something is funny.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-215",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “the money you pay to travel by bus, train or taxi”?",
+    "options": [
+      "a fare",
+      "a debt",
+      "a certificate",
+      "an average"
+    ],
+    "explain": "A fare: the money you pay to travel by bus, train or taxi.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-216",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “fair treatment of people, especially by the law”?",
+    "options": [
+      "justice",
+      "guidance",
+      "capacity",
+      "fear"
+    ],
+    "explain": "Justice: fair treatment of people, especially by the law.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-217",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “help and advice about what to do”?",
+    "options": [
+      "guidance",
+      "justice",
+      "treatment",
+      "a disagreement"
+    ],
+    "explain": "Guidance: help and advice about what to do.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-218",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to take in a liquid, as a sponge does”?",
+    "options": [
+      "to absorb",
+      "to plant",
+      "to cure",
+      "to involve"
+    ],
+    "explain": "To absorb: to take in a liquid, as a sponge does.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-219",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to ask for something in a polite or formal way”?",
+    "options": [
+      "to request",
+      "to claim",
+      "to rob",
+      "to participate"
+    ],
+    "explain": "To request: to ask for something in a polite or formal way.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-220",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to steal money or things from a person or a place”?",
+    "options": [
+      "to rob",
+      "to request",
+      "to cure",
+      "to plant"
+    ],
+    "explain": "To rob: to steal money or things from a person or a place.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-221",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to make a sick person healthy again”?",
+    "options": [
+      "to cure",
+      "to improve",
+      "to absorb",
+      "to involve"
+    ],
+    "explain": "To cure: to make a sick person healthy again.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-222",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to take part in an activity”?",
+    "options": [
+      "to participate",
+      "to involve",
+      "to request",
+      "to claim"
+    ],
+    "explain": "To participate: to take part in an activity.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-223",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to put seeds or young trees in the ground so that they grow”?",
+    "options": [
+      "to plant",
+      "to absorb",
+      "to rob",
+      "to improve"
+    ],
+    "explain": "To plant: to put seeds or young trees in the ground so that they grow.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-224",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “relaxed and not formal”?",
+    "options": [
+      "casual",
+      "anxious",
+      "certain",
+      "extreme"
+    ],
+    "explain": "Casual: relaxed and not formal.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-225",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “worried and nervous”?",
+    "options": [
+      "anxious",
+      "casual",
+      "average",
+      "painless"
+    ],
+    "explain": "Anxious: worried and nervous.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-226",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “ordinary and usual; not special”?",
+    "options": [
+      "average",
+      "extreme",
+      "native",
+      "certain"
+    ],
+    "explain": "Average: ordinary and usual; not special.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-227",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “connected with the place where you were born”?",
+    "options": [
+      "native",
+      "elderly",
+      "common",
+      "accessible"
+    ],
+    "explain": "Native: connected with the place where you were born.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-228",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “old (a polite word, used about people)”?",
+    "options": [
+      "elderly",
+      "native",
+      "anxious",
+      "average"
+    ],
+    "explain": "Elderly: old (a polite word, used about people).",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-229",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “causing no pain”?",
+    "options": [
+      "painless",
+      "unreasonable",
+      "accessible",
+      "casual"
+    ],
+    "explain": "Painless: causing no pain.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-230",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “money that you owe to someone”?",
+    "options": [
+      "a debt",
+      "a fare",
+      "a claim",
+      "a certificate"
+    ],
+    "explain": "A debt: money that you owe to someone.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-231",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “the amount that something can hold”?",
+    "options": [
+      "capacity",
+      "a mixture",
+      "an average",
+      "treatment"
+    ],
+    "explain": "Capacity: the amount that something can hold.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-232",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “a combination of two or more different things”?",
+    "options": [
+      "a mixture",
+      "capacity",
+      "a landscape",
+      "a disagreement"
+    ],
+    "explain": "A mixture: a combination of two or more different things.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-233",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “special clothes that make you look like someone or something else”?",
+    "options": [
+      "a costume",
+      "a mask",
+      "a certificate",
+      "a mixture"
+    ],
+    "explain": "A costume: special clothes that make you look like someone or something else.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-234",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “a situation in which people have different opinions”?",
+    "options": [
+      "a disagreement",
+      "justice",
+      "a debt",
+      "guidance"
+    ],
+    "explain": "A disagreement: a situation in which people have different opinions.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-235",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “an official document that shows a fact is true, or that you finished a course”?",
+    "options": [
+      "a certificate",
+      "a fare",
+      "a costume",
+      "a request"
+    ],
+    "explain": "A certificate: an official document that shows a fact is true, or that you finished a course.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-236",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “used to say what you want to happen”?",
+    "options": [
+      "hopefully",
+      "barely",
+      "consequently",
+      "incredibly"
+    ],
+    "explain": "Hopefully: used to say what you want to happen.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-237",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “almost not; only just”?",
+    "options": [
+      "barely",
+      "hopefully",
+      "particularly",
+      "potentially"
+    ],
+    "explain": "Barely: almost not; only just.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-238",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “possibly, at some time in the future”?",
+    "options": [
+      "potentially",
+      "consequently",
+      "barely",
+      "incredibly"
+    ],
+    "explain": "Potentially: possibly, at some time in the future.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-239",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “as a result”?",
+    "options": [
+      "consequently",
+      "potentially",
+      "particularly",
+      "hopefully"
+    ],
+    "explain": "Consequently: as a result.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-240",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “especially; more than usual”?",
+    "options": [
+      "particularly",
+      "barely",
+      "consequently",
+      "potentially"
+    ],
+    "explain": "Particularly: especially; more than usual.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-241",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “extremely; in a way that is hard to believe”?",
+    "options": [
+      "incredibly",
+      "hopefully",
+      "barely",
+      "consequently"
+    ],
+    "explain": "Incredibly: extremely; in a way that is hard to believe.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-242",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “happening often, or found in many places”?",
+    "options": [
+      "common",
+      "certain",
+      "extreme",
+      "native"
+    ],
+    "explain": "Common: happening often, or found in many places.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-243",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “not fair or sensible”?",
+    "options": [
+      "unreasonable",
+      "painless",
+      "casual",
+      "accessible"
+    ],
+    "explain": "Unreasonable: not fair or sensible.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-244",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “the bad feeling you have when you are in danger”?",
+    "options": [
+      "fear",
+      "justice",
+      "a laugh",
+      "a debt"
+    ],
+    "explain": "Fear: the bad feeling you have when you are in danger.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-245",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “a person who knows a lot about a subject”?",
+    "options": [
+      "an expert",
+      "an ancestor",
+      "a native",
+      "a participant"
+    ],
+    "explain": "An expert: a person who knows a lot about a subject.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-246",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to say that something is true, without proving it”?",
+    "options": [
+      "to claim",
+      "to request",
+      "to involve",
+      "to participate"
+    ],
+    "explain": "To claim: to say that something is true, without proving it.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-247",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “completely sure, with no doubts”?",
+    "options": [
+      "certain",
+      "common",
+      "anxious",
+      "average"
+    ],
+    "explain": "Certain: completely sure, with no doubts.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-248",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “very great in degree; very far from what is usual”?",
+    "options": [
+      "extreme",
+      "average",
+      "casual",
+      "common"
+    ],
+    "explain": "Extreme: very great in degree; very far from what is usual.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-249",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “a person in your family who lived a long time ago”?",
+    "options": [
+      "an ancestor",
+      "an expert",
+      "an elderly person",
+      "a native"
+    ],
+    "explain": "An ancestor: a person in your family who lived a long time ago.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-250",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “something that is done to help a person who is sick or hurt”?",
+    "options": [
+      "treatment",
+      "guidance",
+      "capacity",
+      "justice"
+    ],
+    "explain": "Treatment: something that is done to help a person who is sick or hurt.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-251",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to include something as a necessary part”?",
+    "options": [
+      "to involve",
+      "to absorb",
+      "to improve",
+      "to claim"
+    ],
+    "explain": "To involve: to include something as a necessary part.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-252",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “to become better, or to make something better”?",
+    "options": [
+      "to improve",
+      "to cure",
+      "to involve",
+      "to plant"
+    ],
+    "explain": "To improve: to become better, or to make something better.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-253",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “easy to reach, enter or use”?",
+    "options": [
+      "accessible",
+      "painless",
+      "native",
+      "unreasonable"
+    ],
+    "explain": "Accessible: easy to reach, enter or use.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-254",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Which word means “trying very hard to do something that is difficult”?",
+    "options": [
+      "struggling",
+      "participating",
+      "improving",
+      "claiming"
+    ],
+    "explain": "Struggling: trying very hard to do something that is difficult.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-255",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The dentist wore a ___ over her nose and mouth while she worked.",
+    "options": [
+      "mask",
+      "costume",
+      "certificate",
+      "landscape"
+    ],
+    "explain": "A mask covers the face. A costume is the whole outfit.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-256",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "He has a loud ___ that makes everyone around him smile.",
+    "options": [
+      "laugh",
+      "fear",
+      "claim",
+      "debt"
+    ],
+    "explain": "A laugh = צחוק.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-257",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Passengers may ___ a vegetarian meal when they book the flight.",
+    "options": [
+      "request",
+      "rob",
+      "absorb",
+      "cure"
+    ],
+    "explain": "To request = to ask for, politely or formally.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-258",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Two men tried to ___ the bank, but the police arrived within minutes.",
+    "options": [
+      "rob",
+      "plant",
+      "cure",
+      "request"
+    ],
+    "explain": "To rob a bank = לשדוד בנק.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-259",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Every Tu BiShvat, the children ___ young trees in the forest.",
+    "options": [
+      "plant",
+      "absorb",
+      "involve",
+      "rob"
+    ],
+    "explain": "To plant trees = לנטוע עצים.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-260",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The ___ student in our class sleeps about seven hours a night.",
+    "options": [
+      "average",
+      "anxious",
+      "elderly",
+      "native"
+    ],
+    "explain": "The average student = the typical, ordinary one.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-261",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Don’t worry about the injection: it is quick and ___.",
+    "options": [
+      "painless",
+      "unreasonable",
+      "extreme",
+      "casual"
+    ],
+    "explain": "Painless = it doesn’t hurt.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-262",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The cake is made from a ___ of flour, eggs and sugar.",
+    "options": [
+      "mixture",
+      "capacity",
+      "costume",
+      "landscape"
+    ],
+    "explain": "A mixture = several things mixed together.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-263",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Cohen is a very ___ family name in Israel.",
+    "options": [
+      "common",
+      "certain",
+      "extreme",
+      "anxious"
+    ],
+    "explain": "Common = many people have it.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-264",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "She has a ___ of heights, so she never goes up to the roof.",
+    "options": [
+      "fear",
+      "laugh",
+      "debt",
+      "claim"
+    ],
+    "explain": "A fear of heights = פחד גבהים.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-265",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "We asked a computer ___ to find out why the system had crashed.",
+    "options": [
+      "expert",
+      "ancestor",
+      "native",
+      "costume"
+    ],
+    "explain": "An expert knows a lot about one subject.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-266",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Are you ___ that you locked the door?",
+    "options": [
+      "certain",
+      "common",
+      "casual",
+      "native"
+    ],
+    "explain": "Certain = completely sure.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-267",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The school trip will ___ a lot of walking, so wear good shoes.",
+    "options": [
+      "involve",
+      "improve",
+      "absorb",
+      "request"
+    ],
+    "explain": "To involve = to include as a necessary part.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-268",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "From the top of the mountain we looked out at the beautiful desert ___.",
+    "options": [
+      "landscape",
+      "mixture",
+      "justice",
+      "guidance"
+    ],
+    "explain": "A landscape = everything you see across the land.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-269",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The victim’s family is still waiting for ___.",
+    "options": [
+      "justice",
+      "guidance",
+      "capacity",
+      "treatment"
+    ],
+    "explain": "Justice = צדק: fair treatment by the law.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-270",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "New students get ___ from older students during their first week.",
+    "options": [
+      "guidance",
+      "justice",
+      "debt",
+      "fear"
+    ],
+    "explain": "Guidance = help and advice.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-271",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Hebrew is her ___ language; she learned English at school.",
+    "options": [
+      "native",
+      "casual",
+      "common",
+      "average"
+    ],
+    "explain": "Your native language is the first one you learned: שפת אם.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-272",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "The young man gave his seat on the bus to an ___ woman.",
+    "options": [
+      "elderly",
+      "anxious",
+      "average",
+      "extreme"
+    ],
+    "explain": "Elderly = old, said politely.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-273",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "Athletes should not train outside in ___ heat.",
+    "options": [
+      "extreme",
+      "casual",
+      "painless",
+      "native"
+    ],
+    "explain": "Extreme heat = very great heat.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-274",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "He is ___ with math this year, so he asked for extra lessons.",
+    "options": [
+      "struggling",
+      "participating",
+      "improving",
+      "laughing"
+    ],
+    "explain": "To struggle with something = to find it very hard.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-275",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "___, the rain will stop before the game starts.",
+    "options": [
+      "Hopefully",
+      "Barely",
+      "Consequently",
+      "Particularly"
+    ],
+    "explain": "Hopefully = I hope that.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-276",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "This is a ___ dangerous road, so drive slowly.",
+    "options": [
+      "potentially",
+      "hopefully",
+      "barely",
+      "consequently"
+    ],
+    "explain": "Potentially dangerous = it could be dangerous.",
+    "ltr": true
+  },
+  {
+    "id": "g10-eng-277",
+    "topic": "Vocabulary: Test 2",
+    "level": 2,
+    "q": "I love all fruit, but I ___ like mangoes.",
+    "options": [
+      "particularly",
+      "barely",
+      "potentially",
+      "consequently"
+    ],
+    "explain": "Particularly = especially.",
+    "ltr": true
   }
 ]

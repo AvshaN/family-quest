@@ -25,7 +25,9 @@ No accounts, no server, no cost.
 | Test mode | She adds a test (or it is entered from her notebook); for a week before it three of her five come from that subject. Dad's screen and the evening email list every upcoming exam. |
 | The board | Points for days played, right answers, perfect days and full weeks (5 of 7 days); from December 2026 a right answer is worth as much as showing up. Resets on the 1st; the winner gets a token. |
 | The vault | Tokens: one is worth 100 ₪, or save 5 or 10 for bigger prizes. |
-| Her own look | Each girl picks her colours ("aura") and her photo or drawing. Each has her own result screen: a generative art piece, a gymnastics score (D + E), or a live set. |
+| Exam weeks | When an exam's material is known, its week's questions and practice come from it first, with more practice rounds allowed. |
+| Formula sheet | Math questions for the eldest have the formula sheet her class gets in tests, one tap away. |
+| Her own look | Each girl picks her colours ("aura") and her photo or drawing, and her sisters see both on the board. Each has her own result screen: a generative art piece, a gymnastics score (D + E), or a live set. |
 | Motion | Her colours are a living background that brightens with a streak of right answers, greys at a miss and turns gold on a perfect day. Her result piece moves: the artwork assembles, the gymnast's apparatus of the day performs, the stage plays. The map has a sky of stars, one per topic, and a new token arrives with a ceremony. |
 | Monthly recap | Her last month, as a story. |
 | Dad's test profile | From his Settings tab: a profile like the girls', on his phone only, to try right and wrong answers, practice and every screen. Nothing of it reaches the Sheet or the girls' board. |
