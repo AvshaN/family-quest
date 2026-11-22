@@ -1351,7 +1351,7 @@ function parentToday() {
     const k = [...a].filter(x => b.has(x)).length;
     return `${joinHe(g.map(p => esc(p.name)))} קיבלו היום ${k ? `${k} שאלות משותפות` : "שאלות שונות לגמרי"}.`;
   }).join(" ");
-  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Today</span><span class="small muted">${n === ts.length ? "כולן שיחקו" : `${n} מתוך ${ts.length} שיחקו${missing.length ? ` · חסרה: ${joinHe(missing)}` : ""}`}</span></div>
+  return `${scriptCard(true)}<section class="glass pad stack"><div class="row"><span class="eyebrow">Today</span><span class="small muted">${n === ts.length ? "כולן שיחקו" : `${n} מתוך ${ts.length} שיחקו${missing.length ? ` · חסרה: ${joinHe(missing)}` : ""}`}</span></div>
     ${table(["", "ציון", "נקמה", "נקודות", "השבוע", "שעה"], rowsHTML)}</section>
   ${examsCard()}
   ${canFlag() ? flagsCard() : ""}
@@ -1448,6 +1448,22 @@ function parentLife() {
   <section class="glass pad stack"><span class="eyebrow">Tokens</span>${table(["", "חודשים שניצחה", "קיבלה", "פדתה", "בכספת"], toks)}</section>
   <section class="glass pad stack"><span class="eyebrow">Token history</span><div class="log">${log || `<p class="small muted">עוד אין אסימונים.</p>`}</div></section>`;
 }
+/* Is the script in the Sheet the one this app was written for? The app is live the minute it is pushed, the script
+ * only when Avsha pastes it, and nothing told him (or Claude: the Sheet shows no trace until a girl plays) whether a
+ * paste had taken. SCRIPT_API is the `API` of backend/Code.gs: raise both together, and say here what an older
+ * script leaves out. */
+const SCRIPT_API = 5;
+const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש" };
+function scriptCard(brief) {
+  if (!LIVE) return "";
+  const have = FAM.api | 0;
+  if (have >= SCRIPT_API) return brief ? "" : `<section class="glass pad stack"><div class="row"><span class="eyebrow">Script</span><span class="chip good">מעודכן</span></div>
+    <p class="small muted">הסקריפט בגיליון הוא הגרסה שהאפליקציה צריכה (<bdi dir="ltr">${have}</bdi>).</p></section>`;
+  const missing = Object.keys(SCRIPT_ADDS).filter(k => +k > have).map(k => SCRIPT_ADDS[k]);
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Script</span><span class="chip warn">צריך עדכון</span></div>
+    <p class="small">הסקריפט בגיליון הוא גרסה <bdi dir="ltr">${have || 1}</bdi>, והאפליקציה צריכה <bdi dir="ltr">${SCRIPT_API}</bdi>. עד שמדביקים את החדש ומפרסמים ״גרסה חדשה״, לא פועלים: ${missing.join("; ")}.</p>
+    <p class="small faint">אם כבר הדבקת: סגור ופתח את האפליקציה. אם זה עדיין כאן, בפרסום נבחרה הגרסה הישנה ולא ״New version״.</p></section>`;
+}
 function parentSettings() {
   const s = FAM.settings;
   return `<section class="glass pad stack"><span class="eyebrow">Prizes</span>
@@ -1457,6 +1473,7 @@ function parentSettings() {
     <button type="button" class="btn btn-primary" data-act="savePrizes">שמירה</button></section>
   <section class="glass pad stack"><span class="eyebrow">Give a token</span><p class="small muted">מעבר לאסימון של אלופת החודש. היא תראה אותו בכספת.</p>
     <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="grant" data-id="${p.id}">${dot(p)} +1 ל${esc(p.name)}</button>`).join("")}</div></section>
+  ${scriptCard()}
   ${canGift() ? bonusCard() : ""}
   <section class="glass pad stack"><span class="eyebrow">Test profile</span>
     <p class="small muted">פרופיל ניסיון, כמו של הבנות, שקיים רק בטלפון הזה: אפשר לענות נכון ולא נכון, לתרגל ולראות כל מסך. שום דבר ממנו לא נשלח לגיליון, לא נספר בטבלה של הבנות ולא מגיע למייל. בוחרים של מי השאלות:</p>

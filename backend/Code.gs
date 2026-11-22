@@ -45,6 +45,7 @@ var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, week: 1
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
 var API = 5;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end
+// (the parent's Settings tab compares this with SCRIPT_API in app.js and says when the script here is behind: raise both together)
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
 var WEEK_DAYS = 5;

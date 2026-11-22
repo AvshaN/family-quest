@@ -34,6 +34,12 @@ tests with the girls and gives feedback; Claude writes the code.
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
   only when `api` is 2. Test a build against the old script too.
+  Dad's Settings tab says whether the script in the Sheet is current
+  (`scriptCard`: `SCRIPT_API` in app.js against the `api` it got), and his
+  Today tab warns when it is behind: raise `SCRIPT_API` with `API`, and add a
+  line to `SCRIPT_ADDS`. The Sheet shows no trace of a paste until a girl
+  plays, and the web app tells nothing without the family code, so this card
+  is how to know; ask him what it says.
 - **Scoring lives in two places** and must stay identical: `stats()` in
   `app.js` and `scoreMonth_()` in `Code.gs` (`POINTS_BY` in both, by month:
   to change a rule, add a line with the month it starts; never edit a past
