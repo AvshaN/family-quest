@@ -29,7 +29,8 @@ tests with the girls and gives feedback; Claude writes the code.
   Answers, Tokens, Tests. API: GET `state | photos`, POST `submit | profile |
   test | untest | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
   `monthlyClose`. `state` sends `api` (2 since 2026-11-14, 3 since
-  2026-11-22: photos, 4 the same day: "not learned yet" marks): the app is live
+  2026-11-22: photos, 4 the same day: "not learned yet" marks, 5: the gift at
+  a month's end): the app is live
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
   only when `api` is 2. Test a build against the old script too.
@@ -212,6 +213,19 @@ tests with the girls and gives feedback; Claude writes the code.
   only while he is in it, the right answer is written under each question,
   and "reset" lets him play the day again. A new write to the Sheet needs
   the same `!SANDBOX` guard; `walk`-style tests should count POSTs.
+- **The month's winner, and Dad's gift** (`monthCheck`, `openPops`,
+  `renderPop`; Avsha, 2026-11-22). In a month's first week, the first time
+  each girl opens the app (and Dad unlocks his screen), a popup names last
+  month's winner: her photo under a crown, her points, in her colours and
+  with her kind of result piece. The winner taps "+1 token" and the coin
+  comes in. Dad can schedule a gift on his Settings tab (`bonusCard`): a
+  token on the 1st for each girl he ticks who played enough days in the
+  month's last full week, with a line of his own; the script grants it
+  (`bonusTokens_`, reason "dedication YYYY-MM", setting `bonus` as
+  "month|ids|days|week") and her popup follows the winner's. The first was
+  for November 2026, for their dedication. A token taken in a popup gets no
+  second ceremony (`claimTok`, `L.preTok`). A preview button shows him both.
+  An app left open overnight reloads when she returns to it on a new day.
 - **Ties share a place** (`placeOf` / `placeOf_`): equal points, accuracy
   and days. A tie for first on the 1st gives each girl in it a token.
 - **Banks:** `data/bank/<pool>.json`, format in `data/README.md`;

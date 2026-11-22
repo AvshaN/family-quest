@@ -44,7 +44,7 @@ var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, week: 1
                  ["", { day: 10, right: 4, perfect: 0, revenge: 8, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 4;   // 3: photos; 4: "not learned yet" marks
+var API = 5;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
 var WEEK_DAYS = 5;
@@ -148,7 +148,7 @@ function state_() {
     settings: {
       goal: Number(setting_("goal")) || 250, goalReward: setting_("goal_reward"), prize5: setting_("prize_5"),
       prize10: setting_("prize_10"), tokenValue: Number(setting_("token_value")) || 100,
-      improvedReward: setting_("improved_reward"), digestHour: Number(setting_("digest_hour")) || 21
+      improvedReward: setting_("improved_reward"), digestHour: Number(setting_("digest_hour")) || 21, bonus: bonus_()
     },
     tokens: tokens_(),
     lifetime: lifetimeAll_(),
@@ -303,7 +303,42 @@ function saveSettings_(b) {
   if (b.prize5 !== undefined) setSetting_("prize_5", String(b.prize5).slice(0, 80));
   if (b.prize10 !== undefined) setSetting_("prize_10", String(b.prize10).slice(0, 80));
   if (b.goalReward !== undefined) setSetting_("goal_reward", String(b.goalReward).slice(0, 80));
+  if (b.bonus !== undefined) {
+    if (String(b.bonus) && !BONUS_OK.test(String(b.bonus))) throw new Error("bad bonus");
+    setSetting_("bonus", String(b.bonus));
+  }
+  if (b.bonusNote !== undefined) setSetting_("bonus_note", String(b.bonusNote).slice(0, 160));
   return { ok: true };
+}
+
+/* ---------- the parent's gift at a month's end (bonusCard in app.js) ----------
+ * One setting, "month|who|days|week" ("2026-11|a,b,c|5|2026-11-22"): at the close of that month, each girl listed
+ * who played at least that many days in the week that starts on that date gets a token (days 0: whoever is listed).
+ * Kept as one text with bars so that the Sheet does not read its parts as dates. bonus_note is the parent's line. */
+var BONUS_OK = /^(\d{4}-\d{2})\|([A-Za-z0-9,]*)\|(\d)\|(\d{4}-\d{2}-\d{2})$/;
+function bonus_() {
+  var m = BONUS_OK.exec(String(setting_("bonus") || ""));
+  if (!m) return null;
+  return { month: m[1], ids: m[2] ? m[2].split(",") : [], days: Number(m[3]), week: m[4], note: String(setting_("bonus_note") || "") };
+}
+function daysInWeek_(rows, pid, week) {
+  var n = {}, k = 0;
+  rows.forEach(function (r) { if (r.p === pid && !r.r) n[r.d] = (n[r.d] || 0) + 1; });
+  for (var i = 0; i < 7; i++) if (n[addDays_(week, i)] >= 5) k++;
+  return k;
+}
+/* Grants the gift for the month just closed, once each ("dedication 2026-11"); returns who got it now. */
+function bonusTokens_(key) {
+  var b = bonus_(), out = [];
+  if (!b || b.month !== key) return out;
+  var rows = answers_(), toks = tokenRows_(), profs = profiles_(), reason = "dedication " + key;
+  b.ids.forEach(function (id) {
+    if (!profs.some(function (p) { return p.id === id; })) return;
+    if (toks.some(function (t) { return t.p === id && t.reason === reason; })) return;
+    if (b.days > 0 && daysInWeek_(rows, id, b.week) < b.days) return;
+    addToken_(id, 1, reason); out.push(id);
+  });
+  return out;
 }
 
 /* ---------- timers ---------- */
@@ -323,6 +358,7 @@ function monthlyClose() {
   if (today.slice(8) !== "01") return;
   var y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
   var pm = m === 1 ? [y - 1, 12] : [y, m - 1], key = pm[0] + "-" + pad_(pm[1]);
+  var gifted = bonusTokens_(key);   // the parent's gift, whether or not the month had a winner
   var reason = "winner " + key;
   var done = sheet_("Tokens").getDataRange().getValues().some(function (row) { return String(row[3]) === reason; });
   if (done) return;
@@ -339,7 +375,9 @@ function monthlyClose() {
   var impHtml = imp ? "<p style='margin:0;font-size:14px'>השתפרה הכי הרבה: " + who_(r.girls.filter(function (g) { return g.id === imp.id; })[0]) +
     " <span dir='ltr'>(+" + imp.gain + "%</span> דיוק). " + esc_(setting_("improved_reward")) + ".</p>" : "";
   mail_(appName_() + " · " + month + ": " + names.join(" ו") + (names.length > 1 ? " אלופות החודש" : " אלופת החודש"),
-    shell_(headline, sub, [monthSection_(r, "הטבלה הסופית · " + month), impHtml ? section_("Most improved", "", impHtml) : "", examsSection_(r), lifetimeSection_(r)], footer_(r)));
+    shell_(headline, sub, [monthSection_(r, "הטבלה הסופית · " + month), impHtml ? section_("Most improved", "", impHtml) : "",
+      gifted.length ? section_("A gift", "", "<p style='margin:0;font-size:14px'>אסימון על ההתמדה, כפי שתזמנת: " + joinHe_(gifted.map(function (id) { return nm_(name_(profs, id)); })) + ".</p>") : "",
+      examsSection_(r), lifetimeSection_(r)], footer_(r)));
 }
 
 /* ---------- what the emails and the parent screen show ---------- */

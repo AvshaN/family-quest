@@ -493,3 +493,40 @@ button.chip{min-height:44px;padding:4px 14px}
 .flag[aria-pressed="true"]{color:var(--gold)}
 .flagmk{background:rgba(242,197,107,.16);color:var(--gold)}
 .flagmk svg{width:13px;height:13px}
+
+/* ---- the month's winner and Dad's gift (renderPop in app.js): two more ceremonies, each with a coin to tap for ---- */
+.av.xl{--s:116px}
+.ceremony.winpop,.ceremony.giftpop{gap:10px}
+.ceremony.winpop>*,.ceremony.giftpop>*{animation:rise .55s var(--ease) backwards}
+.ceremony.winpop>:nth-child(n+3),.ceremony.giftpop>:nth-child(n+3){animation-delay:.18s}
+.ceremony.winpop>:nth-child(n+5),.ceremony.giftpop>:nth-child(n+5){animation-delay:.36s}
+.ceremony.winpop>:nth-child(n+7){animation-delay:.6s}
+.ceremony.winpop .btn,.ceremony.giftpop .btn{animation:rise .5s var(--ease) .1s backwards;margin-top:0;min-width:210px}
+.winavs{display:flex;gap:20px;justify-content:center}
+.crowned{position:relative;display:inline-flex;padding-top:30px}
+.crowned>svg{position:absolute;top:0;left:50%;width:38px;height:38px;margin-left:-19px;color:var(--gold);filter:drop-shadow(0 0 10px rgba(242,197,107,.75));animation:crown .9s var(--ease) .55s backwards}
+@keyframes crown{from{transform:translateY(-34px) rotate(-22deg);opacity:0}}
+.winpop .av.xl{box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--gold),0 0 60px -4px var(--a1)}
+.ceremony.winpop .display{font-size:54px}
+.winscore{display:flex;flex-direction:column;align-items:center;gap:4px}
+.winscore b{font-size:76px;line-height:1}
+.themebox{width:100%;max-width:380px}
+.themebox canvas{border-radius:16px}
+.themebox .piece{padding:0}
+.themebox .piece canvas{aspect-ratio:640/300}
+.themebox .appar{height:112px}
+.themebox .stagecv{height:124px}
+.coining .themebox{display:none}
+.coinslot{position:relative;display:grid;place-items:center;width:100%}
+.coinslot:empty{display:none}
+.coinslot .rays{top:50%}
+.coinslot .coin3d{margin:10px 0 16px}
+.popact{display:flex;flex-direction:column;align-items:center;gap:10px;min-height:56px;width:100%}
+.ceremony .btn.btn-gold{background:linear-gradient(135deg,#FFF1C4,#F2C56B 45%,#C9963A);color:#3d2a08;font-size:19px;box-shadow:0 12px 40px -8px rgba(242,197,107,.8);
+  animation:rise .5s var(--ease) .7s backwards,goldpulse 1.5s ease-in-out 1.4s infinite}
+@keyframes goldpulse{50%{transform:scale(1.06);box-shadow:0 12px 56px -4px rgba(242,197,107,1)}}
+.goldline{color:var(--gold);font-weight:600}
+.ceremony.giftpop .display{font-size:50px}
+.giftnote{font-size:20px;line-height:1.5;max-width:28ch}
+@media (max-height:700px){.themebox{display:none}.av.xl{--s:92px}.winscore b{font-size:60px}}
+.seg-pick button{min-width:44px}

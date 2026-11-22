@@ -804,7 +804,7 @@ function paintArt(root) {
   $$("canvas.appar", root).forEach(liveAppar);
   $$("canvas.stagecv", root).forEach(liveStage);
   $$("canvas.sky", root).forEach(liveSky);
-  $$("[data-count]", root).forEach((el, i) => countUp(el, +el.dataset.count, 2, 500 + i * 450));
+  $$("[data-count]", root).forEach((el, i) => countUp(el, +el.dataset.count, el.dataset.dec == null ? 2 : +el.dataset.dec, 500 + i * 450));
 }
 function countUp(el, to, dec, delay) {
   if (REDUCED) { el.textContent = to.toFixed(dec); return; }
@@ -967,7 +967,12 @@ function tokenCheck() {
   const p = me();
   if (!p || view !== "home" || layer.innerHTML) return;
   L.seenTok = L.seenTok || {};
-  const n = +FAM.tokens[p.id] || 0, was = L.seenTok[p.id];
+  const n = +FAM.tokens[p.id] || 0;
+  let was = L.seenTok[p.id];
+  if (was != null && n > was && L.preTok && L.preTok[p.id]) {   // taken in a month's popup before the Sheet granted it
+    const k = Math.min(n - was, L.preTok[p.id]);
+    L.preTok[p.id] -= k; was += k; L.seenTok[p.id] = was; save();
+  }
   if (was === n) return;
   L.seenTok[p.id] = n; save();
   if (was == null || n < was) return;
@@ -1427,6 +1432,7 @@ function reasonHe(t) {
   const w = /^winner (\d{4})-(\d{2})/.exec(t.reason);
   if (w) return `אלופת ${MONTHS[+w[2] - 1]}`;
   if (/^gift/.test(t.reason)) return "מתנה מאבא";
+  if (/^dedication /.test(t.reason)) return "מתנה מאבא על ההתמדה";
   if (/^weeks /.test(t.reason)) return `${PATH.every} שבועות מלאים`;
   if (/^redeemed/.test(t.reason)) return `פדתה ב־${(/\d+/.exec(t.reason) || [FAM.settings.tokenValue || 100])[0]} ₪`;
   return esc(t.reason);
@@ -1451,6 +1457,7 @@ function parentSettings() {
     <button type="button" class="btn btn-primary" data-act="savePrizes">שמירה</button></section>
   <section class="glass pad stack"><span class="eyebrow">Give a token</span><p class="small muted">מעבר לאסימון של אלופת החודש. היא תראה אותו בכספת.</p>
     <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="grant" data-id="${p.id}">${dot(p)} +1 ל${esc(p.name)}</button>`).join("")}</div></section>
+  ${canGift() ? bonusCard() : ""}
   <section class="glass pad stack"><span class="eyebrow">Test profile</span>
     <p class="small muted">פרופיל ניסיון, כמו של הבנות, שקיים רק בטלפון הזה: אפשר לענות נכון ולא נכון, לתרגל ולראות כל מסך. שום דבר ממנו לא נשלח לגיליון, לא נספר בטבלה של הבנות ולא מגיע למייל. בוחרים של מי השאלות:</p>
     <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="sandbox" data-id="${p.id}">${dot(p)} כמו ${esc(p.name)}</button>`).join("")}</div></section>
@@ -1481,6 +1488,136 @@ function renderError() {
   return `<div class="onb"><span class="wordmark" dir="ltr">Aura</span><p class="muted">אין חיבור לגיליון של המשפחה כרגע. בדקי אינטרנט ונסי שוב.</p>
     <button type="button" class="btn btn-primary wide" data-act="retry">לנסות שוב</button>
     <button type="button" class="link" style="align-self:center" data-act="resetCode">להקליד קוד אחר</button></div>`;
+}
+
+/* ---------- the month's winner, and Dad's gift (Avsha, 2026-11-22) ----------
+ * In a month's first week, the first time the app is opened (by each girl, and by Dad once his screen is unlocked),
+ * a popup names last month's winner: her photo under a crown, her points, in her colours and with her own kind of
+ * result piece (the artwork, the ribbon, the stage). The winner herself gets a "+1 token" to tap, and the coin
+ * comes in. Her own recap follows from its last button.
+ * Dad's gift: on his Settings tab he can promise each girl a token at the month's end, for those who played enough
+ * days in the month's last full week, with a line of his own. The script grants it on the 1st (bonusTokens_), and
+ * her popup comes after the winner's, with its own "+1 token". The first is for November 2026: "I appreciate their
+ * dedication so far" (the winner has two).
+ * The tokens are in the Sheet whatever she taps: the tap is the moment, and it stands in for the ceremony that a
+ * new token would otherwise get (claimTok, tokenCheck). */
+const BONUS_NOTE = "אני מעריך מאוד את ההתמדה שלכן החודש. לכל אחת מגיע אסימון.";
+const lastFullWeek = (y, m) => { let d = `${monthKey(y, m)}-${pad2(daysIn(y, m))}`; while (parseYmd(d).getDay() !== 6) d = addDays(d, -1); return addDays(d, -6); };
+const daysInWeekOf = (pid, w) => { const pl = playedDays(pid); let n = 0; for (let i = 0; i < 7; i++) if (pl.has(addDays(w, i))) n++; return n; };
+const bonusOf = () => { const b = FAM && FAM.settings && FAM.settings.bonus; return b && b.month ? b : null; };
+const canGift = () => !LIVE || (FAM.api | 0) >= 5;
+function giftFor(p, mk) {
+  const b = bonusOf();
+  return p && b && b.month === mk && b.ids.includes(p.id) && (!(b.days > 0) || daysInWeekOf(p.id, b.week) >= b.days) ? b : null;
+}
+let POP = null;
+function monthCheck(viewer) {
+  if (SANDBOX || D > 7 || !FAM || !FAM.profiles.length) return false;
+  const who = viewer ? viewer.id : "dad", [py, pm] = prevMonth(Y, M);
+  L.seenWin = L.seenWin || {};
+  if (L.seenWin[who] === THIS_MONTH || !openPops(py, pm, viewer, false)) return false;
+  L.seenWin[who] = THIS_MONTH; save();
+  return true;
+}
+function openPops(y, m, viewer, preview, note) {
+  const rk = ranking(y, m), win = rk.filter(r => r.points > 0 && placeOf(rk, r.id) === 1 && profile(r.id));
+  if (!win.length) return false;
+  const gift = preview ? { note } : giftFor(viewer, monthKey(y, m));
+  if (viewer && !preview) { L.seenTok = L.seenTok || {}; if (L.seenTok[viewer.id] == null) L.seenTok[viewer.id] = +FAM.tokens[viewer.id] || 0; }
+  POP = { y, m, viewer, preview, win, steps: ["win"].concat(gift && viewer ? ["gift"] : []), i: 0, note: (gift && gift.note) || BONUS_NOTE, back: view };
+  renderPop();
+  return true;
+}
+function popButtons() {
+  const P = POP, last = P.i === P.steps.length - 1;
+  if (!last) return `<button type="button" class="btn btn-primary" data-act="popNext">המשך</button>`;
+  const recap = P.viewer && !P.preview && stats(P.viewer.id, P.y, P.m).played > 0;
+  return `${recap ? `<button type="button" class="btn btn-primary" data-act="popRecap">לסיכום החודש שלי</button>` : ""}
+    <button type="button" class="btn ${recap ? "btn-ghost" : "btn-primary"}" data-act="popNext">סגירה</button>`;
+}
+function renderPop() {
+  const P = POP, kind = P.steps[P.i], v = P.viewer, month = MONTHS[P.m - 1];
+  const tokenBtn = `<button type="button" class="btn btn-gold" data-act="popToken">${ICON.star.replace("<svg", '<svg fill="currentColor" width="18" height="18"')}<bdi dir="ltr">+1</bdi> אסימון</button>`;
+  const tag = P.preview ? `<span class="chip warn">תצוגה מקדימה</span>` : "";
+  if (kind === "win") {
+    const top = P.win[0], first = profile(top.id), many = P.win.length > 1, mine = !!v && P.win.some(r => r.id === v.id);
+    applyAura(auraOf(first)); auraMood({ calm: 0.15, energy: 1, gold: 0.5 });
+    const theme = first.flavor === "stage" ? `<canvas class="stagecv" data-lit="26" data-tier="3" aria-hidden="true"></canvas>`
+      : first.flavor === "routine" ? `<canvas class="appar" data-appar="4" data-e="10" data-gold="1" aria-hidden="true"></canvas>`
+      : `<div class="piece"><canvas width="640" height="300" data-art="champion|${first.id}|${monthKey(P.y, P.m)}~${auraOf(first)}~5" aria-hidden="true"></canvas></div>`;
+    layer.innerHTML = `<div class="ceremony winpop" role="dialog" aria-modal="true" aria-label="אלופת החודש">${tag}
+      <span class="eyebrow" style="color:var(--gold)">${many ? "Champions" : "Champion"} · ${month}</span>
+      <div class="winavs">${P.win.map(r => `<span class="crowned">${ICON.crown}${avatar(profile(r.id), "xl ring")}</span>`).join("")}</div>
+      <h2 class="display">${joinHe(P.win.map(r => esc(profile(r.id).name)))}</h2>
+      <p class="muted">${mine && !many ? `${month} היה שלך. את האלופה.` : many ? `האלופות של ${month}` : `האלופה של ${month}`}</p>
+      <div class="winscore"><b class="display grad-text num" data-count="${top.points}" data-dec="0" dir="ltr">${top.points}</b>
+        <span class="small muted">נקודות · ${top.played} ימים · <bdi dir="ltr">${top.acc}%</bdi> דיוק</span></div>
+      <div class="themebox">${theme}</div>
+      <div class="coinslot" id="popcoin"></div>
+      <div class="popact" id="popact">${mine ? tokenBtn : popButtons()}</div></div>`;
+    const a = AURAS[auraOf(first)].c;
+    setTimeout(() => { if (POP === P) sparks(innerWidth / 2, innerHeight * 0.26, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], 150, 9); }, 350);
+    SFX.done(); buzz([20, 60, 20]);
+  } else {
+    applyAura(auraOf(v)); auraMood({ calm: 0.2, energy: 0.7, gold: 0.3 });
+    layer.innerHTML = `<div class="ceremony giftpop" role="dialog" aria-modal="true" aria-label="מתנה מאבא">${tag}
+      <span class="eyebrow" style="color:var(--gold)">From Dad</span>
+      <h2 class="display">תודה על ההתמדה</h2>
+      <p class="giftnote">${esc(P.note)}</p>
+      <p class="small muted">${stats(v.id, P.y, P.m).played} ימים עם משימה ב${month}</p>
+      <div class="coinslot" id="popcoin"></div>
+      <div class="popact" id="popact">${tokenBtn}</div></div>`;
+    SFX.good();
+  }
+  paintArt(layer);
+}
+/* The tap on "+1 token": the coin spins in under the rays, and the way on appears when it has landed. */
+function popToken() {
+  const P = POP, box = $(".ceremony", layer), slot = $("#popcoin", layer), act = $("#popact", layer);
+  if (!P || !box || box.classList.contains("coining")) return;
+  const kind = P.steps[P.i];
+  box.classList.add("coining");
+  slot.innerHTML = `<div class="rays" aria-hidden="true"></div><div class="coin3d" aria-hidden="true"><div class="face">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</div><div class="face back"><span class="num">${+FAM.settings.tokenValue || 100}</span></div></div>`;
+  act.innerHTML = "";
+  auraMood({ energy: 1, gold: 1.4 }); SFX.coin(); buzz([30, 50, 30, 50, 60]);
+  if (!P.preview) claimTok(P.viewer.id, (kind === "win" ? "winner " : "dedication ") + monthKey(P.y, P.m));
+  setTimeout(() => {
+    if (POP !== P || !slot.isConnected) return;
+    const r = slot.getBoundingClientRect();
+    sparks(r.left + r.width / 2, r.top + r.height / 2, ["#F2C56B", "#FFE9B0", "#ffffff"], 170, 9); SFX.done();
+    act.innerHTML = `<p class="goldline">${kind === "win" ? "אסימון האלופה, בכספת שלך" : "עוד אסימון, בכספת שלך"}</p>${popButtons()}`;
+  }, 1200);
+}
+/* She took this token in a popup: it gets no second ceremony, now or when the Sheet's grant reaches the phone. */
+function claimTok(pid, reason) {
+  L.seenTok = L.seenTok || {}; L.preTok = L.preTok || {};
+  const n = +FAM.tokens[pid] || 0, was = L.seenTok[pid];
+  if (!tokenLog().some(t => t.p === pid && t.reason === reason)) L.preTok[pid] = (L.preTok[pid] || 0) + 1;
+  else if (was != null && n > was) L.seenTok[pid] = was + 1;
+  save();
+}
+function closePops(then) {
+  const P = POP;
+  POP = null; layer.innerHTML = "";
+  if (P.preview || !P.viewer) { applyAura("chrome"); show("parent"); return; }
+  applyAura(auraOf(P.viewer)); show("home");
+  if (then === "recap") openRecap(P.viewer.id);
+}
+/* Dad's card for the gift: who, how many days of the month's last full week it takes, and his line. */
+function bonusCard() {
+  const b = bonusOf(), on = !!b && b.month === THIS_MONTH, week = lastFullWeek(Y, M), end = addDays(week, 6), days = on ? b.days : 5;
+  const ids = on ? b.ids : FAM.profiles.map(p => p.id), [ny, nm] = M === 12 ? [Y + 1, 1] : [Y, M + 1];
+  const span = `${+week.slice(8)}.${+week.slice(5, 7)} עד ${+end.slice(8)}.${+end.slice(5, 7)}`;
+  const due = on ? b.ids.map(profile).filter(Boolean).filter(p => !(b.days > 0) || daysInWeekOf(p.id, b.week) >= b.days) : [];
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">A gift at month's end</span>${on ? `<span class="chip good">מתוזמן</span>` : `<span class="chip">כבוי</span>`}</div>
+    <p class="small muted">ב־1 ב${MONTHS[nm - 1]}, אחרי החלון של אלופת החודש, כל מי שמסומנת כאן ועמדה בתנאי מקבלת אסימון, עם המילים שלך וכפתור ״+1 אסימון״.</p>
+    <div class="field"><label>מי</label><div class="seg-pick" id="bids">${FAM.profiles.map(p => `<button type="button" data-act="pickBonus" data-id="${p.id}" aria-pressed="${ids.includes(p.id)}">${esc(p.name)} <span class="small" dir="ltr">${daysInWeekOf(p.id, week)}/7</span></button>`).join("")}</div>
+      <span class="small faint">ליד כל שם: כמה ימים שיחקה בשבוע של ${span}.</span></div>
+    <div class="field"><label>כמה ימים מהשבוע הזה צריך בשביל המתנה</label><div class="seg-pick" id="bdays">${[0, 3, 4, 5, 6, 7].map(k => `<button type="button" data-act="pickDays" data-k="${k}" aria-pressed="${k === days}">${k || "בלי תנאי"}</button>`).join("")}</div></div>
+    <div class="field"><label for="bnote">המילים שלך</label><input id="bnote" maxlength="160" value="${esc(on && b.note ? b.note : BONUS_NOTE)}"></div>
+    <div class="row" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-act="saveBonus">${on ? "עדכון" : "לתזמן"}</button>
+      <button type="button" class="btn btn-ghost" data-act="popPreview">תצוגה מקדימה</button>${on ? `<button type="button" class="link" data-act="cancelBonus">לבטל את המתנה</button>` : ""}</div>
+    ${on ? `<p class="small faint">${due.length ? `לפי הימים עד עכשיו, יקבלו: ${joinHe(due.map(p => esc(p.name)))}.` : "לפי הימים עד עכשיו, אף אחת עוד לא עמדה בתנאי."} אפשר לשנות עד סוף החודש.</p>` : ""}</section>`;
 }
 
 /* ---------- the formula sheet (the eldest, 2026-11-22) ----------
@@ -1941,7 +2078,7 @@ document.addEventListener("click", async e => {
         let good = false;
         if (LIVE) { try { await api("pin", { pin }); good = true; } catch (err) { good = false; } }
         else good = pin === String(FAM.settings.parentPin || "1234");
-        if (good) { parentOK = true; parentPin = pin; pin = ""; keepUnlock(); show("parent"); return; }
+        if (good) { parentOK = true; parentPin = pin; pin = ""; keepUnlock(); show("parent"); monthCheck(null); return; }
         pin = ""; show("parent"); $("#pinDots").classList.add("err"); buzz(80); return;
       }
       show("parent"); break;
@@ -1956,6 +2093,23 @@ document.addEventListener("click", async e => {
       else { FAM.tokens[id] = (+FAM.tokens[id] || 0) + 1; L.demoTokens = FAM.tokens; L.demoLog = (L.demoLog || []).concat({ d: TODAY, p: id, change: 1, reason: "gift from parent" }); save(); }
       SFX.coin(); show("parent"); toast("ניתן"); break;
     }
+    case "pickBonus": b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); break;
+    case "pickDays": $$("#bdays button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
+    case "saveBonus": case "cancelBonus": {
+      const ids = act === "cancelBonus" ? [] : $$("#bids [aria-pressed=true]").map(x => x.dataset.id), days = +(($("#bdays [aria-pressed=true]") || {}).dataset || {}).k || 0;
+      const note = $("#bnote").value.trim() || BONUS_NOTE, week = lastFullWeek(Y, M);
+      if (LIVE) { try { await api("settings", { pin: parentPin, bonus: ids.length ? `${THIS_MONTH}|${ids.join(",")}|${days}|${week}` : "", bonusNote: note }); await refresh(); } catch (err) { toast("לא נשמר. נסה שוב."); break; } }
+      else { L.demoSettings = Object.assign(L.demoSettings || {}, { bonus: ids.length ? { month: THIS_MONTH, ids, days, week, note } : null }); Object.assign(FAM.settings, L.demoSettings); save(); }
+      show("parent"); toast(ids.length ? "המתנה מתוזמנת ל־1 בחודש" : "המתנה בוטלה"); break;
+    }
+    case "popPreview": {
+      const rk = ranking(Y, M), lead = rk.find(r => r.points > 0);
+      if (!lead || !openPops(Y, M, profile(lead.id), true, ($("#bnote") || {}).value || BONUS_NOTE)) toast("עוד אין נקודות החודש");
+      break;
+    }
+    case "popToken": popToken(); break;
+    case "popNext": if (POP.i < POP.steps.length - 1) { POP.i++; renderPop(); } else closePops(); break;
+    case "popRecap": closePops("recap"); break;
     case "savePrizes": {
       const v = { prize5: $("#p5").value.trim(), prize10: $("#p10").value.trim(), goalReward: $("#pg").value.trim() };
       if (LIVE) { try { await api("settings", Object.assign({ pin: parentPin }, v)); await refresh(); } catch (err) { toast("לא נשמר. נסה שוב."); break; } }
@@ -2032,6 +2186,7 @@ document.addEventListener("click", async e => {
 document.addEventListener("change", e => { if (e.target.id === "photoFile" && e.target.files[0]) readPhoto(e.target.files[0]); });
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; });
 window.addEventListener("online", () => { if (LIVE) flush(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && ymd(new Date()) !== TODAY && !$(".quiz", layer)) location.reload(); });
 
 /* ---------- start ---------- */
 function allPools() { return [...new Set(FAM.profiles.flatMap(p => trackPools(p.track)))]; }
@@ -2048,7 +2203,7 @@ async function boot() {
       if (L.cache) FAM = L.cache; else { show("error"); return; }
     }
     await loadBanks(allPools());
-    if (L.parent) { takeUnlock(); applyAura("chrome"); show("parent"); BOOTED = true; fetchPhotos(); return; }
+    if (L.parent) { takeUnlock(); applyAura("chrome"); show("parent"); BOOTED = true; fetchPhotos(); if (parentOK) monthCheck(null); return; }
     if (!me()) { show("who"); BOOTED = true; fetchPhotos(); return; }
   } else {
     FAM = demoFamily();
@@ -2060,7 +2215,8 @@ async function boot() {
   show("home");
   BOOTED = true;
   if (LIVE) sharePhoto().then(fetchPhotos);
-  if (LIVE && L.seenRecap !== THIS_MONTH && D <= 7) {
+  if (monthCheck(me())) { L.seenRecap = THIS_MONTH; save(); }   // her recap is the popup's last button
+  else if (LIVE && L.seenRecap !== THIS_MONTH && D <= 7) {
     const [py, pm] = prevMonth(Y, M);
     if (stats(me().id, py, pm).played) { L.seenRecap = THIS_MONTH; save(); openRecap(me().id); }
   }
