@@ -684,6 +684,84 @@ const LESSONS = {
   }
 };
 
+/* ---------- after an exam, and over time (2026-11-26) ----------
+ * The eldest did 35 extra questions in the two days before her English exam and none in the weeks without one: an
+ * exam is what makes practice worth doing, and nothing afterwards said what it gave. An exam that has passed asks
+ * for its grade on her home screen (hers to give or not; Dad can enter it too), and Dad's all-time tab sets each
+ * grade beside what she did in the exam's subject in the week before it, with every girl's weeks as a chart. The
+ * Sheet works these out from all its rows (state's `exams` and `trend`, api 6); the demo and Dad's test profile
+ * from the rows the phone holds. */
+const canGrade = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 6;
+const hasGrade = t => t.grade !== "" && t.grade != null;
+function pastExams() {
+  if (LIVE && !SANDBOX) return FAM.exams || [];
+  const all = rows();
+  return (SANDBOX ? L.sand.tests : L.tests).filter(t => t.date < TODAY).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0).map(t => {
+    const lo = addDays(t.date, -7), mine = all.filter(r => r.p === t.p && r.d >= lo && r.d < t.date && subjOf(r.pool) === t.subj);
+    return { p: t.p, date: t.date, subj: t.subj, note: t.note || "", grade: t.grade == null ? "" : t.grade, n: mine.length, ok: mine.filter(r => r.ok).length, extra: mine.filter(r => r.r >= 2).length };
+  });
+}
+/* Her exams of the last 30 days with no grade yet, unless she put the question off (for four days). */
+const GRADE = { days: 30, later: 4 };
+function gradeDue(p) {
+  if (!canGrade()) return [];
+  const later = L.gradeLater || {};
+  return pastExams().filter(t => t.p === p.id && !hasGrade(t) && daysBetween(t.date, TODAY) <= GRADE.days && !(later[luckId(t)] > TODAY));
+}
+function gradeSheet(pid, date, subj) {
+  const t = pastExams().find(x => x.p === pid && x.date === date && x.subj === subj), dad = view === "parent";
+  sheet(`<h3>הציון במבחן ב${esc(SUBJ[subj] || subj)}</h3><p class="small muted">${dateHe(date)}${dad ? ` · ${esc(profile(pid).name)}` : ""}. מספר בין 0 ל־100.${dad ? "" : " אבא יראה אותו, ליד מה שתרגלת לפני המבחן."}</p>
+    <div class="field"><label for="gval">ציון</label><input id="gval" type="number" inputmode="numeric" min="0" max="100" dir="ltr" value="${t && hasGrade(t) ? +t.grade : ""}"></div>
+    <button type="button" class="btn btn-primary wide" data-act="gradeSave" data-p="${esc(pid)}" data-date="${esc(date)}" data-subj="${esc(subj)}">שמירה</button>
+    ${t && hasGrade(t) ? `<button type="button" class="link" style="align-self:center" data-act="gradeSave" data-clear="1" data-p="${esc(pid)}" data-date="${esc(date)}" data-subj="${esc(subj)}">למחוק את הציון</button>` : ""}`);
+}
+/* Each girl's weeks, the oldest first: { w (its Sunday), n and ok (the daily questions), days, extra }. */
+function trendOf(pid) {
+  if (LIVE && !SANDBOX && FAM.trend) return FAM.trend[pid] || [];
+  const by = {};
+  rows().forEach(r => {
+    if (r.p !== pid) return;
+    const w = weekStart(r.d), e = by[w] || (by[w] = { w, n: 0, ok: 0, extra: 0, day: {} });
+    if (r.r >= 2) { e.extra++; return; }
+    if (r.r) return;
+    e.n++; if (r.ok) e.ok++; e.day[r.d] = (e.day[r.d] || 0) + 1;
+  });
+  return Object.keys(by).sort().map(w => ({ w, n: by[w].n, ok: by[w].ok, days: Object.values(by[w].day).filter(n => n >= 5).length, extra: by[w].extra }));
+}
+/* The weeks as a chart: one line a girl, in her colour, her share of right answers week by week (a week with fewer
+ * than five answers leaves a gap). The last twelve weeks. */
+function trendChart(profs) {
+  const data = profs.map(p => [p, trendOf(p.id)]), weeks = [...new Set(data.flatMap(([, t]) => t.map(x => x.w)))].sort().slice(-12);
+  if (!weeks.length) return `<p class="small muted">עוד אין מספיק ימים בשביל מגמה.</p>`;
+  const W = 320, H = 150, L0 = 30, R0 = 10, T0p = 10, B0 = 24, lo = 40, hi = 100;
+  const x = i => weeks.length === 1 ? (L0 + W - R0) / 2 : L0 + 12 + (W - L0 - R0 - 12) * i / (weeks.length - 1);
+  const y = v => T0p + (H - T0p - B0) * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo));
+  const grid = [60, 80, 100].map(v => `<line x1="${L0}" x2="${W - R0}" y1="${y(v)}" y2="${y(v)}" class="tg"/><text x="${L0 - 5}" y="${y(v) + 3.5}" text-anchor="end" class="tt">${v}%</text>`).join("");
+  const lab = [...new Set([0, Math.floor((weeks.length - 1) / 2), weeks.length - 1])].map(i => `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" class="tt">${+weeks[i].slice(8)}.${+weeks[i].slice(5, 7)}</text>`).join("");
+  const lines = data.map(([p, t], gi) => {
+    const c = AURAS[auraOf(p)].c[0], dash = trendDash(profs, gi), pts = weeks.map((w, i) => { const e = t.find(z => z.w === w); return e && e.n >= 5 ? [x(i), y(e.ok / e.n * 100)] : null; });
+    let d = "", pen = false;
+    pts.forEach(pt => { if (!pt) { pen = false; return; } d += `${pen ? "L" : "M"}${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`; pen = true; });
+    const last = pts.filter(Boolean).pop();
+    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ""}/>${pts.filter(Boolean).map(pt => `<circle cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="${pt === last ? 4 : 2.8}" fill="${c}"${pt === last ? ' stroke="#fff" stroke-width="1.2"' : ""}/>`).join("")}`;
+  }).join("");
+  return `<svg class="trend" viewBox="0 0 ${W} ${H}" role="img" aria-label="דיוק לפי שבוע" dir="ltr">${grid}${lab}${lines}</svg>`;
+}
+/* Two girls in the same colours: the later one's line is dashed, the third's dotted, and the legend shows which. */
+const trendDash = (profs, i) => ["", "7 5", "2 5"][profs.slice(0, i).filter(q => auraOf(q) === auraOf(profs[i])).length] || "";
+const trendKey = profs => profs.map((p, i) => `<span class="nm"><svg width="26" height="8" viewBox="0 0 26 8" aria-hidden="true"><path d="M2 4H24" stroke="${AURAS[auraOf(p)].c[0]}" stroke-width="2.6" stroke-linecap="round"${trendDash(profs, i) ? ` stroke-dasharray="${trendDash(profs, i)}"` : ""}/></svg>${esc(p.name)}</span>`).join("");
+const weekHe = w => `${+w.slice(8)}.${+w.slice(5, 7)}`;
+/* One girl over time: her weeks as a table, and her exams with the week before each and its grade. */
+function overTime(p, dad) {
+  const t = trendOf(p.id).slice(-8).reverse(), ex = pastExams().filter(e => e.p === p.id).slice(0, 8);
+  const wk = t.map(e => `<tr><td class="num">${weekHe(e.w)}</td><td class="num">${e.days}</td><td class="num" dir="ltr" style="text-align:end">${e.n ? Math.round(e.ok / e.n * 100) + "%" : "—"}</td><td class="num">${e.extra || "—"}</td></tr>`);
+  const er = ex.map(e => `<tr><td class="num"><b>${+e.date.slice(8)}.${+e.date.slice(5, 7)}</b><br><span class="small">${esc(SUBJ[e.subj] || e.subj)}</span></td>
+    <td style="white-space:normal" class="small">${e.n ? `${e.n} שאלות במקצוע, ${e.ok} נכונות${e.extra ? `<br><span class="muted">מהן ${e.extra} בתרגול ובחיזוק</span>` : ""}` : `<span class="faint">בלי שאלות במקצוע</span>`}</td>
+    <td>${hasGrade(e) ? `<b class="big num">${+e.grade}</b>` : `<span class="faint">—</span>`}${canGrade() ? `<br><button type="button" class="link" style="min-height:0;font-size:13px" data-act="gradeOpen" data-p="${esc(e.p)}" data-date="${esc(e.date)}" data-subj="${esc(e.subj)}">${hasGrade(e) ? "לתקן" : "להזין"}</button>` : ""}</td></tr>`);
+  return `${wk.length ? table(["שבוע מ־", "ימים", "דיוק", "תרגול וחיזוק"], wk) : `<p class="small muted">עוד אין שבועות.</p>`}
+    ${er.length ? `<span class="eyebrow" style="margin-top:6px">Exams</span>${table(["מבחן", "בשבוע שלפניו", "ציון"], er)}` : dad ? `<p class="small faint">כשמבחן שברשימה עובר, הוא מופיע כאן עם מה שהיא עשתה בשבוע שלפניו ועם הציון.</p>` : ""}`;
+}
+
 /* ---------- how fast she answers (Avsha, 2026-11-14) ----------
  * Each first answer is timed, and nothing on her screen shows a clock. A day with three of the five answered in
  * under three seconds each is marked as rushed for Dad: a question and four options are not read in that time. */
@@ -725,7 +803,8 @@ async function api(action, body) {
 async function refresh() {
   const s = await api("state");
   FAM = { profiles: s.profiles || [], settings: s.settings || {}, tokens: s.tokens || {}, rows: s.rows || [], tests: s.tests || [],
-          lifetime: s.lifetime || null, tokenLog: s.tokenLog || [], api: s.api | 0, path: s.path || null, know: s.know || null };
+          lifetime: s.lifetime || null, tokenLog: s.tokenLog || [], api: s.api | 0, path: s.path || null, know: s.know || null,
+          exams: s.exams || null, trend: s.trend || null, sis: s.sis || null };
   L.cache = FAM; save();
 }
 async function flush() {
@@ -1394,6 +1473,11 @@ function renderHome() {
     <button type="button" class="round" data-act="tab" data-to="me" aria-label="ההגדרות שלי">${ICON.me}</button></header>
   ${hero}
   ${fixCard}
+  ${gradeDue(p).slice(0, 1).map(t => `<section class="glass pad stack"><div class="row"><span class="eyebrow">After the exam</span><span class="small muted">${dateHe(t.date)}</span></div>
+    <b class="fixname">איך היה המבחן ב${esc(SUBJ[t.subj] || t.subj)}?</b>
+    <p class="small muted">כשמגיע הציון אפשר להזין אותו כאן. אבא יראה אותו, ליד מה שתרגלת בשבוע שלפני המבחן. לא חובה.</p>
+    <div class="row" style="justify-content:flex-start"><button type="button" class="btn btn-aura" data-act="gradeOpen" data-p="${esc(t.p)}" data-date="${esc(t.date)}" data-subj="${esc(t.subj)}">להזין ציון</button>
+      <button type="button" class="link" data-act="gradeLater" data-k="${esc(luckId(t))}">לא עכשיו</button></div></section>`).join("")}
   <section class="glass pad stack"><div class="row"><span class="eyebrow">This week</span><span class="small muted"><b class="num" style="color:var(--text)">${Math.min(wk.n, 5)}/5</b> ימים · שבוע מלא = 15 נק׳</span></div>${wk.html}
     <div class="streak"><span class="flame ${ws.streak ? "on" : ""}">${ICON.flame}</span><b class="n num">${ws.streak}</b>
       <span class="small muted">${ws.streak === 1 ? "שבוע מלא" : "שבועות מלאים ברצף"}</span>${pathDots(ws)}</div>
@@ -1525,7 +1609,9 @@ function renderMe() {
     ${subjectBars(st)}
     ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(", ")}</p>` : ""}
     ${levelLine(p, true)}
-    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, וכמה זמן לקח לך לענות. לא יותר.</p></section>
+    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, כמה זמן לקח לך לענות, את השבועות שלמטה ואת הציונים שהזנת. לא יותר.</p></section>
+  <section class="glass pad stack"><div class="row"><span class="eyebrow">Over time</span><span class="small muted">הדיוק שלך לפי שבוע</span></div>
+    ${trendChart([p])}${overTime(p, false)}</section>
   <button type="button" class="glass pad row" data-act="recap" style="text-align:start"><span>הסיכום של ${MONTHS[prevMonth(Y, M)[1] - 1]}</span>${ICON.back.replace("<svg", '<svg width="18" height="18" style="transform:scaleX(-1)"')}</button>
   <section class="glass pad">
     <div class="toggle" style="border-top:0"><span>צלילים</span><button type="button" class="switch" role="switch" aria-checked="${L.sound}" data-act="toggle" data-k="sound" aria-label="צלילים"></button></div>
@@ -1695,7 +1781,15 @@ function parentLife() {
   const log = tokenLog().slice().sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0).slice(0, 15).map(t => { const p = profile(t.p);
     return `<div><span class="nm">${p ? dot(p) + esc(p.name) : esc(t.p)} <span class="muted" style="font-weight:400">· ${reasonHe(t)}</span></span><span class="num ${t.change > 0 ? "good-t" : "bad-t"}" dir="ltr">${t.change > 0 ? "+" : "−"}${Math.abs(t.change)}</span></div>
       <div class="faint small" style="margin-top:-6px">${+t.d.slice(8)}.${+t.d.slice(5, 7)}.${t.d.slice(0, 4)}</div>`; }).join("");
-  return `<section class="glass pad stack"><span class="eyebrow">All time</span>${table(["", "ימים", "שאלות", "דיוק", "נקודות"], life)}</section>
+  const legend = trendKey(FAM.profiles);
+  const over = FAM.profiles.map(p => { const a = AURAS[auraOf(p)];
+    return `<details class="glass pad pgirl" style="--a1:${a.c[0]};--a2:${a.c[1]}"><summary><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span><span class="small muted">שבוע אחרי שבוע, ומבחנים</span></summary>
+      <div class="stack" style="margin-top:12px">${overTime(p, true)}</div></details>`; }).join("");
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Over time</span><span class="small muted">דיוק בשאלות היומיות, לפי שבוע</span></div>
+    ${trendChart(FAM.profiles)}<div class="chips" style="gap:14px">${legend}</div>
+    <p class="small faint">כל נקודה היא שבוע, מיום ראשון. בפירוט של כל אחת: הימים, התרגול, והמבחנים עם השבוע שלפניהם והציון.</p></section>
+  ${over}
+  <section class="glass pad stack"><span class="eyebrow">All time</span>${table(["", "ימים", "שאלות", "דיוק", "נקודות"], life)}</section>
   <section class="glass pad stack"><span class="eyebrow">Tokens</span>${table(["", "חודשים שניצחה", "קיבלה", "פדתה", "בכספת"], toks)}</section>
   <section class="glass pad stack"><span class="eyebrow">Token history</span><div class="log">${log || `<p class="small muted">עוד אין אסימונים.</p>`}</div></section>`;
 }
@@ -2444,9 +2538,14 @@ function testSheet(pid, keep) {
   const dad = view === "parent";
   TS = { p: pid || (dad ? FAM.profiles[0].id : me().id) };
   const p = profile(TS.p), subs = subjectsOf(p);
+  // An exam one twin enters is her sister's too (2026-11-26: one twin had entered the English exam of 6.12 and the
+  // other, in the same class, had none). Hers to switch off, when they sit different exams.
+  const mates = SANDBOX || !p.pair ? [] : FAM.profiles.filter(q => q.id !== p.id && q.pair === p.pair);
   sheet(`<h3>מבחן בקרוב</h3><p class="small muted">שבוע לפני המבחן, רוב השאלות ${dad ? "שלה " : ""}יהיו מהמקצוע הזה.</p>
     ${dad ? `<div class="field"><label>של מי?</label><div class="seg-pick">${FAM.profiles.map(q => `<button type="button" data-act="pickGirl" data-id="${q.id}" aria-pressed="${q.id === TS.p}">${esc(q.name)}</button>`).join("")}</div></div>` : ""}
     <div class="field"><label>מקצוע</label><div class="seg-pick" id="tsub">${subs.map((s, i) => `<button type="button" data-act="pickSub" data-k="${s}" aria-pressed="${i === 0}">${SUBJ[s]}</button>`).join("")}</div></div>
+    ${mates.length ? `<div class="field"><div class="seg-pick" id="tmates">${mates.map(q => `<button type="button" data-act="pickMate" data-id="${q.id}" aria-pressed="true">גם ל${esc(q.name)}</button>`).join("")}</div>
+      <span class="small faint">אותה כיתה, אותו מבחן: הוא נשמר לשתיהן. אם הוא רק של אחת, מכבים.</span></div>` : ""}
     <div class="field"><label for="tdate">תאריך</label><input id="tdate" type="date" min="${TODAY}" value="${addDays(TODAY, TEST_LEAD)}"></div>
     <div class="field"><label for="tnote">על מה? (לא חובה)</label><input id="tnote" maxlength="40" placeholder="למשל: משוואות"></div>
     <button type="button" class="btn btn-primary wide" data-act="saveTest">שמירה</button>`);
@@ -2597,14 +2696,27 @@ document.addEventListener("click", async e => {
       show(view); toast("המבחן נמחק"); break;
     }
     case "pickSub": $$("#tsub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
+    case "pickMate": b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); break;
+    case "gradeOpen": gradeSheet(b.dataset.p, b.dataset.date, b.dataset.subj); break;
+    case "gradeLater": L.gradeLater = L.gradeLater || {}; L.gradeLater[b.dataset.k] = addDays(TODAY, GRADE.later); save(); show("home"); break;
+    case "gradeSave": {
+      const d = b.dataset, raw = b.dataset.clear ? "" : $("#gval").value.trim(), g = raw === "" ? "" : Math.round(+raw);
+      if (!b.dataset.clear && (raw === "" || isNaN(g) || g < 0 || g > 100)) { toast("ציון בין 0 ל־100"); break; }
+      if (LIVE && !SANDBOX) { try { await api("grade", { p: d.p, date: d.date, subj: d.subj, grade: g }); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
+      else { const x = (SANDBOX ? L.sand.tests : L.tests).find(z => z.p === d.p && z.date === d.date && z.subj === d.subj); if (x) x.grade = g; save(); }
+      show(view); toast(g === "" ? "הציון נמחק" : "הציון נשמר"); break;
+    }
     case "saveTest": {
       const sb = $("#tsub [aria-pressed=true]"), date = $("#tdate").value, note = $("#tnote").value.trim();
       if (!sb || !date || date < TODAY) { toast("צריך מקצוע ותאריך"); break; }
       const t = { p: TS ? TS.p : me().id, date, subj: sb.dataset.k, note };
+      // her twin too, if she studies the subject and does not have this exam already
+      const also = $$("#tmates [aria-pressed=true]").map(x => profile(x.dataset.id)).filter(q => q && subjectsOf(q).includes(t.subj) && !tests().some(z => z.p === q.id && z.date === date && z.subj === t.subj));
+      const all = [t].concat(also.map(q => Object.assign({}, t, { p: q.id })));
       if (SANDBOX) { L.sand.tests.push(t); save(); }
-      else if (LIVE) { try { await api("test", t); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
-      else { L.tests.push(t); save(); }
-      show(view === "parent" ? "parent" : "home"); toast("המבחן נשמר"); break;
+      else if (LIVE) { try { for (const x of all) await api("test", x); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
+      else { L.tests.push(...all); save(); }
+      show(view === "parent" ? "parent" : "home"); toast(also.length && !SANDBOX ? `המבחן נשמר, גם ל${joinHe(also.map(q => q.name))}` : "המבחן נשמר"); break;
     }
     case "joinCode": {
       const v = $("#code").value.trim();
@@ -2718,7 +2830,7 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, bandOf, take, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

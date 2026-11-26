@@ -24,7 +24,8 @@ var TABS = {
   // flag: the question's text, when she marked it "we have not learned this yet" (empty otherwise)
   Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge", "secs", "flag"],
   Tokens: ["when", "profile", "change", "reason"],
-  Tests: ["when", "profile", "date", "subject", "note"]
+  // grade: hers in the exam, 0-100, entered after it (empty until then)
+  Tests: ["when", "profile", "date", "subject", "note", "grade"]
 };
 var DEFAULTS = [
   ["app_name", "Aura", "the app's name, at the start of every email"],
@@ -123,6 +124,7 @@ function doPost(e) {
         case "profile": return setProfile_(b);
         case "test": return addTest_(b);
         case "untest": return delTest_(b);
+        case "grade": return setGrade_(b);
         case "redeem": return redeem_(b);
         case "pin": checkPin_(b.pin); return { ok: true };
         case "grant": checkPin_(b.pin); needProfile_(b.p); addToken_(b.p, 1, "gift from parent"); return { ok: true };
@@ -162,7 +164,12 @@ function state_() {
     path: pathAll_(today),
     know: knowAll_(from),
     rows: answers_().filter(function (r) { return r.d >= from; }),
-    tests: tests_().filter(function (t) { return t.date >= addDays_(today, -1); })
+    tests: tests_().filter(function (t) { return t.date >= addDays_(today, -1); }),
+    // what the phones cannot work out from two months of rows: the exams that have passed, each girl's weeks, and
+    // the weeks all of them filled
+    exams: examsPast_(today),
+    trend: trend_(),
+    sis: sisters_(today)
   };
 }
 
@@ -251,6 +258,73 @@ function delTest_(b) {
     if (String(v[i][1]) === b.p && dateText_(v[i][2]) === String(b.date) && String(v[i][3]) === String(b.subj)) { sh.deleteRow(i + 1); wrote_(); return { ok: true, removed: 1 }; }
   }
   return { ok: true, removed: 0 };
+}
+
+/* Her grade in an exam that has passed (2026-11-26), entered by her or by the parent; "" takes it off. The app sets
+ * it beside what she did in the week before the exam (examsPast_). */
+function setGrade_(b) {
+  needProfile_(b.p);
+  var g = b.grade === "" || b.grade === null || b.grade === undefined ? "" : Number(b.grade);
+  if (g !== "" && (isNaN(g) || g < 0 || g > 100)) throw new Error("bad grade");
+  var sh = sheet_("Tests"), v = values_("Tests");
+  if (String((v[0] || [])[5] || "") !== "grade") sh.getRange(1, 6).setValue("grade");
+  for (var i = v.length - 1; i >= 1; i--) {
+    if (String(v[i][1]) === b.p && dateText_(v[i][2]) === String(b.date) && String(v[i][3]) === String(b.subj)) {
+      sh.getRange(i + 1, 6).setValue(g === "" ? "" : Math.round(g)); wrote_(); return { ok: true, saved: 1 };
+    }
+  }
+  wrote_();
+  return { ok: true, saved: 0 };
+}
+/* The exams of the last year that have passed, the newest first, each with her grade (if entered) and what she did
+ * in its subject in the seven days before it: questions answered, how many right, and how many of them were
+ * practice or lessons, beyond the daily five. */
+function examsPast_(today) {
+  var rows = answers_(), from = addDays_(today, -365);
+  return tests_().filter(function (t) { return t.date < today && t.date >= from; })
+    .sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }).slice(0, 60).map(function (t) {
+      var lo = addDays_(t.date, -7), n = 0, ok = 0, extra = 0;
+      rows.forEach(function (r) {
+        if (r.p !== t.p || r.d < lo || r.d >= t.date || String(r.pool).split("-")[1] !== t.subj) return;
+        n++; if (r.ok) ok++; if (r.r >= 2) extra++;
+      });
+      return { p: t.p, date: t.date, subj: t.subj, note: t.note, grade: t.grade, n: n, ok: ok, extra: extra };
+    });
+}
+/* Each girl's weeks (Sunday to Saturday), the oldest first: the daily questions she answered and got right, the days
+ * she played, and the practice and lesson questions beyond them. All the Answers tab, for the view over time. */
+function trend_() {
+  var by = {}, out = {};
+  answers_().forEach(function (r) {
+    var d = new Date(Number(r.d.slice(0, 4)), Number(r.d.slice(5, 7)) - 1, Number(r.d.slice(8)));
+    var w = addDays_(r.d, -d.getDay()), k = r.p + "|" + w, e = by[k] || (by[k] = { p: r.p, w: w, n: 0, ok: 0, extra: 0, day: {} });
+    if (r.r >= 2) { e.extra++; return; }
+    if (r.r) return;
+    e.n++; if (r.ok) e.ok++; e.day[r.d] = (e.day[r.d] || 0) + 1;
+  });
+  Object.keys(by).sort().forEach(function (k) {
+    var e = by[k], days = Object.keys(e.day).filter(function (d) { return e.day[d] >= 5; }).length;
+    (out[e.p] = out[e.p] || []).push({ w: e.w, n: e.n, ok: e.ok, days: days, extra: e.extra });
+  });
+  Object.keys(out).forEach(function (p) { out[p].sort(function (a, b) { return a.w < b.w ? -1 : 1; }); });
+  return out;
+}
+/* The sisters' streak (sisOf in app.js): the weeks before this one in which every girl had a full week, in all and
+ * in a row. The phones add the week still running. */
+function sisters_(today) {
+  var rows = answers_(), profs = profiles_(), played = {};
+  profs.forEach(function (p) {
+    var n = {}; played[p.id] = {};
+    rows.forEach(function (r) { if (r.p === p.id && !r.r) n[r.d] = (n[r.d] || 0) + 1; });
+    Object.keys(n).forEach(function (d) { if (n[d] >= 5) played[p.id][d] = true; });
+  });
+  var cur = addDays_(today, -new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, Number(today.slice(8))).getDay());
+  var full = 0, streak = 0;
+  for (var w = PATH.start; w < cur; w = addDays_(w, 7)) {
+    var all = profs.length > 0 && profs.every(function (p) { var k = 0; for (var i = 0; i < 7; i++) if (played[p.id][addDays_(w, i)]) k++; return k >= WEEK_DAYS; });
+    if (all) { full++; streak++; } else streak = 0;
+  }
+  return { full: full, streak: streak };
 }
 
 /* ---------- full weeks: the streak and the four-week path (weeksOf in app.js) ---------- */

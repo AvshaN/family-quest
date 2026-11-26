@@ -559,3 +559,7 @@ button.chip{min-height:44px;padding:4px 14px}
 .idea li{position:relative;padding-inline-start:16px;line-height:1.55}
 .idea li::before{content:"";position:absolute;inset-inline-start:0;top:.62em;width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--a1),var(--a2))}
 .exq{font-size:18px;font-weight:600;line-height:1.45}
+/* the weeks as a chart */
+.trend{width:100%;height:auto;display:block}
+.trend .tg{stroke:var(--hair);stroke-width:1}
+.trend .tt{fill:var(--text-3);font-size:9.5px;font-family:inherit}
