@@ -27,13 +27,14 @@ tests with the girls and gives feedback; Claude writes the code.
   Script URL; empty means demo mode (example history, localStorage only).
 - `backend/Code.gs` runs inside the Sheet. Tabs: Settings, Profiles,
   Answers, Tokens, Tests, Pages. API: GET `state | photos`, POST `submit |
-  profile | test | untest | grade | unflag | block | unblock | page |
-  pagedone | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
+  profile | test | untest | grade | gradeok | unflag | block | unblock |
+  page | pagedone | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
   `monthlyClose`. `state` sends `api` (2 since 2026-11-14, 3 since
   2026-11-22: photos, 4 the same day: "not learned yet" marks, 5: the gift at
   a month's end, 6 since 2026-11-26: one reading of each tab a request,
   fix-it lessons, a grade after an exam, `exams`, `trend` and `sis`; 7 the
-  same day: notebook pages; 8 the same day: the parent's word on a mark):
+  same day: notebook pages; 8 the same day: the parent's word on a mark,
+  a photo and his yes for a grade, the token for three exams):
   the app is live
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
@@ -322,6 +323,37 @@ tests with the girls and gives feedback; Claude writes the code.
   each girl's weeks as a chart and each exam with the week before it and
   the grade (`trendChart`, `overTime`; the script's `trend_`, `examsPast_`).
   Her Me screen shows her own, and says Dad sees them: keep that true.
+- **Three exams above 85 are a token** (`EXAMTOK` / `EXAM`, `counts`,
+  `examCount`, `gradesCard`, `gradeRow`; `setGrade_`, `gradeOk_`,
+  `examTokens_` in Code.gs; Avsha, 2026-11-26: "3 exams above 85 grants a
+  token, each will need to add an image of the graded test, not only enter
+  the grade"). "Above" is 86 and up. She enters the grade with a photo of
+  the graded exam (`#gradeFile`, shrunk by `fitPage`, saved in the notebook
+  folder of his Drive; its file id is column G of Tests) and it waits for
+  his yes (column H: "yes", "no" or empty). His yes is asked for on his
+  Today tab ("Grades to confirm", with a link to the photo), in the popup
+  of what waits for him and in the evening email (`gradesSection_`); a
+  grade he enters himself on his screen (the PIN goes with it) counts at
+  once, with no photo. A girl changing a grade empties his yes. Every third
+  counted exam the script grants a token, reason "exams 3", "exams 6", and
+  emails him; un-approving later takes no token back. A token is 100 ₪ of
+  his money, which is why his yes is in the way: he did not ask for the
+  approval step in so many words, so take it out if he says so. Her vault
+  shows the dots; chips by each grade say where it stands. Needs api 8.
+- **The token's popup, seen by all of us** (`starDue`, `starCheck`,
+  `renderStar`, `starToken`, `closeStar`; his words: "another 'congrats'
+  popup, animated and personalized as possible, shared once between all of
+  us"). Each sister and Dad see it once (`L.seenStar`, by viewer), for a
+  token of the last three weeks: her photo in a gold wreath in her colours
+  (`liveLuck` with `data-gold`), her three grades as medals that turn in
+  and count up, her own kind of piece, a comet and sparks. She taps "+1
+  token" for the coin and gets no second ceremony (`claimTok`; `tokenCheck`
+  leaves an exam token to this popup). Dad sees it the moment his yes
+  grants it. A preview link is on his Exams card.
+- **The popups of an opening** come in one order (`POPS`, `popupsFrom`):
+  the month's winner, the exam token, good luck, and for Dad what waits.
+  Closing one calls `popupsFrom` with the place after its own. A new popup
+  is a new entry there, not a call from another popup's close.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
   score like "3/5": Gmail read a girl's name followed by ": 3/5" as a street address (her name as the street, 3 the number, 5 the flat) and linked it to Maps
@@ -407,12 +439,20 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The script of api 7 is in the Sheet** (pasted 2026-11-26; the Pages tab
   exists, the mark on perimeter is gone, the Sheet answers in 4.2 seconds
   by his Speed line, against about 30 before). **The script of api 8 waits
-  for his paste** (his word on a mark: stopping, and the email's list).
-- **The art twin's mark on `−3²`** (`g7-math-100`, level 3, 2026-11-26): he
-  was shown the question and is to say whether powers of negative numbers
-  were taught. Five of the 39 signed-number questions have a power
-  (007, 008, 099, 100, 101): if they were not taught, offer to give them a
-  topic of their own, so that he can stop just them.
+  for his paste** (his word on a mark; the photo and his yes for a grade;
+  the token for three exams). He held the paste back on purpose until the
+  exam token was in it.
+- **Powers of negative numbers are not taught yet** (the art twin told him,
+  2026-11-26, after her mark on `−3²`, `g7-math-100`). The five
+  signed-number questions with a power (007, 008, 099, 100, 101) now have
+  a topic of their own, "חזקות של מספרים מכוונים", with its own lesson
+  lines. He said to stop it for the twins; the stopping is his tap, because
+  Claude does not write the Sheet: after the paste, the mark's row offers
+  "לעצור את כל הנושא (5 שאלות)". Ask whether he tapped it, and read
+  `blocked` in `state` to see. Until then one of the other four can still
+  come up for a twin.
+- **The exam token was never seen on a real phone**: the photo's upload to
+  Drive from a grade, and the popup's motion on the old Xiaomi. Ask.
 - **The other twin's major** (exemplary figures): is the pool `g7-midrash`
   that major, and so hers alone, or a class both take? Both tracks draw on
   it. He does not know (the classes are new to him and the notebooks say

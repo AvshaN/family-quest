@@ -24,8 +24,9 @@ var TABS = {
   // flag: the question's text, when she marked it "we have not learned this yet" (empty otherwise)
   Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge", "secs", "flag"],
   Tokens: ["when", "profile", "change", "reason"],
-  // grade: hers in the exam, 0-100, entered after it (empty until then)
-  Tests: ["when", "profile", "date", "subject", "note", "grade"],
+  // grade: hers in the exam, 0-100, entered after it (empty until then). photo: the graded exam as she photographed
+  // it (its file id in the Drive folder). ok: the parent's word on the grade: "yes", "no", or empty while it waits.
+  Tests: ["when", "profile", "date", "subject", "note", "grade", "photo", "ok"],
   // A photo of a notebook page she sent: `file` is its id in the Drive folder; status is empty until its questions
   // are in the app ("done", with how many, or "skip", with why in `questions`), and `done` is the day a phone said so.
   Pages: ["when", "date", "profile", "subject", "note", "file", "status", "questions", "done"]
@@ -48,7 +49,7 @@ var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson:
                  ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, page: 5, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 8;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages, taking a "not learned yet" mark off; 8: the parent decides on a mark (stopping a question or a topic), pending marks in the email
+var API = 8;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages, taking a "not learned yet" mark off; 8: the parent decides on a mark (stopping a question or a topic), pending marks in the email, a photo and his yes for a grade, a token for three exams above 85
 // (the parent's Settings tab compares this with SCRIPT_API in app.js and says when the script here is behind: raise both together)
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
@@ -133,6 +134,7 @@ function doPost(e) {
         case "test": return addTest_(b);
         case "untest": return delTest_(b);
         case "grade": return setGrade_(b);
+        case "gradeok": return gradeOk_(b);
         case "unflag": return unflag_(b);
         case "block": return block_(b);
         case "unblock": return unblock_(b);
@@ -185,6 +187,7 @@ function state_() {
     trend: trend_(),
     sis: sisters_(today),
     pages: pagesRecent_(from, today),
+    examTok: examTokAll_(),
     pagesUrl: pagesUrl_()
   };
 }
@@ -269,7 +272,7 @@ function block_(b) {
   profs.forEach(function (x) { if (scope_(x) === s) mates[x.id] = true; });
   for (var i = 1; i < v.length; i++) {
     if (!mates[String(v[i][2])] || String(v[i][10] || "") === "" || String(v[i][4]) !== e.pool) continue;
-    if (e.q ? String(v[i][3]) !== e.q : String(v[i][5]) !== e.t) continue;
+    if (String(v[i][3]) !== String(b.mark || "") && (e.q ? String(v[i][3]) !== e.q : String(v[i][5]) !== e.t)) continue;
     sh.getRange(i + 1, 11).setValue(""); n++;
   }
   wrote_();
@@ -333,20 +336,67 @@ function delTest_(b) {
 }
 
 /* Her grade in an exam that has passed (2026-11-26), entered by her or by the parent; "" takes it off. The app sets
- * it beside what she did in the week before the exam (examsPast_). */
+ * it beside what she did in the week before the exam (examsPast_).
+ * Three exams above 85 are a token (Avsha, the same day: "3 exams above 85 grants a token, each will need to add an
+ * image of the graded test, not only enter the grade"). She sends the photo with the grade and it is saved in the
+ * Drive folder; the grade then waits for the parent's yes (gradeOk_), since a token is his 100 shekels. A grade he
+ * enters himself (the request carries his PIN) needs no photo and is a yes at once. A grade or photo she changes
+ * waits again. Every third exam above EXAM.min with his yes grants a token, once each ("exams 3", "exams 6", ...);
+ * one already granted is not taken back if a grade is later changed. */
+var EXAM = { min: 85, n: 3 };
+function testRow_(b) {
+  var v = values_("Tests");
+  for (var i = v.length - 1; i >= 1; i--) if (String(v[i][1]) === b.p && dateText_(v[i][2]) === String(b.date) && String(v[i][3]) === String(b.subj)) return i;
+  return 0;
+}
+function testHeads_() {
+  var sh = sheet_("Tests"), head = values_("Tests")[0] || [];
+  ["grade", "photo", "ok"].forEach(function (h, k) { if (String(head[5 + k] || "") !== h) sh.getRange(1, 6 + k).setValue(h); });
+}
 function setGrade_(b) {
   needProfile_(b.p);
+  var dad = b.pin !== undefined && b.pin !== null && String(b.pin) !== "";
+  if (dad) checkPin_(b.pin);
   var g = b.grade === "" || b.grade === null || b.grade === undefined ? "" : Number(b.grade);
   if (g !== "" && (isNaN(g) || g < 0 || g > 100)) throw new Error("bad grade");
-  var sh = sheet_("Tests"), v = values_("Tests");
-  if (String((v[0] || [])[5] || "") !== "grade") sh.getRange(1, 6).setValue("grade");
-  for (var i = v.length - 1; i >= 1; i--) {
-    if (String(v[i][1]) === b.p && dateText_(v[i][2]) === String(b.date) && String(v[i][3]) === String(b.subj)) {
-      sh.getRange(i + 1, 6).setValue(g === "" ? "" : Math.round(g)); wrote_(); return { ok: true, saved: 1 };
-    }
-  }
+  var bytes = b.data ? photoBytes_(b.data) : null;
+  testHeads_();
+  var sh = sheet_("Tests"), i = testRow_(b), v = values_("Tests");
+  if (!i) { wrote_(); return { ok: true, saved: 0 }; }
+  var file = String(v[i][6] || "");
+  if (bytes && g !== "") file = pagesFolder_().createFile(Utilities.newBlob(bytes, "image/jpeg", String(b.date) + " " + b.p + " " + b.subj + " exam.jpg")).getId();
+  sh.getRange(i + 1, 6, 1, 3).setValues([g === "" ? ["", "", ""] : [Math.round(g), file, dad ? "yes" : ""]]);
   wrote_();
-  return { ok: true, saved: 0 };
+  return { ok: true, saved: 1, tokens: dad && g !== "" ? examTokens_(b.p) : 0 };
+}
+/* The parent's word on a grade she entered: yes (it counts for the token) or no. */
+function gradeOk_(b) {
+  checkPin_(b.pin);
+  needProfile_(b.p);
+  testHeads_();
+  var i = testRow_(b);
+  if (!i || gradeOf_(values_("Tests")[i][5]) === "") return { ok: true, saved: 0 };
+  sheet_("Tests").getRange(i + 1, 8).setValue(b.yes ? "yes" : "no");
+  wrote_();
+  return { ok: true, saved: 1, tokens: b.yes ? examTokens_(b.p) : 0 };
+}
+function examCount_(pid) { return tests_().filter(function (t) { return t.p === pid && t.grade !== "" && t.grade > EXAM.min && t.yes === "yes"; }).length; }
+function examTokens_(pid) {
+  var due = Math.floor(examCount_(pid) / EXAM.n), n = 0;
+  var given = tokenRows_().filter(function (t) { return t.p === pid && /^exams /.test(t.reason); }).length;
+  for (; given < due; given++, n++) addToken_(pid, 1, "exams " + (given + 1) * EXAM.n);
+  if (n) {
+    var prof = needProfile_(pid);
+    mail_(appName_() + " · " + prof.name + " קיבלה אסימון על " + EXAM.n + " מבחנים מעל " + EXAM.min,
+      shell_(nm_(prof.name) + " קיבלה אסימון", EXAM.n + " מבחנים מעל " + EXAM.min + ", כל אחד עם צילום ובאישור שלך · " + (tokens_()[pid] || 0) + " אסימונים בכספת", [], footer_()));
+  }
+  return n;
+}
+/* For each girl: her exams above EXAM.min with the parent's yes, of all time (every EXAM.n of them is a token). */
+function examTokAll_() {
+  var out = {};
+  profiles_().forEach(function (p) { out[p.id] = examCount_(p.id); });
+  return out;
 }
 /* The exams of the last year that have passed, the newest first, each with her grade (if entered) and what she did
  * in its subject in the seven days before it: questions answered, how many right, and how many of them were
@@ -360,7 +410,7 @@ function examsPast_(today) {
         if (r.p !== t.p || r.d < lo || r.d >= t.date || String(r.pool).split("-")[1] !== t.subj) return;
         n++; if (r.ok) ok++; if (r.r >= 2) extra++;
       });
-      return { p: t.p, date: t.date, subj: t.subj, note: t.note, grade: t.grade, n: n, ok: ok, extra: extra };
+      return { p: t.p, date: t.date, subj: t.subj, note: t.note, grade: t.grade, n: n, ok: ok, extra: extra, f: t.f, yes: t.yes };
     });
 }
 /* Each girl's weeks (Sunday to Saturday), the oldest first: the daily questions she answered and got right, the days
@@ -433,16 +483,21 @@ function pagesFolder_() {
   return f;
 }
 function pagesUrl_() { var id = String(setting_("pages_folder") || ""); return id ? "https://drive.google.com/drive/folders/" + id : ""; }
+/* A photo as the app sends it (a JPEG as a data URL, under PAGE.max characters), as bytes; anything else is refused. */
+function photoBytes_(d) {
+  var data = String(d || ""), head = "data:image/jpeg;base64,";
+  if (data.length > PAGE.max || data.slice(0, head.length) !== head || !/^[A-Za-z0-9+\/=]+$/.test(data.slice(head.length))) throw new Error("bad photo");
+  return Utilities.base64Decode(data.slice(head.length));
+}
 function addPage_(b) {
   needProfile_(b.p);
   if (!SUBJ[b.subj]) throw new Error("bad subject");
-  var data = String(b.data || ""), head = "data:image/jpeg;base64,";
-  if (data.length > PAGE.max || data.slice(0, head.length) !== head || !/^[A-Za-z0-9+\/=]+$/.test(data.slice(head.length))) throw new Error("bad photo");
+  var bytes = photoBytes_(b.data);
   var today = ymd_(new Date()), sh = pagesSheet_();
   var mine = pages_().filter(function (x) { return x.p === b.p && x.d === today; }).length;
   if (mine >= PAGE.day) throw new Error("too many pages today");
   var name = today + " " + b.p + " " + b.subj + " " + (mine + 1) + ".jpg";
-  var file = pagesFolder_().createFile(Utilities.newBlob(Utilities.base64Decode(data.slice(head.length)), "image/jpeg", name));
+  var file = pagesFolder_().createFile(Utilities.newBlob(bytes, "image/jpeg", name));
   sh.appendRow([new Date(), today, b.p, b.subj, String(b.note || "").slice(0, 60), file.getId(), "", "", ""]);
   wrote_();
   return { ok: true, n: mine + 1 };
@@ -588,7 +643,7 @@ function nightlyDigest() {
   var headline = n === r.girls.length ? "כולן שיחקו היום" : n + " מתוך " + r.girls.length + " שיחקו היום" + (missing.length ? " · חסרה: " + joinHe_(missing.map(nm_)) : "");
   var sub = "יום " + dow + ", " + Number(today.slice(8)) + " ב" + MONTHS[m - 1] + " · נשארו " + r.daysLeft + " ימים לחודש";
   mail_(appName_() + " · " + dow + " " + Number(today.slice(8)) + "." + m + " · " + (n === r.girls.length ? "כולן שיחקו" : n + " מתוך " + r.girls.length + " שיחקו"),
-    shell_(headline, sub, [todaySection_(r), marksSection_(r), examsSection_(r), pagesSection_(r), monthSection_(r, "החודש · " + MONTHS[m - 1]), focusSection_(r), lifetimeSection_(r)], footer_(r)));
+    shell_(headline, sub, [todaySection_(r), marksSection_(r), gradesSection_(r), examsSection_(r), pagesSection_(r), monthSection_(r, "החודש · " + MONTHS[m - 1]), focusSection_(r), lifetimeSection_(r)], footer_(r)));
 }
 
 function monthlyClose() {
@@ -827,6 +882,19 @@ function pagesSection_(r) {
     "<p style='margin:6px 0 0;font-size:12px;color:" + C.soft + "'>כדי שיהפכו לשאלות, אומרים ל־Claude: ״יש דפים חדשים מהמחברות״." +
     (url ? " <a href='" + url + "' style='color:" + C.soft + "'>התיקייה ב־Drive</a>" : "") + "</p>");
 }
+/* Grades above EXAM.min that wait for the parent's yes: the email names them, the app's Today tab has the buttons. */
+function gradesSection_(r) {
+  var wait = tests_().filter(function (t) { return t.grade !== "" && t.grade > EXAM.min && !t.yes; });
+  var lines = r.girls.map(function (g) {
+    var mine = wait.filter(function (t) { return t.p === g.id; });
+    if (!mine.length) return "";
+    return "<p style='margin:0 0 8px;font-size:14px;line-height:1.6'>" + who_(g) + ": " + mine.map(function (t) {
+      return esc_(SUBJ[t.subj] || t.subj) + ", ציון " + t.grade + (t.f ? "" : " (בלי צילום)"); }).join(" · ") + "</p>";
+  }).join("");
+  if (!lines) return "";
+  return section_("Grades", "ציונים שמחכים לאישור שלך", lines +
+    "<p style='margin:6px 0 0;font-size:12px;color:" + C.soft + "'>" + EXAM.n + " מבחנים מעל " + EXAM.min + " שווים אסימון. מאשרים באפליקציה, בלשונית ״היום״, ושם גם הצילום.</p>");
+}
 function daysTo_(a, b) {
   var x = Date.UTC(Number(a.slice(0, 4)), Number(a.slice(5, 7)) - 1, Number(a.slice(8)));
   var y = Date.UTC(Number(b.slice(0, 4)), Number(b.slice(5, 7)) - 1, Number(b.slice(8)));
@@ -960,7 +1028,8 @@ function tokens_() {
 }
 function tests_() {
   return values_("Tests").slice(1).filter(function (r) { return r[1] !== ""; }).map(function (r) {
-    return { p: String(r[1]), date: dateText_(r[2]), subj: String(r[3]), note: String(r[4] || ""), grade: gradeOf_(r[5]) };
+    return { p: String(r[1]), date: dateText_(r[2]), subj: String(r[3]), note: String(r[4] || ""), grade: gradeOf_(r[5]),
+             f: String(r[6] || ""), yes: String(r[7] || "").trim().toLowerCase() };
   });
 }
 function gradeOf_(v) { var n = Number(v); return v === "" || v === null || v === undefined || isNaN(n) ? "" : Math.max(0, Math.min(100, Math.round(n))); }

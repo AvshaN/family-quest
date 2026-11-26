@@ -680,6 +680,10 @@ const LESSONS = {
       "חיסור של מספר שלילי הוא חיבור של הנגדי שלו: {6 − (−9) = 6 + 9 = 15}.",
       "כפל וחילוק: סימנים שווים נותנים תוצאה חיובית, סימנים שונים נותנים תוצאה שלילית: {(−4) · (−6) = 24}, {(−36) : 9 = −4}.",
       "כשמתבלבלים, ציר המספרים עוזר: חיבור הוא צעדים ימינה, חיסור צעדים שמאלה."],
+    "חזקות של מספרים מכוונים": [
+      "חזקה היא כפל חוזר: {(−2)³ = (−2) · (−2) · (−2) = −8}.",
+      "מספר שלילי בחזקה זוגית נותן תוצאה חיובית, ובחזקה אי־זוגית תוצאה שלילית.",
+      "בלי סוגריים החזקה חלה רק על המספר, והמינוס נשאר לפניה: {−3² = −9}, אבל {(−3)² = 9}."],
     "היקף ושטח": [
       "היקף הוא אורך הדרך מסביב לצורה: מחברים את כל הצלעות. היחידות הן ס״מ.",
       "שטח הוא כמה מקום הצורה תופסת. היחידות הן סמ״ר.",
@@ -783,13 +787,38 @@ const LESSONS = {
  * Sheet works these out from all its rows (state's `exams` and `trend`, api 6); the demo and Dad's test profile
  * from the rows the phone holds. */
 const canGrade = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 6;
+/* Three exams above 85 are a token (Avsha, 2026-11-26: "3 exams above 85 grants a token, each will need to add an
+ * image of the graded test, not only enter the grade"). She adds a photo of the graded exam to the grade; it waits
+ * for Dad's yes (it is his 100 shekels), and a grade he enters himself is a yes at once. Every third such exam is a
+ * token, granted by the script (examTokens_, reason "exams N"), and all of us see it once (starCheck). "Above 85"
+ * is taken as it is written: 86 and up. */
+const EXAMTOK = { min: 85, n: 3 };
+const canProve = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 8;
+const counts = e => hasGrade(e) && +e.grade > EXAMTOK.min && e.yes === "yes";
+function examCount(pid) {
+  if (LIVE && !SANDBOX && FAM.examTok) return +FAM.examTok[pid] || 0;
+  return pastExams().filter(e => e.p === pid && counts(e)).length;
+}
+/* Where a grade stands for the token, as a chip (nothing for a grade of 85 or less that is settled). */
+function examChip(e) {
+  if (!hasGrade(e) || !canProve()) return "";
+  if (e.yes === "no") return `<span class="chip warn">לא אושר</span>`;
+  if (e.yes === "yes") return +e.grade > EXAMTOK.min ? `<span class="chip good">נספר לאסימון</span>` : "";
+  if (+e.grade <= EXAMTOK.min) return "";
+  return e.f ? `<span class="chip">מחכה לאישור של אבא</span>` : `<span class="chip warn">בלי צילום: לא נספר</span>`;
+}
+const examDots = pid => { const n = examCount(pid) % EXAMTOK.n; return `<span class="path" role="img" aria-label="${n} מתוך ${EXAMTOK.n} מבחנים לאסימון">${Array.from({ length: EXAMTOK.n }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`; };
+/* A grade that would count for the token and has no word of Dad's yet. */
+const waitsYes = e => hasGrade(e) && +e.grade > EXAMTOK.min && !e.yes;
+const driveFile = id => `https://drive.google.com/file/d/${encodeURIComponent(id)}/view`;
 const hasGrade = t => t.grade !== "" && t.grade != null;
 function pastExams() {
   if (LIVE && !SANDBOX) return FAM.exams || [];
   const all = rows();
   return (SANDBOX ? L.sand.tests : L.tests).filter(t => t.date < TODAY).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0).map(t => {
     const lo = addDays(t.date, -7), mine = all.filter(r => r.p === t.p && r.d >= lo && r.d < t.date && subjOf(r.pool) === t.subj);
-    return { p: t.p, date: t.date, subj: t.subj, note: t.note || "", grade: t.grade == null ? "" : t.grade, n: mine.length, ok: mine.filter(r => r.ok).length, extra: mine.filter(r => r.r >= 2).length };
+    return { p: t.p, date: t.date, subj: t.subj, note: t.note || "", grade: t.grade == null ? "" : t.grade, n: mine.length, ok: mine.filter(r => r.ok).length, extra: mine.filter(r => r.r >= 2).length,
+             f: t.f || "", yes: t.yes || "" };
   });
 }
 /* Her exams of the last 30 days with no grade yet, unless she put the question off (for four days). */
@@ -799,12 +828,45 @@ function gradeDue(p) {
   const later = L.gradeLater || {};
   return pastExams().filter(t => t.p === p.id && !hasGrade(t) && daysBetween(t.date, TODAY) <= GRADE.days && !(later[luckId(t)] > TODAY));
 }
+let GR = null;   // the photo she is adding to a grade
 function gradeSheet(pid, date, subj) {
   const t = pastExams().find(x => x.p === pid && x.date === date && x.subj === subj), dad = view === "parent";
+  if (GR && GR.url) URL.revokeObjectURL(GR.url);
+  GR = { file: null, url: "" };
+  const data = `data-p="${esc(pid)}" data-date="${esc(date)}" data-subj="${esc(subj)}"`;
   sheet(`<h3>הציון במבחן ב${esc(SUBJ[subj] || subj)}</h3><p class="small muted">${dateHe(date)}${dad ? ` · ${esc(profile(pid).name)}` : ""}. מספר בין 0 ל־100.${dad ? "" : " אבא יראה אותו, ליד מה שתרגלת לפני המבחן."}</p>
     <div class="field"><label for="gval">ציון</label><input id="gval" type="number" inputmode="numeric" min="0" max="100" dir="ltr" value="${t && hasGrade(t) ? +t.grade : ""}"></div>
-    <button type="button" class="btn btn-primary wide" data-act="gradeSave" data-p="${esc(pid)}" data-date="${esc(date)}" data-subj="${esc(subj)}">שמירה</button>
-    ${t && hasGrade(t) ? `<button type="button" class="link" style="align-self:center" data-act="gradeSave" data-clear="1" data-p="${esc(pid)}" data-date="${esc(date)}" data-subj="${esc(subj)}">למחוק את הציון</button>` : ""}`);
+    ${canProve() && !dad ? `<div class="field"><label>צילום של המבחן הבדוק</label>
+      <input type="file" id="gradeFile" accept="image/*" hidden>
+      <button type="button" class="btn btn-ghost wide" data-act="gradePick">${ICON.cam.replace("<svg", '<svg width="18" height="18"')} ${t && t.f ? "להחליף את הצילום" : "לצרף צילום"}</button>
+      <div class="pthumbs" id="gthumb"></div>
+      <span class="small faint">${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min} שווים אסימון. מבחן נספר כשיש צילום שלו ואבא אישר${t && t.f ? " (כבר יש צילום)" : ""}.</span></div>` : ""}
+    ${canProve() && dad ? `<p class="small faint">ציון שאתה מזין נספר מיד לאסימון של ${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min}, בלי צילום.</p>` : ""}
+    <button type="button" class="btn btn-primary wide" data-act="gradeSave" id="gradeSave" ${data}>שמירה</button>
+    ${t && hasGrade(t) ? `<button type="button" class="link" style="align-self:center" data-act="gradeSave" data-clear="1" ${data}>למחוק את הציון</button>` : ""}`);
+}
+/* Dad's Today: the grades that wait for his yes, each with its photo (in his Drive). */
+function gradesCard() {
+  if (!canProve()) return "";
+  const wait = pastExams().filter(e => waitsYes(e) && profile(e.p));
+  if (!wait.length) return "";
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Grades to confirm</span><span class="small muted">${EXAMTOK.n} מעל ${EXAMTOK.min} = אסימון</span></div>
+    ${wait.map(gradeRow).join("")}
+    <p class="small faint">מבחן נספר לאסימון רק אחרי ה״כן״ שלך. ציון שאתה מזין בעצמך נספר מיד.</p></section>`;
+}
+function gradeRow(e) {
+  const p = profile(e.p), data = `data-p="${esc(e.p)}" data-date="${esc(e.date)}" data-subj="${esc(e.subj)}"`;
+  return `<div class="markrow"><div class="row"><span><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span> <span class="small muted">${esc(SUBJ[e.subj] || e.subj)} · ${+e.date.slice(8)}.${+e.date.slice(5, 7)}</span></span><b class="big num">${+e.grade}</b></div>
+    <div class="markacts">${e.f ? (LIVE ? `<a class="btn btn-ghost btn-sm" href="${driveFile(e.f)}" target="_blank" rel="noopener">הצילום</a>` : `<span class="chip">יש צילום</span>`) : `<span class="chip warn">בלי צילום</span>`}
+      <button type="button" class="btn btn-ghost btn-sm" data-act="gradeOk" data-yes="1" ${data}>לאשר</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="gradeOk" data-yes="" ${data}>לא לאשר</button></div></div>`;
+}
+/* The demo's own count: every third exam above 85 with a yes is a token, as the script grants it. */
+function demoExamTokens(pid) {
+  const due = Math.floor(examCount(pid) / EXAMTOK.n);
+  let given = (L.demoLog || []).filter(t => t.p === pid && /^exams /.test(t.reason)).length;
+  for (; given < due; given++) { FAM.tokens[pid] = (+FAM.tokens[pid] || 0) + 1; L.demoTokens = FAM.tokens; L.demoLog = (L.demoLog || []).concat({ d: TODAY, p: pid, change: 1, reason: "exams " + (given + 1) * EXAMTOK.n }); }
+  save();
 }
 /* Each girl's weeks, the oldest first: { w (its Sunday), n and ok (the daily questions), days, extra }. */
 function trendOf(pid) {
@@ -848,7 +910,7 @@ function overTime(p, dad) {
   const wk = t.map(e => `<tr><td class="num">${weekHe(e.w)}</td><td class="num">${e.days}</td><td class="num" dir="ltr" style="text-align:end">${e.n ? Math.round(e.ok / e.n * 100) + "%" : "—"}</td><td class="num">${e.extra || "—"}</td></tr>`);
   const er = ex.map(e => `<tr><td class="num"><b>${+e.date.slice(8)}.${+e.date.slice(5, 7)}</b><br><span class="small">${esc(SUBJ[e.subj] || e.subj)}</span></td>
     <td style="white-space:normal" class="small">${e.n ? `${e.n} שאלות במקצוע, ${e.ok} נכונות${e.extra ? `<br><span class="muted">מהן ${e.extra} בתרגול ובחיזוק</span>` : ""}` : `<span class="faint">בלי שאלות במקצוע</span>`}</td>
-    <td>${hasGrade(e) ? `<b class="big num">${+e.grade}</b>` : `<span class="faint">—</span>`}${canGrade() ? `<br><button type="button" class="link" style="min-height:0;font-size:13px" data-act="gradeOpen" data-p="${esc(e.p)}" data-date="${esc(e.date)}" data-subj="${esc(e.subj)}">${hasGrade(e) ? "לתקן" : "להזין"}</button>` : ""}</td></tr>`);
+    <td>${hasGrade(e) ? `<b class="big num">${+e.grade}</b>` : `<span class="faint">—</span>`}${examChip(e) ? `<br>${examChip(e)}` : ""}${canGrade() ? `<br><button type="button" class="link" style="min-height:0;font-size:13px" data-act="gradeOpen" data-p="${esc(e.p)}" data-date="${esc(e.date)}" data-subj="${esc(e.subj)}">${hasGrade(e) ? "לתקן" : "להזין"}</button>` : ""}</td></tr>`);
   return `${wk.length ? table(["שבוע מ־", "ימים", "דיוק", "תרגול וחיזוק"], wk) : `<p class="small muted">עוד אין שבועות.</p>`}
     ${er.length ? `<span class="eyebrow" style="margin-top:6px">Exams</span>${table(["מבחן", "בשבוע שלפניו", "ציון"], er)}` : dad ? `<p class="small faint">כשמבחן שברשימה עובר, הוא מופיע כאן עם מה שהיא עשתה בשבוע שלפניו ועם הציון.</p>` : ""}`;
 }
@@ -1018,7 +1080,7 @@ async function refresh() {
   L.sent = (L.sent || []).filter(b => b.at > asked);
   FAM = { profiles: s.profiles || [], settings: s.settings || {}, tokens: s.tokens || {}, rows: s.rows || [], tests: s.tests || [],
           lifetime: s.lifetime || null, tokenLog: s.tokenLog || [], api: s.api | 0, path: s.path || null, know: s.know || null,
-          exams: s.exams || null, trend: s.trend || null, sis: s.sis || null, pages: s.pages || [], pagesUrl: s.pagesUrl || "" };
+          exams: s.exams || null, trend: s.trend || null, sis: s.sis || null, pages: s.pages || [], pagesUrl: s.pagesUrl || "", examTok: s.examTok || null };
   L.cache = FAM; save();
 }
 async function flush() {
@@ -1492,6 +1554,8 @@ function liveSky(cv) {
 function tokenCheck() {
   const p = me();
   if (!p || view !== "home" || layer.innerHTML) return;
+  // a token for three exams has a popup of its own, which the whole family sees: hers comes from there
+  if (!SANDBOX && starDue(p.id).some(t => t.p === p.id)) { if (!waiting()) starCheck(p); return; }
   L.seenTok = L.seenTok || {};
   const n = +FAM.tokens[p.id] || 0;
   let was = L.seenTok[p.id];
@@ -1694,7 +1758,7 @@ function renderHome() {
   ${fixCard}
   ${gradeDue(p).slice(0, 1).map(t => `<section class="glass pad stack"><div class="row"><span class="eyebrow">After the exam</span><span class="small muted">${dateHe(t.date)}</span></div>
     <b class="fixname">איך היה המבחן ב${esc(SUBJ[t.subj] || t.subj)}?</b>
-    <p class="small muted">כשמגיע הציון אפשר להזין אותו כאן. אבא יראה אותו, ליד מה שתרגלת בשבוע שלפני המבחן. לא חובה.</p>
+    <p class="small muted">כשמגיע הציון אפשר להזין אותו כאן. אבא יראה אותו, ליד מה שתרגלת בשבוע שלפני המבחן. לא חובה.${canProve() ? ` עם צילום של המבחן, ${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min} שווים אסימון.` : ""}</p>
     <div class="row" style="justify-content:flex-start"><button type="button" class="btn btn-aura" data-act="gradeOpen" data-p="${esc(t.p)}" data-date="${esc(t.date)}" data-subj="${esc(t.subj)}">להזין ציון</button>
       <button type="button" class="link" data-act="gradeLater" data-k="${esc(luckId(t))}">לא עכשיו</button></div></section>`).join("")}
   <section class="glass pad stack"><div class="row"><span class="eyebrow">This week</span><span class="small muted"><b class="num" style="color:var(--text)">${Math.min(wk.n, 5)}/5</b> ימים · שבוע מלא = 15 נק׳</span></div>${wk.html}
@@ -1800,12 +1864,14 @@ function renderVault() {
   <section class="glass pad"><div class="coins">${coins}</div></section>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Your path</span>${pathDots(ws)}</div>
     <p class="small muted">כל ${PATH.every} שבועות מלאים (חמישה ימים עם משימה בשבוע) שווים אסימון, גם אם הם לא ברצף. יש לך ${ws.full % PATH.every} מתוך ${PATH.every}.</p></section>
+  ${canProve() ? `<section class="glass pad stack"><div class="row"><span class="eyebrow">Exams above ${EXAMTOK.min}</span>${examDots(p.id)}</div>
+    <p class="small muted">כל ${EXAMTOK.n} מבחנים עם ציון מעל ${EXAMTOK.min} שווים אסימון. מזינים את הציון אחרי המבחן, מצרפים צילום של המבחן הבדוק, ואבא מאשר. יש לך ${examCount(p.id) % EXAMTOK.n} מתוך ${EXAMTOK.n}.</p></section>` : ""}
   ${n >= 10 ? `<div class="blackcard"><span class="eyebrow" style="color:var(--gold)">Black card</span><span class="display">${esc(s.prize10 || "הפרס הענק")}</span></div>` : ""}
   ${tier(1, "אפשר לפדות כל אסימון מתי שרוצים", `${val} ₪`)}
   ${tier(5, "חמישה אסימונים שמורים", s.prize5 || "פרס גדול (אבא עוד מחליט)")}
   ${tier(10, "עשרה אסימונים שמורים", s.prize10 || "פרס ענק (אבא עוד מחליט)")}
   <button type="button" class="btn btn-aura wide" data-act="redeem" ${n ? "" : "disabled"}>לפדות אסימון ב־${val} ₪</button>
-  <p class="small muted" style="text-align:center">אלופת החודש מקבלת אסימון ב־1 לחודש הבא, וכל אחת מקבלת אחד על כל ${PATH.every} שבועות מלאים.</p>`;
+  <p class="small muted" style="text-align:center">אלופת החודש מקבלת אסימון ב־1 לחודש הבא, וכל אחת מקבלת אחד על כל ${PATH.every} שבועות מלאים${canProve() ? ` ועל כל ${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min}` : ""}.</p>`;
 }
 
 /* Which way her new questions lean in math and English, in words, or "" when they come in the pool's own order. */
@@ -1924,6 +1990,7 @@ function parentToday() {
   return `${scriptCard(true)}<section class="glass pad stack"><div class="row"><span class="eyebrow">Today</span><span class="small muted">${n === ts.length ? "כולן שיחקו" : `${n} מתוך ${ts.length} שיחקו${missing.length ? ` · חסרה: ${joinHe(missing)}` : ""}`}</span></div>
     ${table(["", "ציון", "נקמה", "נקודות", "השבוע", "שעה"], rowsHTML)}</section>
   ${examsCard()}
+  ${gradesCard()}
   ${pagesWaitCard()}
   ${canFlag() ? flagsCard() : ""}
   <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>`;
@@ -1996,7 +2063,7 @@ function newsItems() {
   tests().filter(t => t.date >= TODAY && profile(t.p)).forEach(t => { const k = t.date + "|" + t.subj; (ex[k] = ex[k] || []).push(t); });
   Object.keys(ex).sort().forEach(k => { const list = ex[k], t = list[0], notes = [...new Set(list.map(x => x.note).filter(Boolean))];
     out.push({ k: `test|${k}|${list.map(x => x.p).sort().join(",")}`, chip: "מבחן", html: `${joinHe(list.map(x => nm(profile(x.p))))}: מבחן ב${esc(SUBJ[t.subj] || t.subj)}, ${dateHe(t.date)} <span class="faint">(${inDays(daysBetween(TODAY, t.date))})</span>${notes.length ? `<br><span class="small faint">${notes.map(esc).join(" · ")}</span>` : ""}` }); });
-  pastExams().filter(e => hasGrade(e) && profile(e.p)).slice(0, 10).forEach(e => out.push({ k: `grade|${e.p}|${e.date}|${e.subj}|${e.grade}`, chip: "ציון",
+  pastExams().filter(e => hasGrade(e) && profile(e.p)).slice(0, 10).forEach(e => out.push({ k: `grade|${e.p}|${e.date}|${e.subj}|${e.grade}`, chip: "ציון", grade: canProve() && waitsYes(e) ? e : null,
     html: `${nm(profile(e.p))}: <b>${+e.grade}</b> במבחן ב${esc(SUBJ[e.subj] || e.subj)} <span class="faint">(${+e.date.slice(8)}.${+e.date.slice(5, 7)})</span>` }));
   return out;
 }
@@ -2020,12 +2087,16 @@ function renderNews() {
   layer.innerHTML = `<div class="sheet-bg" data-act="closeNews"><div class="sheet news" role="dialog" aria-modal="true" aria-label="מחכה לך">
     <h3>מחכה לך</h3>
     ${marks.length ? `<span class="eyebrow">Your call · סומן ״עוד לא למדנו״</span>${marks.map(x => markRow(x.mark)).join("")}` : ""}
-    ${rest.length ? `${marks.length ? `<span class="eyebrow">New</span>` : ""}${rest.map(x => `<div class="newsrow"><span class="chip ${x.chip === "לשלם" || x.chip === "תקוע" ? "warn" : ""}">${x.chip}</span><span>${x.html}</span></div>`).join("")}` : ""}
+    ${rest.length ? `${marks.length ? `<span class="eyebrow">New</span>` : ""}${rest.map(x => x.grade ? gradeRow(x.grade) : `<div class="newsrow"><span class="chip ${x.chip === "לשלם" || x.chip === "תקוע" ? "warn" : ""}">${x.chip}</span><span>${x.html}</span></div>`).join("")}` : ""}
     <button type="button" class="btn btn-primary wide" data-act="closeNews">${marks.length ? "אחר כך" : "ראיתי"}</button>
     <p class="small faint">${marks.length ? "הסימונים נשארים בלשונית ״היום״ עד שתחליט. " : ""}כל דבר מופיע כאן פעם אחת.</p></div></div>`;
 }
-/* The popups of his screen, one after the other: the month's winner, an exam tomorrow, what waits for him. */
-const dadPopups = () => monthCheck(null) || luckCheck(null) || newsCheck();
+/* The popups due at an opening come one after the other, in this order: the month's winner, a token for three exams
+ * (shared by all of us), good luck for an exam tomorrow, and for Dad what waits for him. Each check opens its popup
+ * and says so; closing one calls popupsFrom with the place after its own. viewer is a girl, or null for Dad. */
+const POPS = [v => monthCheck(v), v => starCheck(v), v => luckCheck(v), v => !v && newsCheck()];
+function popupsFrom(i, viewer) { for (let k = i; k < POPS.length; k++) if (POPS[k](viewer)) return true; return false; }
+const dadPopups = () => popupsFrom(0, null);
 /* Upcoming exams, every girl's, soonest first, as in the evening email; the week of focus is lit. */
 function examsCard() {
   const up = tests().filter(t => t.date >= TODAY && profile(t.p)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
@@ -2036,7 +2107,8 @@ function examsCard() {
   return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Exams</span>
       <button type="button" class="btn btn-ghost btn-sm" data-act="addTest">${ICON.plus.replace("<svg", '<svg width="16" height="16"')} מבחן</button></div>
     ${up.length ? table(["מתי", "", "מקצוע"].concat(canEdit() ? [""] : []), rowsHTML) + `<p class="small faint">שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו. יום לפני המבחן, כל אחת מכם רואה פעם אחת ״בהצלחה״ עם התמונה שלה. <button type="button" class="link" style="min-height:0;font-size:13px" data-act="luckPreview">לראות איך זה נראה</button></p>`
-      : `<p class="small muted">אין מבחנים ברשימה. אפשר להוסיף כאן, והבנות מוסיפות במסך הבית שלהן (״+ מבחן״).</p>`}</section>`;
+      : `<p class="small muted">אין מבחנים ברשימה. אפשר להוסיף כאן, והבנות מוסיפות במסך הבית שלהן (״+ מבחן״).</p>`}
+    ${canProve() ? `<p class="small faint">${EXAMTOK.n} מבחנים עם ציון מעל ${EXAMTOK.min}, כל אחד עם צילום ובאישור שלך, שווים אסימון, וכולנו רואים על זה חלון פעם אחת. <button type="button" class="link" style="min-height:0;font-size:13px" data-act="starPreview">לראות איך הוא נראה</button></p>` : ""}</section>`;
 }
 function parentMonth() {
   const rk = ranking(Y, M), s = FAM.settings, lead = rk[0] ? rk[0].points : 0, goal = +s.goal || 250;
@@ -2087,6 +2159,7 @@ function reasonHe(t) {
   if (/^gift/.test(t.reason)) return "מתנה מאבא";
   if (/^dedication /.test(t.reason)) return "מתנה מאבא על ההתמדה";
   if (/^weeks /.test(t.reason)) return `${PATH.every} שבועות מלאים`;
+  if (/^exams /.test(t.reason)) return `${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min}`;
   if (/^redeemed/.test(t.reason)) return `פדתה ב־${(/\d+/.exec(t.reason) || [FAM.settings.tokenValue || 100])[0]} ₪`;
   return esc(t.reason);
 }
@@ -2116,7 +2189,7 @@ function parentLife() {
 const SCRIPT_API = 8;
 const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש",
   6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות", 7: "צילום דפים מהמחברת, והסרת סימון ״עוד לא למדנו״ (אחרי ההדבקה מריצים setup פעם אחת ומאשרים גישה ל־Drive)",
-  8: "ההחלטה על סימון ״עוד לא למדנו״: לעצור שאלה או נושא, ורשימת הסימונים שמחכים במייל של הערב" };
+  8: "ההחלטה על סימון ״עוד לא למדנו״ (לעצור שאלה או נושא), הסימונים שמחכים במייל של הערב, צילום ואישור לציון, ואסימון על שלושה מבחנים מעל 85" };
 function scriptCard(brief) {
   if (!LIVE) return "";
   const have = FAM.api | 0;
@@ -2290,9 +2363,9 @@ function claimTok(pid, reason) {
 function closePops(then) {
   const P = POP;
   POP = null; layer.innerHTML = "";
-  if (P.preview || !P.viewer) { applyAura("chrome"); show("parent"); if (!P.preview && !luckCheck(null)) newsCheck(); return; }
+  if (P.preview || !P.viewer) { applyAura("chrome"); show("parent"); if (!P.preview) popupsFrom(1, null); return; }
   applyAura(auraOf(P.viewer)); show("home");
-  if (then === "recap") openRecap(P.viewer.id); else luckCheck(P.viewer);
+  if (then === "recap") openRecap(P.viewer.id); else popupsFrom(1, P.viewer);
 }
 /* Dad's card for the gift: who, how many days of the month's last full week it takes, and his line. */
 function bonusCard() {
@@ -2309,6 +2382,81 @@ function bonusCard() {
     <div class="row" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-act="saveBonus">${on ? "עדכון" : "לתזמן"}</button>
       <button type="button" class="btn btn-ghost" data-act="popPreview">תצוגה מקדימה</button>${on ? `<button type="button" class="link" data-act="cancelBonus">לבטל את המתנה</button>` : ""}</div>
     ${on ? `<p class="small faint">${due.length ? `לפי הימים עד עכשיו, יקבלו: ${joinHe(due.map(p => esc(p.name)))}.` : "לפי הימים עד עכשיו, אף אחת עוד לא עמדה בתנאי."} אפשר לשנות עד סוף החודש.</p>` : ""}</section>`;
+}
+
+/* ---------- three exams above 85: the token, seen by all of us (Avsha, 2026-11-26) ----------
+ * "Another 'congrats' popup, animated and personalized as possible, shared once between all of us, when the token is
+ * granted." When the script grants a token for exams (the token log's "exams N"), each sister and Dad see it once,
+ * the next time they open the app: her photo in a gold wreath in her colours, her three grades as medals that turn
+ * in one after another and count up, and her own kind of piece (the artwork, the ribbon, the stage). She herself
+ * taps "+1 token" and the coin comes in, as in the month's popup, and gets no second ceremony for it. */
+let STAR = null;
+function starDue(who) {
+  const seen = (L.seenStar || {})[who] || {};
+  return tokenLog().filter(t => t.change > 0 && /^exams \d+/.test(t.reason) && profile(t.p) && daysBetween(t.d, TODAY) <= 21 && !seen[`${t.p}|${t.reason}`])
+    .sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+}
+function starCheck(viewer) {
+  if (SANDBOX || !FAM || !FAM.profiles.length || layer.innerHTML) return false;
+  const who = viewer ? viewer.id : "dad", due = starDue(who);
+  if (!due.length) return false;
+  if (viewer) { L.seenTok = L.seenTok || {}; if (L.seenTok[viewer.id] == null) L.seenTok[viewer.id] = +FAM.tokens[viewer.id] || 0; }
+  STAR = { steps: due, i: 0, viewer, who, preview: false, back: view };
+  renderStar();
+  return true;
+}
+/* Her three latest exams that count, the newest last: what the medals show. */
+const starExams = pid => pastExams().filter(e => e.p === pid && counts(e)).slice(0, EXAMTOK.n).reverse();
+function renderStar() {
+  const X = STAR, t = X.steps[X.i], p = profile(t.p), v = X.viewer, mine = !!v && v.id === p.id && !X.preview;
+  if (!X.preview) { L.seenStar = L.seenStar || {}; (L.seenStar[X.who] = L.seenStar[X.who] || {})[`${t.p}|${t.reason}`] = TODAY; save(); }
+  applyAura(auraOf(p)); auraMood({ calm: 0.1, energy: 1, gold: 0.7 });
+  const ex = X.preview && X.fake ? X.fake : starExams(p.id);
+  const theme = p.flavor === "stage" ? `<canvas class="stagecv" data-lit="26" data-tier="3" aria-hidden="true"></canvas>`
+    : p.flavor === "routine" ? `<canvas class="appar" data-appar="4" data-e="10" data-gold="1" aria-hidden="true"></canvas>`
+    : `<div class="piece"><canvas width="640" height="300" data-art="exams|${p.id}|${t.reason}~${auraOf(p)}~5" aria-hidden="true"></canvas></div>`;
+  layer.innerHTML = `<div class="ceremony winpop starpop" role="dialog" aria-modal="true" aria-label="אסימון על שלושה מבחנים">
+    ${X.preview ? `<span class="chip warn">תצוגה מקדימה</span>` : ""}
+    <span class="eyebrow" dir="ltr" style="color:var(--gold)">${EXAMTOK.n} exams above ${EXAMTOK.min}</span>
+    <div class="luckbox starbox"><canvas class="luckcv" data-n="1" data-gold="1" aria-hidden="true"></canvas>
+      <div class="luckavs"><span class="luckav" style="animation-delay:.25s">${avatar(p, "xl ring")}</span></div></div>
+    <h2 class="display">${esc(p.name)}</h2>
+    <p class="muted">${mine ? `${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min}. זה שלך, ביושר.` : `${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min}. כל הכבוד!`}</p>
+    <div class="medals">${ex.map((e, i) => `<div class="medal" style="animation-delay:${0.7 + i * 0.28}s"><b class="num" data-count="${+e.grade}" data-dec="0">${+e.grade}</b><span>${esc(SUBJ[e.subj] || e.subj)}</span></div>`).join("")}</div>
+    <div class="themebox">${theme}</div>
+    <div class="coinslot" id="popcoin"></div>
+    <div class="popact" id="popact">${mine ? `<button type="button" class="btn btn-gold" data-act="starToken">${ICON.star.replace("<svg", '<svg fill="currentColor" width="18" height="18"')}<bdi dir="ltr">+1</bdi> אסימון</button>`
+      : `<button type="button" class="btn btn-primary" data-act="starNext">${X.i < X.steps.length - 1 ? "המשך" : "כל הכבוד!"}</button>`}</div></div>`;
+  paintArt(layer);
+  const a = AURAS[auraOf(p)].c;
+  SFX.done(); buzz([20, 60, 20]);
+  setTimeout(() => { if (STAR === X && X.steps[X.i] === t) comet(a); }, 450);
+  setTimeout(() => { if (STAR === X && X.steps[X.i] === t) { sparks(innerWidth / 2, innerHeight * 0.26, [a[0], a[1], "#F2C56B", "#FFE9B0", "#ffffff"], 160, 9); SFX.good(); } }, 1500);
+}
+/* Her tap on "+1 token": the coin comes in, and the way on appears when it has landed. */
+function starToken() {
+  const X = STAR, box = $(".ceremony", layer), slot = $("#popcoin", layer), act = $("#popact", layer);
+  if (!X || !box || box.classList.contains("coining")) return;
+  const t = X.steps[X.i];
+  box.classList.add("coining");
+  slot.innerHTML = `<div class="rays" aria-hidden="true"></div><div class="coin3d" aria-hidden="true"><div class="face">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</div><div class="face back"><span class="num">${+FAM.settings.tokenValue || 100}</span></div></div>`;
+  act.innerHTML = "";
+  auraMood({ energy: 1, gold: 1.4 }); SFX.coin(); buzz([30, 50, 30, 50, 60]);
+  claimTok(t.p, t.reason);
+  setTimeout(() => {
+    if (STAR !== X || !slot.isConnected) return;
+    const r = slot.getBoundingClientRect();
+    sparks(r.left + r.width / 2, r.top + r.height / 2, ["#F2C56B", "#FFE9B0", "#ffffff"], 170, 9); SFX.done();
+    act.innerHTML = `<p class="goldline">אסימון על ${EXAMTOK.n} מבחנים, בכספת שלך</p><button type="button" class="btn btn-primary" data-act="starNext">${X.i < X.steps.length - 1 ? "המשך" : "סגירה"}</button>`;
+  }, 1200);
+}
+function closeStar() {
+  const X = STAR;
+  STAR = null; layer.innerHTML = "";
+  if (!X) return;
+  if (X.preview || !X.viewer) { applyAura("chrome"); show("parent"); if (!X.preview) popupsFrom(2, null); return; }
+  applyAura(auraOf(X.viewer)); show(X.back === "parent" ? "home" : X.back);
+  popupsFrom(2, X.viewer);
 }
 
 /* ---------- good luck (Avsha, 2026-11-26) ----------
@@ -2373,7 +2521,7 @@ function closeLuck() {
   const X = LUCK;
   LUCK = null; layer.innerHTML = "";
   if (!X) return;
-  if (X.preview || !X.viewer) { applyAura("chrome"); show("parent"); if (!X.preview) newsCheck(); return; }
+  if (X.preview || !X.viewer) { applyAura("chrome"); show("parent"); if (!X.preview) popupsFrom(3, null); return; }
   applyAura(auraOf(X.viewer)); show(X.back === "parent" ? "home" : X.back);
 }
 /* The wreath: two branches of leaves that grow from the foot up each side of her photo, a light running along them
@@ -2381,7 +2529,7 @@ function closeLuck() {
 function liveLuck(cv) {
   const { ctx, W, H } = sized(cv), n = Math.max(1, +cv.dataset.n || 1), cx = W / 2, cy = H / 2 - 12;
   const rx = Math.min(W / 2 - 22, n === 1 ? 92 : n === 2 ? 152 : 164), ry = n === 1 ? 92 : n === 2 ? 92 : 76;
-  const cols = [cssVar("--a1") || "#A855F7", cssVar("--a2") || "#EC4899", cssVar("--a3") || "#6366F1"];
+  const cols = cv.dataset.gold === "1" ? ["#F2C56B", cssVar("--a1") || "#A855F7", "#FFE9B0"] : [cssVar("--a1") || "#A855F7", cssVar("--a2") || "#EC4899", cssVar("--a3") || "#6366F1"];
   const per = n === 1 ? 12 : 16, leaves = [];
   // A pair of leaves at each node of a branch, one leaning out and one in. A node at angle a on the left branch
   // (90° is the foot, 270° the top), mirrored for the right one; the leaves get smaller toward the tip.
@@ -2964,6 +3112,14 @@ document.addEventListener("click", async e => {
     case "popNext": if (POP.i < POP.steps.length - 1) { POP.i++; renderPop(); } else closePops(); break;
     case "popRecap": closePops("recap"); break;
     case "luckNext": if (LUCK && LUCK.i < LUCK.steps.length - 1) { LUCK.i++; renderLuck(); } else closeLuck(); break;
+    case "starToken": starToken(); break;
+    case "starNext": if (STAR && STAR.i < STAR.steps.length - 1) { STAR.i++; renderStar(); } else closeStar(); break;
+    case "starPreview": {
+      const p = FAM.profiles[0];
+      STAR = { steps: [{ p: p.id, d: TODAY, change: 1, reason: "exams 3" }], i: 0, viewer: null, who: "dad", preview: true, back: "parent",
+               fake: [{ grade: 92, subj: "eng" }, { grade: 88, subj: "math" }, { grade: 95, subj: subjectsOf(p)[2] || "heb" }] };
+      renderStar(); break;
+    }
     case "luckPreview": {
       const up = tests().filter(t => t.date >= TODAY && profile(t.p)).sort((a, b) => a.date < b.date ? -1 : 1)[0];
       const same = up ? tests().filter(t => t.date === up.date && t.subj === up.subj && profile(t.p)) : [];
@@ -3027,7 +3183,7 @@ document.addEventListener("click", async e => {
       if (LIVE) {
         try {
           if (act === "unflag") await api("unflag", { pin: parentPin, p: d.p, d: d.d, q: d.q });
-          else if (act === "block") await api("block", Object.assign({ pin: parentPin, p: d.p, pool: d.pool, t: d.t, text }, topic ? {} : { q: d.q }));
+          else if (act === "block") await api("block", Object.assign({ pin: parentPin, p: d.p, pool: d.pool, t: d.t, text, mark: d.q }, topic ? {} : { q: d.q }));
           else await api("unblock", { pin: parentPin, s: d.s, pool: d.pool, t: d.t, q: d.q || "" });
           await refresh();
         } catch (err) { toast("לא נשמר. נסה שוב."); break; }
@@ -3042,7 +3198,7 @@ document.addEventListener("click", async e => {
       if (inNews) { renderNews(); if (!NEWS) show("parent"); else STALE = true; } else show("parent");
       break;
     }
-    case "closeNews": NEWS = null; layer.innerHTML = ""; break;
+    case "closeNews": NEWS = null; layer.innerHTML = ""; starCheck(null); break;
     case "addPage": pageSheet(); break;
     case "pagePickSub": $$("#psub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
     case "pagePick": $("#pageFile").click(); break;
@@ -3051,13 +3207,38 @@ document.addEventListener("click", async e => {
     case "pickMate": b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); break;
     case "gradeOpen": gradeSheet(b.dataset.p, b.dataset.date, b.dataset.subj); break;
     case "gradeLater": L.gradeLater = L.gradeLater || {}; L.gradeLater[b.dataset.k] = addDays(TODAY, GRADE.later); save(); show("home"); break;
+    case "gradePick": $("#gradeFile").click(); break;
     case "gradeSave": {
-      const d = b.dataset, raw = b.dataset.clear ? "" : $("#gval").value.trim(), g = raw === "" ? "" : Math.round(+raw);
-      if (!b.dataset.clear && (raw === "" || isNaN(g) || g < 0 || g > 100)) { toast("ציון בין 0 ל־100"); break; }
-      if (LIVE && !SANDBOX) { try { await api("grade", { p: d.p, date: d.date, subj: d.subj, grade: g }); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
-      else { const x = (SANDBOX ? L.sand.tests : L.tests).find(z => z.p === d.p && z.date === d.date && z.subj === d.subj); if (x) x.grade = g; save(); }
-      if (view === "parent" && g !== "") dadSaw([`grade|${d.p}|${d.date}|${d.subj}|${g}`]);
-      show(view); toast(g === "" ? "הציון נמחק" : "הציון נשמר"); break;
+      const d = b.dataset, dad = view === "parent", clear = !!d.clear, raw = clear ? "" : $("#gval").value.trim(), g = raw === "" ? "" : Math.round(+raw);
+      if (!clear && (raw === "" || isNaN(g) || g < 0 || g > 100)) { toast("ציון בין 0 ל־100"); break; }
+      const go = $("#gradeSave"), file = !clear && GR && GR.file;
+      if (go) { go.disabled = true; go.textContent = file ? "שולחת את הצילום…" : "שומר…"; }
+      let photo = "";
+      if (file) { try { photo = await fitPage(file); } catch (err) { toast("לא הצלחתי לקרוא את התמונה"); if (go) { go.disabled = false; go.textContent = "שמירה"; } break; } }
+      if (LIVE && !SANDBOX) {
+        try { await api("grade", Object.assign({ p: d.p, date: d.date, subj: d.subj, grade: g }, photo ? { data: photo } : {}, dad && canProve() ? { pin: parentPin } : {}), 90000); await refresh(); }
+        catch (err) { toast("לא נשמר. נסו שוב."); if (go) { go.disabled = false; go.textContent = "שמירה"; } break; }
+      } else {
+        const x = (SANDBOX ? L.sand.tests : L.tests).find(z => z.p === d.p && z.date === d.date && z.subj === d.subj);
+        if (x) { if (g === "") { delete x.grade; x.f = ""; x.yes = ""; } else { x.grade = g; if (photo) x.f = "local"; x.yes = dad ? "yes" : ""; } }
+        save(); if (!SANDBOX) demoExamTokens(d.p);
+      }
+      if (GR && GR.url) URL.revokeObjectURL(GR.url);
+      GR = null;
+      if (dad && g !== "") dadSaw([`grade|${d.p}|${d.date}|${d.subj}|${g}`]);
+      show(view);
+      toast(g === "" ? "הציון נמחק" : dad ? "הציון נשמר" : photo ? "נשמר. אבא יאשר והמבחן ייספר." : "הציון נשמר");
+      if (dad && g !== "") popupsFrom(1, null);   // a third exam above 85: the token's popup, at once
+      break;
+    }
+    case "gradeOk": {
+      const d = b.dataset, yes = !!d.yes, inNews = !!NEWS && !!b.closest(".news");
+      if (LIVE) { try { await api("gradeok", { pin: parentPin, p: d.p, date: d.date, subj: d.subj, yes }); await refresh(); } catch (err) { toast("לא נשמר. נסה שוב."); break; } }
+      else { const x = L.tests.find(z => z.p === d.p && z.date === d.date && z.subj === d.subj); if (x) x.yes = yes ? "yes" : "no"; save(); demoExamTokens(d.p); }
+      toast(yes ? "אושר: המבחן נספר" : "לא אושר");
+      if (inNews) { renderNews(); if (NEWS) { STALE = true; break; } }
+      show("parent"); popupsFrom(1, null);
+      break;
     }
     case "saveTest": {
       const sb = $("#tsub [aria-pressed=true]"), date = $("#tdate").value, note = $("#tnote").value.trim();
@@ -3092,6 +3273,11 @@ document.addEventListener("click", async e => {
 });
 document.addEventListener("change", e => {
   if (e.target.id === "photoFile" && e.target.files[0]) readPhoto(e.target.files[0]);
+  if (e.target.id === "gradeFile" && GR && e.target.files[0]) {
+    if (GR.url) URL.revokeObjectURL(GR.url);
+    GR.file = e.target.files[0]; GR.url = URL.createObjectURL(GR.file); e.target.value = "";
+    const box = $("#gthumb"); if (box) box.innerHTML = `<span class="pthumb"><img src="${GR.url}" alt=""></span>`;
+  }
   if (e.target.id === "pageFile" && PG && !PG.busy) {
     [...e.target.files].forEach(file => { if (PG.files.length < PAGE.send && (!file.type || /^image\//.test(file.type))) PG.files.push({ file, url: URL.createObjectURL(file) }); });
     e.target.value = ""; pageThumbs();
@@ -3158,7 +3344,7 @@ function greet() {
     const [py, pm] = prevMonth(Y, M);
     if (stats(p.id, py, pm).played) { L.seenRecap = THIS_MONTH; save(); openRecap(p.id); return; }
   }
-  luckCheck(p);
+  popupsFrom(1, p);
 }
 async function boot() {
   auraStart();
@@ -3196,7 +3382,7 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

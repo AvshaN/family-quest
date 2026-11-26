@@ -28,6 +28,7 @@ No accounts, no server, no cost.
 | Test mode | She adds a test (or it is entered from her notebook); for a week before it three of her five come from that subject. Dad's screen and the evening email list every upcoming exam. |
 | The board | Points for days played, right answers, perfect days and full weeks (5 of 7 days); from December 2026 a right answer is worth as much as showing up. Resets on the 1st; the winner gets a token. |
 | The vault | Tokens: one is worth 100 ₪, or save 5 or 10 for bigger prizes. |
+| Three exams above 85 | Every three exams with a grade above 85 earn her a token. She enters the grade with a photo of the graded exam, and Dad confirms it. When the token comes, the whole family sees a popup once: her photo in a gold wreath, her three grades as medals. |
 | Exam weeks | When an exam's material is known, its week's questions and practice come from it first, with more practice rounds allowed. |
 | Formula sheet | Math questions for the eldest have the formula sheet her class gets in tests, one tap away. |
 | Her own look | Each girl picks her colours ("aura") and her photo or drawing, and her sisters see both on the board. Each has her own result screen: a generative art piece, a gymnastics score (D + E), or a live set. |
