@@ -1593,6 +1593,7 @@ const ICON = {
   plus: I('<path d="M12 5v14M5 12h14"/>'),
   cal: I('<rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/>'),
   cam: I('<path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3v10.5H4z"/><circle cx="12" cy="13.3" r="3.4"/>'),
+  share: I('<path d="M12 15V4M8 7.5 12 4l4 3.5M6 12v6.5h12V12"/>'),
   flame: I('<path d="M12 3c.8 3.8 5 5.6 5 10.4A5 5 0 0 1 7 13.4c0-2.3 1.3-3.8 2.2-4.6 0 1.6.8 2.7 1.8 2.7C11 8.2 10.6 5.6 12 3z"/>'),
   lock: I('<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
   image: I('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 16l-5-5-8 8"/>'),
@@ -1766,6 +1767,7 @@ function renderHome() {
       <span class="small muted">${ws.streak === 1 ? "שבוע מלא" : "שבועות מלאים ברצף"}</span>${pathDots(ws)}</div>
     <p class="small faint">חמישה ימים בשבוע מספיקים. אימון או שבת בלי משימה לא שוברים כלום. כל ${PATH.every} שבועות מלאים שווים אסימון: עוד ${ws.left}.</p>
     ${homeExtras(p)}</section>
+  ${factRow()}
   <div class="stats">
     <div class="glass stat"><b class="num">${st.points}</b><span>נקודות ב${MONTHS[M - 1]}</span></div>
     <div class="glass stat"><b class="num">#${place}</b><span>בטבלה</span></div>
@@ -1993,7 +1995,8 @@ function parentToday() {
   ${gradesCard()}
   ${pagesWaitCard()}
   ${canFlag() ? flagsCard() : ""}
-  <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>`;
+  <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>
+  ${factRow()}`;
 }
 /* A question she got wrong, whole, with its right answer, so Dad can talk it through with her (he saw only the
  * topic's name, 2026-11-14), and how long she took over it. */
@@ -2092,9 +2095,9 @@ function renderNews() {
     <p class="small faint">${marks.length ? "הסימונים נשארים בלשונית ״היום״ עד שתחליט. " : ""}כל דבר מופיע כאן פעם אחת.</p></div></div>`;
 }
 /* The popups due at an opening come one after the other, in this order: the month's winner, a token for three exams
- * (shared by all of us), good luck for an exam tomorrow, and for Dad what waits for him. Each check opens its popup
- * and says so; closing one calls popupsFrom with the place after its own. viewer is a girl, or null for Dad. */
-const POPS = [v => monthCheck(v), v => starCheck(v), v => luckCheck(v), v => !v && newsCheck()];
+ * (shared by all of us), good luck for an exam tomorrow, for Dad what waits for him, and last the fact of the day
+ * (only on an opening that showed none of the others: POPPED). Each check opens its popup and says so; closing one calls popupsFrom with the place after its own. viewer is a girl, or null for Dad. */
+const POPS = [v => monthCheck(v), v => starCheck(v), v => luckCheck(v), v => !v && newsCheck(), v => factCheck(v)];
 function popupsFrom(i, viewer) { for (let k = i; k < POPS.length; k++) if (POPS[k](viewer)) return true; return false; }
 const dadPopups = () => popupsFrom(0, null);
 /* Upcoming exams, every girl's, soonest first, as in the evening email; the week of focus is lit. */
@@ -2457,6 +2460,121 @@ function closeStar() {
   if (X.preview || !X.viewer) { applyAura("chrome"); show("parent"); if (!X.preview) popupsFrom(2, null); return; }
   applyAura(auraOf(X.viewer)); show(X.back === "parent" ? "home" : X.back);
   popupsFrom(2, X.viewer);
+}
+
+/* ---------- the fact of the day (Avsha, 2026-11-26) ----------
+ * "A shared daily popup once when opening the app with an interesting fact of the day, a general fact not from their
+ * classes ... something impressive they can share with their friends", with a picture. data/facts.json lists the
+ * facts in order from a start date, so on a given day all of us read the same one; each of us sees its popup once
+ * that day, and it stays as a card on the home screen (and on Dad's Today). On an opening that already showed another
+ * popup the fact is not a second one in a row: it is on the card, and its popup comes at the day's next opening.
+ * Nothing of it touches the Sheet.
+ * Each fact: { id, cat, title, text, credit }, its picture data/facts/<id>.webp. Facts are added at the end of the
+ * list, before it runs out; if it does run out it goes round again from the first. */
+const FACT_CAT = { space: "Space", animals: "Animals", body: "The human body", earth: "Planet Earth", physics: "Physics", numbers: "Numbers", invent: "Inventions", history: "History" };
+let FACTS = null, FACT = null, POPPED = false, FACTS_READY = Promise.resolve();
+async function loadFacts() {
+  if (window.FQ_FACTS) { FACTS = window.FQ_FACTS; return; }   // the preview file carries them
+  try { const r = await fetch(new URL("data/facts.json", location.href).href, { cache: "no-cache" }); if (r.ok) FACTS = await r.json(); } catch (e) { /* the next opening */ }
+  const f = factOf(TODAY);
+  if (f) new Image().src = factImg(f);   // on the phone before its popup opens
+}
+function factOf(day) {
+  if (!FACTS || !Array.isArray(FACTS.facts) || !FACTS.facts.length) return null;
+  const k = daysBetween(FACTS.start, day), n = FACTS.facts.length;
+  return k < 0 ? null : FACTS.facts[k % n];
+}
+const factImg = f => (window.FQ_FACT_BASE || new URL("data/facts/", location.href).href) + f.id + ".webp";
+function factCheck(viewer) {
+  if (SANDBOX || layer.innerHTML) return false;
+  const f = factOf(TODAY), who = viewer ? viewer.id : "dad";
+  if (!f) return false;
+  L.seenFact = L.seenFact || {};
+  if (L.seenFact[who] === TODAY) return false;
+  if (POPPED) return false;   // another popup has opened since the app was: the fact is on its card, and pops up at the day's next opening
+  L.seenFact[who] = TODAY; save();
+  openFact(f, viewer);
+  return true;
+}
+/* The facts reached the phone after the popups of the opening were gone through. */
+function factLate() {
+  if (!BOOTED || POPPED || layer.innerHTML || SANDBOX || waiting()) return;
+  if (L.parent || view === "parent") { if (parentOK && view === "parent") factCheck(null); return; }
+  const p = me();
+  if (p && ["home", "know", "board", "vault", "me"].includes(view)) factCheck(p);
+}
+function openFact(f, viewer) {
+  const X = FACT = { f, viewer, file: null };
+  layer.innerHTML = `<div class="ceremony factpop" role="dialog" aria-modal="true" aria-label="העובדה של היום">
+    <span class="eyebrow" dir="ltr">Fact of the day · ${FACT_CAT[f.cat] || "Did you know"}</span>
+    <figure class="factfig"><img src="${esc(factImg(f))}" alt="" onload="this.parentNode.classList.add('in')" onerror="this.parentNode.classList.add('none')">
+      ${f.credit ? `<figcaption dir="ltr">${esc(f.credit)}</figcaption>` : ""}</figure>
+    <h2 class="display">${esc(f.title)}</h2>
+    <p class="facttext">${esc(f.text)}</p>
+    <div class="factacts"><button type="button" class="btn btn-primary" data-act="factClose">מגניב</button>
+      <button type="button" class="btn btn-ghost" data-act="factShare">${ICON.share.replace("<svg", '<svg width="18" height="18"')} לשתף</button></div></div>`;
+  auraMood({ calm: 0.25, energy: 0.6 });
+  // the picture to share is made now: a share sheet opens only straight from her tap, with no waiting in between
+  factPicture(f).then(file => { if (FACT === X) X.file = file; }).catch(() => {});
+}
+function closeFact() {
+  const X = FACT;
+  FACT = null; layer.innerHTML = "";
+  if (X && view === "home") setTimeout(tokenCheck, 300);
+}
+/* The fact as one picture, 1080 wide, for WhatsApp and the like: its photo, the headline, the text and the photo's
+ * credit (a licence asks that the credit travel with the photo). A JPEG: WhatsApp takes a WebP for a sticker. */
+function factPicture(f) {
+  return new Promise((done, fail) => {
+    const img = new Image();
+    img.onerror = () => fail(new Error("no picture"));
+    img.onload = () => {
+      try {
+        const W = 1080, PH = 720, pad = 64, cv = document.createElement("canvas"), c = cv.getContext("2d");
+        const wrap = (text, font, max) => { c.font = font; const out = []; let line = "";
+          String(text).split(/\s+/).forEach(w => { const t = line ? line + " " + w : w; if (line && c.measureText(t).width > max) { out.push(line); line = w; } else line = t; });
+          if (line) out.push(line); return out; };
+        const fT = '400 68px Bellefair, "Frank Ruhl Libre", serif', fB = '400 40px Heebo, Arial, sans-serif';
+        cv.width = W; cv.height = 10;
+        const title = wrap(f.title, fT, W - pad * 2), body = wrap(f.text, fB, W - pad * 2);
+        const H = PH + 56 + title.length * 76 + 22 + body.length * 58 + 96;
+        cv.height = H;
+        c.fillStyle = "#0B0B12"; c.fillRect(0, 0, W, H);
+        const k = Math.max(W / img.naturalWidth, PH / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
+        c.drawImage(img, (W - w) / 2, (PH - h) / 2, w, h);
+        const g = c.createLinearGradient(0, PH - 200, 0, PH); g.addColorStop(0, "rgba(11,11,18,0)"); g.addColorStop(1, "#0B0B12");
+        c.fillStyle = g; c.fillRect(0, PH - 200, W, 200);
+        c.fillStyle = "#0B0B12"; c.fillRect(0, PH, W, H - PH);
+        c.direction = "rtl"; c.textAlign = "right"; c.textBaseline = "top";
+        let y = PH + 30;
+        c.fillStyle = "#F4F2FA"; c.font = fT; title.forEach(t => { c.fillText(t, W - pad, y); y += 76; });
+        y += 22; c.fillStyle = "#B9B5CC"; c.font = fB; body.forEach(t => { c.fillText(t, W - pad, y); y += 58; });
+        c.direction = "ltr"; c.textAlign = "left"; c.fillStyle = "#6E6A84"; c.font = '400 24px Heebo, Arial, sans-serif';
+        if (f.credit) c.fillText(f.credit, pad, H - 58);
+        cv.toBlob(b => b ? done(new File([b], "fact-" + f.id + ".jpg", { type: "image/jpeg" })) : fail(new Error("no blob")), "image/jpeg", 0.88);
+      } catch (e) { fail(e); }
+    };
+    img.src = factImg(f);
+  });
+}
+/* Sharing: the picture through the phone's share sheet when it takes files, else the words; with no share sheet,
+ * WhatsApp's own link. The app's address is never shared: it carries the family code. */
+function factShare() {
+  if (!FACT) return;
+  const f = FACT.f, text = f.title + "\n" + f.text, file = FACT.file;
+  if (navigator.share) {
+    const withFile = file && navigator.canShare && navigator.canShare({ files: [file] });
+    navigator.share(withFile ? { files: [file], text: f.title } : { text }).catch(() => {});
+    return;
+  }
+  window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
+}
+/* The day's fact as a card: on her home screen, and at the foot of Dad's Today. */
+function factRow() {
+  const f = SANDBOX ? null : factOf(TODAY);
+  if (!f) return "";
+  return `<button type="button" class="glass factcard" data-act="factOpen"><img src="${esc(factImg(f))}" alt="" loading="lazy" onerror="this.remove()">
+    <span><span class="eyebrow" dir="ltr">Fact of the day · ${FACT_CAT[f.cat] || ""}</span><b>${esc(f.title)}</b></span></button>`;
 }
 
 /* ---------- good luck (Avsha, 2026-11-26) ----------
@@ -3112,6 +3230,9 @@ document.addEventListener("click", async e => {
     case "popNext": if (POP.i < POP.steps.length - 1) { POP.i++; renderPop(); } else closePops(); break;
     case "popRecap": closePops("recap"); break;
     case "luckNext": if (LUCK && LUCK.i < LUCK.steps.length - 1) { LUCK.i++; renderLuck(); } else closeLuck(); break;
+    case "factOpen": { const f = factOf(TODAY); if (f && !layer.innerHTML) openFact(f, view === "parent" ? null : me()); break; }
+    case "factClose": closeFact(); break;
+    case "factShare": factShare(); break;
     case "starToken": starToken(); break;
     case "starNext": if (STAR && STAR.i < STAR.steps.length - 1) { STAR.i++; renderStar(); } else closeStar(); break;
     case "starPreview": {
@@ -3291,6 +3412,7 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden && ym
 function allPools() { return [...new Set(FAM.profiles.flatMap(p => trackPools(p.track)))]; }
 new MutationObserver(() => {
   document.body.classList.toggle("deep", !!$(".quiz, .story, .ceremony", layer));
+  if ($(".ceremony:not(.factpop), .story, .sheet.news", layer)) POPPED = true;
   if (STALE && !layer.innerHTML) repaint();
 }).observe(layer, { childList: true });
 /* ---------- opening (Avsha, 2026-11-26: "I see the purple screen and about 30 seconds later the app loads") ----------
@@ -3333,6 +3455,7 @@ function firstScreen() {
 }
 /* After the first screen, once the Sheet has answered (or cannot): the photos, and whatever popup is due. */
 function greet() {
+  FACTS_READY.then(factLate);
   if (LIVE) (me() && !L.parent ? sharePhoto() : Promise.resolve()).then(fetchPhotos);
   loadPagesDone().then(syncPages);
   if (layer.innerHTML || SANDBOX) return;
@@ -3348,6 +3471,7 @@ function greet() {
 }
 async function boot() {
   auraStart();
+  FACTS_READY = loadFacts();
   if (LIVE) {
     const k = new URLSearchParams(location.search).get("k");
     /* The code stays in the address: on an iPhone the home-screen copy keeps its own storage, and the address it is saved from carries the code into it. */
@@ -3382,7 +3506,7 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, factOf, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

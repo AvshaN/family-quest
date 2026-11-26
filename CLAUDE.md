@@ -351,9 +351,49 @@ tests with the girls and gives feedback; Claude writes the code.
   leaves an exam token to this popup). Dad sees it the moment his yes
   grants it. A preview link is on his Exams card.
 - **The popups of an opening** come in one order (`POPS`, `popupsFrom`):
-  the month's winner, the exam token, good luck, and for Dad what waits.
-  Closing one calls `popupsFrom` with the place after its own. A new popup
-  is a new entry there, not a call from another popup's close.
+  the month's winner, the exam token, good luck, for Dad what waits, and
+  last the fact of the day. Closing one calls `popupsFrom` with the place
+  after its own. A new popup is a new entry there, not a call from another
+  popup's close.
+- **The fact of the day** (`loadFacts`, `factOf`, `factCheck`, `openFact`,
+  `factPicture`, `factShare`, `factRow`; `data/facts.json`,
+  `data/facts/<id>.webp`, `tools/facts.py`; Avsha, 2026-11-26: "a shared
+  daily popup once when opening the app with an interesting fact of the
+  day, a general fact not from their classes ... something impressive they
+  can share with their friends", with a picture). The file lists the facts
+  in order from its `start` date, so all four read the same one on a day;
+  each sees its popup once that day (`L.seenFact`, by viewer) and it stays
+  as a card on her home screen and at the foot of Dad's Today. It never
+  follows another popup in one opening (`POPPED`, set by the layer's
+  observer): then it is on the card and pops up at the day's next opening.
+  Nothing of it touches the Sheet, so it needs no script. Sharing sends one
+  picture made in the page (photo, headline, text, credit; a JPEG, because
+  WhatsApp takes a WebP for a sticker), prepared when the popup opens
+  because a share sheet opens only straight from a tap. **Never share the
+  app's address: it carries the family code.**
+  The first 61 run from 2026-11-26 to 2027-01-25; after the last the list
+  goes round again, so add at the end before that. **Every fact is checked
+  against a published source before it goes in** (he was told so): the
+  first 61 were checked by three agents with web search, which corrected
+  about twenty (the Eiffel Tower grows centimetres, not 15; a blue whale's
+  heart is a golf cart, not a car; "honey still edible after 3,000 years"
+  is unproven) and found one disputed (more stars than grains of sand: out).
+  Leave out what experts dispute, and keep to what the source says: the
+  girls repeat these to friends. The source is the last column of
+  `data/facts/CREDITS.md`.
+  **Pictures**: public domain, CC0, CC BY or CC BY-SA only, never an
+  AI-made picture of a real animal or planet; the short credit is shown on
+  the picture and travels on the shared one, the full one is a row of
+  CREDITS.md. `python3 tools/facts.py image <id> <file>` cuts one to
+  900 x 600; look at every picture after cutting it. From this machine
+  NASA's library answers freely (`images-api.nasa.gov/search?q=`, then
+  `/asset/<id>`). Wikimedia's API and its `Special:FilePath` refuse after a
+  few requests (429); what works is one batched request (the lead picture
+  of up to 50 Wikipedia articles: `prop=pageimages&piprop=name`), the
+  files straight from `upload.wikimedia.org/wikipedia/commons/<a>/<ab>/
+  <File_name>` (a and ab from the MD5 of the name with underscores; a
+  `thumb/.../1280px-` copy when there is one), and the licences through a
+  web-fetch agent on the API address (`prop=imageinfo&iiprop=extmetadata`).
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
   score like "3/5": Gmail read a girl's name followed by ": 3/5" as a street address (her name as the street, 3 the number, 5 the flat) and linked it to Maps
@@ -398,6 +438,7 @@ tests with the girls and gives feedback; Claude writes the code.
 
 - `node --check app.js`
 - `python3 tools/check_bank.py`
+- `python3 tools/facts.py check` after touching the facts or their pictures.
 - `python3 tools/build_preview.py /tmp/x.html --names "A,B,C"` and open it
   (or walk it with Playwright) for a demo-mode look at every screen.
 - The walks of 2026-11-26 are the pattern for a new feature: stage rows with
@@ -453,6 +494,11 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   come up for a twin.
 - **The exam token was never seen on a real phone**: the photo's upload to
   Drive from a grade, and the popup's motion on the old Xiaomi. Ask.
+- **The fact of the day was never seen on a real phone**: whether the share
+  button sends the picture to WhatsApp on the iPhones and the Xiaomi (it
+  was tested with a stand-in for the phone's share sheet), and whether the
+  popup arriving a few seconds after the home screen gets in the way of a
+  girl about to start her five. Ask.
 - **The other twin's major** (exemplary figures): is the pool `g7-midrash`
   that major, and so hers alone, or a class both take? Both tracks draw on
   it. He does not know (the classes are new to him and the notebooks say
@@ -481,3 +527,7 @@ English a day; the twins share the grade-7 pools, so those go twice as
 fast). Ask Avsha what the girls are learning now, or for their tests, and
 keep `STUDYING` in step: a limited pool runs out sooner, so count its
 listed topics' questions, not the whole bank.
+
+The facts of the day run out on 2027-01-25: add a month's worth before
+then (above: checked against a source, a free picture, a row of credits).
+Ask him which ones the girls talked about, and write more of that kind.
