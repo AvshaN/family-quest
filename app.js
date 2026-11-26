@@ -165,7 +165,8 @@ const me = () => SANDBOX ? SANDBOX.p : (profile(L.me) || null);
 const everyone = () => SANDBOX ? FAM.profiles.concat(SANDBOX.p) : FAM.profiles;
 const auraOf = p => (p && (L.auras[p.id] || p.aura)) || "orchid";
 function rows() {
-  const src = (LIVE ? FAM.rows.concat(...L.outbox.map(b => b.rows)) : L.rows.concat(EXAMPLE)).concat(SANDBOX ? L.sand.rows : []);
+  // live: what the Sheet sent, what waits to be sent, and what was sent after the Sheet's last answer was asked for
+  const src = (LIVE ? FAM.rows.concat(...L.outbox.map(b => b.rows), ...(L.sent || []).map(b => b.rows)) : L.rows.concat(EXAMPLE)).concat(SANDBOX ? L.sand.rows : []);
   const seen = new Set(), out = [];
   for (const r of src) { const k = `${r.d}|${r.p}|${r.q}|${r.r | 0}`; if (!seen.has(k)) { seen.add(k); out.push(r); } }
   return out;
@@ -882,8 +883,14 @@ async function api(action, body) {
   if (!j.ok) throw new Error(j.error || "refused");
   return j;
 }
+/* An answer of the Sheet's that was asked for before her rows were sent can arrive after them (the opening asks in
+ * the background, and the script of before 2026-11-26 took 20 seconds): it would put back a day without her
+ * answers, the home screen would offer the day again, and the copy kept for the next opening would lack them.
+ * So the batches sent are kept (L.sent) until an answer that was asked for after them has come. */
 async function refresh() {
+  const asked = Date.now();
   const s = await api("state");
+  L.sent = (L.sent || []).filter(b => b.at > asked);
   FAM = { profiles: s.profiles || [], settings: s.settings || {}, tokens: s.tokens || {}, rows: s.rows || [], tests: s.tests || [],
           lifetime: s.lifetime || null, tokenLog: s.tokenLog || [], api: s.api | 0, path: s.path || null, know: s.know || null,
           exams: s.exams || null, trend: s.trend || null, sis: s.sis || null };
@@ -894,7 +901,7 @@ async function flush() {
     // The rows stay in what the phone holds once the Sheet has them. They used to leave the outbox here and come
     // back only with the next reading of the Sheet, a second or three later: in between the day looked unplayed,
     // and its home screen, drawn then, kept the start button (one twin played 22.11 twice, for a second revenge round).
-    try { const b = L.outbox[0]; await api("submit", b); if (FAM && FAM.rows) FAM.rows = FAM.rows.concat(b.rows); L.outbox.shift(); save(); } catch (e) { return false; }
+    try { const b = L.outbox[0]; await api("submit", b); if (FAM && FAM.rows) FAM.rows = FAM.rows.concat(b.rows); L.sent = (L.sent || []).concat({ at: Date.now(), rows: b.rows }); L.outbox.shift(); save(); } catch (e) { return false; }
   }
   return true;
 }
@@ -2861,8 +2868,9 @@ new MutationObserver(() => {
  * Until then SYNC is "wait" and a round cannot be started: the day's five are picked from her sisters' rows too
  * (a twin never gets a question her sister has answered) and from the exams entered, which the last copy may lack.
  * The popups (the month's winner, an exam tomorrow) wait for the answer as well. With no connection the wait ends
- * as it always did, on the last copy. */
+ * as it always did, on the last copy, and so it does when the Sheet has not answered in SYNC_WAIT. */
 let SYNC = "ok", STALE = false, SHOWN = 0;
+const SYNC_WAIT = 12000;   // the Sheet's script of before 2026-11-26 took 20 seconds and more
 const T0 = performance.now();
 const waiting = () => SYNC === "wait";
 function repaint() {
@@ -2916,7 +2924,11 @@ async function boot() {
       await loadBanks(allPools(), true);
       SYNC = "wait";
       firstScreen();
-      sync().then(changed => { SYNC = "ok"; if (changed || $("[data-wait]", app)) repaint(); greet(); });
+      // She is never left waiting on the Sheet: after SYNC_WAIT the round can start from the last copy, as it does
+      // with no connection, and the answer is taken when it comes (a round in progress keeps its questions).
+      // Whatever goes wrong in sync, the wait ends.
+      setTimeout(() => { if (waiting()) { SYNC = "ok"; repaint(); } }, SYNC_WAIT);
+      sync().catch(() => false).then(changed => { SYNC = "ok"; if (changed || $("[data-wait]", app)) repaint(); greet(); });
       return;
     }
     // a phone's first opening: nothing to show yet but that it is on its way

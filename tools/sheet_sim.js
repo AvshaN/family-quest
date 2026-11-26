@@ -10,7 +10,7 @@
  *   /__load  (POST {tab, rows})                                       appends rows to a tab, to stage a history
  *   /__score?y=2026&m=12                                              the script's ranking for a month
  *   /__mails                                                          the emails sent since last asked
- *   /__lag?ms=4000                                                    the Sheet answers that much later, as Google does
+ *   /__lag?ms=4000[&get=1]                                            the Sheet answers that much later, as Google does (get=1: only its readings, so an old answer can arrive after a write)
  *   /__reads                                                          tab readings in the last /exec request, and date formats so far
  * The stand-ins below cover only what Code.gs calls. */
 const fs = require("fs"), path = require("path"), http = require("http"), vm = require("vm"), url = require("url");
@@ -48,7 +48,7 @@ const SS = {
   deleteSheet: s => { book.tabs = book.tabs.filter(t => t !== s); },
   getUrl: () => "https://docs.google.com/spreadsheets/d/EXAMPLE/edit"
 };
-let FIXED = null, LAG = 0, READS = 0, LAST_READS = 0, FORMATS = 0;
+let FIXED = null, LAG = 0, LAG_GET = false, READS = 0, LAST_READS = 0, FORMATS = 0;
 const RealDate = Date;
 class FakeDate extends RealDate {
   constructor(...a) { if (!a.length && FIXED) super(FIXED); else super(...a); }
@@ -83,13 +83,14 @@ http.createServer((req, res) => {
   if (ctx.wrote_) ctx.wrote_();
   if (u.pathname === "/exec") {
     // the Sheet's answer after LAG ms, as Google's takes seconds
-    const later = (code, type, body) => LAG ? setTimeout(() => send(code, type, body), LAG) : send(code, type, body);
+    const slow = LAG && (!LAG_GET || req.method === "GET");
+    const later = (code, type, body) => slow ? setTimeout(() => send(code, type, body), LAG) : send(code, type, body);
     READS = 0;
     if (req.method === "GET") { const out = ctx.doGet({ parameter: u.query }).s; LAST_READS = READS; return later(200, "application/json", out); }
     let body = ""; req.on("data", c => body += c);
     return req.on("end", () => { const out = ctx.doPost({ postData: { contents: body } }).s; LAST_READS = READS; later(200, "application/json", out); });
   }
-  if (u.pathname === "/__lag") { LAG = +u.query.ms || 0; return send(200, "application/json", JSON.stringify({ lag: LAG })); }
+  if (u.pathname === "/__lag") { LAG = +u.query.ms || 0; LAG_GET = !!u.query.get; return send(200, "application/json", JSON.stringify({ lag: LAG, get: LAG_GET })); }
   if (u.pathname === "/__reads") return send(200, "application/json", JSON.stringify({ reads: LAST_READS, formats: FORMATS }));
   if (u.pathname === "/__run") {
     const was = FIXED;
