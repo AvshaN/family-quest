@@ -48,7 +48,7 @@ var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson:
                  ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, page: 5, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 7;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages
+var API = 7;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages, taking a "not learned yet" mark off
 // (the parent's Settings tab compares this with SCRIPT_API in app.js and says when the script here is behind: raise both together)
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
@@ -133,6 +133,7 @@ function doPost(e) {
         case "test": return addTest_(b);
         case "untest": return delTest_(b);
         case "grade": return setGrade_(b);
+        case "unflag": return unflag_(b);
         case "page": return addPage_(b);
         case "pagedone": return pageDone_(b);
         case "redeem": return redeem_(b);
@@ -221,6 +222,20 @@ function submit_(b) {
     tokens = pathTokens_(b.p);
   }
   return { ok: true, added: add.length, tokens: tokens };
+}
+
+/* A "not learned yet" mark that was a slip of the finger, or on a topic that was taught (Avsha, 2026-11-26: the art
+ * twin marked a rectangle's perimeter by mistake, and the mark kept her fix-it lesson on perimeter from being
+ * offered): the parent takes it off from his Today tab. The answer itself stays as it was. */
+function unflag_(b) {
+  checkPin_(b.pin);
+  needProfile_(b.p);
+  var sh = sheet_("Answers"), v = values_("Answers"), n = 0;
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][2]) === b.p && dateText_(v[i][1]) === String(b.d) && String(v[i][3]) === String(b.q) && String(v[i][10] || "") !== "") { sh.getRange(i + 1, 11).setValue(""); n++; }
+  }
+  if (n) wrote_();
+  return { ok: true, removed: n };
 }
 
 var PIC_OK = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;

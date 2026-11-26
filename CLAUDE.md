@@ -27,8 +27,8 @@ tests with the girls and gives feedback; Claude writes the code.
   Script URL; empty means demo mode (example history, localStorage only).
 - `backend/Code.gs` runs inside the Sheet. Tabs: Settings, Profiles,
   Answers, Tokens, Tests, Pages. API: GET `state | photos`, POST `submit |
-  profile | test | untest | grade | page | pagedone | redeem | pin | grant |
-  settings`. Timers: `nightlyDigest`,
+  profile | test | untest | grade | unflag | page | pagedone | redeem | pin |
+  grant | settings`. Timers: `nightlyDigest`,
   `monthlyClose`. `state` sends `api` (2 since 2026-11-14, 3 since
   2026-11-22: photos, 4 the same day: "not learned yet" marks, 5: the gift at
   a month's end, 6 since 2026-11-26: one reading of each tab a request,
@@ -162,7 +162,11 @@ tests with the girls and gives feedback; Claude writes the code.
   email quotes the day's. **At the start of a session, read that column**:
   it is how the girls say what `STUDYING` has wrong, the twins' math above
   all (still unlimited). Tell Avsha what you found before switching a topic
-  off.
+  off. A mark keeps its topic out of the weakest-topic question and the
+  fix-it lesson, hers and her twin's, so one put by mistake matters: Dad
+  takes it off on his Today tab ("זה נלמד", `unflag`, api 7). The first was
+  the art twin's on a rectangle's perimeter (25.11.2026): taught, he said,
+  and a slip of the finger.
 - **Her weakest topic** (`weakTopic`, `WEAK`): of her two math questions a
   day, the second is from the studied topic with most misses left over the
   last four weeks (a miss one, a right answer half off), a question she has
@@ -374,11 +378,16 @@ From the research of that day (what brings learners back; rivals) he liked
 seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The evening reminder** (below): which phones, and whether the girls
   use Telegram.
-- **Was perimeter taught to the twins?** The art twin marked a rectangle's
-  perimeter "not learned yet" on 2026-11-25, which keeps her fix-it lesson
-  on perimeter and area from being offered.
-- **The other twin's major** (role models): is the pool `g7-midrash` that
-  major, and so hers alone, or a class both take? Both tracks draw on it.
+  He is still to confirm, and may replace one twin's phone in a few days.
+- **The mark on perimeter**: taught, a mis-click. Once the script of api 7
+  is pasted he takes it off with "זה נלמד" on his Today tab; ask whether he
+  did (the Answers tab's flag column shows it).
+- **The other twin's major** (exemplary figures): is the pool `g7-midrash`
+  that major, and so hers alone, or a class both take? Both tracks draw on
+  it. He does not know (the classes are new to him and the notebooks say
+  little): the girls can say, or the art twin can mark its questions "not
+  learned yet". The pool came from worksheets sent on 2026-11-13 (change,
+  Rabbi Akiva, a poem, the role model).
 - **The English exam of 2026-12-06** is entered for the art twin only; her
   sister sits it too. He can add it from his Exams card (Claude's write to
   the Tests tab was refused).

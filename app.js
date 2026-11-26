@@ -1931,15 +1931,19 @@ function missedRow(r) {
   return `<div class="rv mq"><span class="mk no">✗</span><span class="t"><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(q ? q.topic : r.t)}${r.r === 1 ? " · נקמה" : ""}</b>${+r.s > 0 ? ` <span class="small faint">${secText(+r.s)}</span>` : ""}
     ${q ? `<br><span class="muted" ${q.ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</span><br><span class="good-t">✓ <span dir="${optDir(q.options[0])}">${fmt(q.options[0])}</span></span>` : ""}</span></div>`;
 }
-/* What the girls marked "not learned yet" in the last two weeks, the newest first: who, the question, how she did. */
+/* What the girls marked "not learned yet" in the last two weeks, the newest first: who, the question, how she did.
+ * A mark put by mistake keeps its topic out of the weakest-topic question and the fix-it lesson, hers and her
+ * twin's, so Dad can take one off here (the script's `unflag`, api 7). */
+const canUnflag = () => !LIVE || (FAM.api | 0) >= 7;
 function flagsCard() {
   const fl = rows().filter(r => r.f && profile(r.p) && daysBetween(r.d, TODAY) <= FLAG.days).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0);
   const list = fl.slice(0, 20).map(r => { const q = QIDX[r.q], p = profile(r.p), text = fmt(q ? q.q : r.f);
     return `<div class="rv mq"><span class="mk flagmk">${ICON.flag}</span><span class="t"><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span> <span class="small faint">${+r.d.slice(8)}.${+r.d.slice(5, 7)} · ${r.ok ? "ענתה נכון" : "טעתה"}</span>
-      <br><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(q ? q.topic : r.t)}</b><br><span class="muted" dir="${optDir(q ? q.q : r.f)}">${text}</span></span></div>`; }).join("");
+      <br><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(q ? q.topic : r.t)}</b><br><span class="muted" dir="${optDir(q ? q.q : r.f)}">${text}</span>
+      ${canUnflag() ? `<br><button type="button" class="link" style="min-height:0;font-size:13px" data-act="unflag" data-p="${esc(r.p)}" data-d="${esc(r.d)}" data-q="${esc(r.q)}">זה נלמד: להסיר את הסימון</button>` : ""}</span></div>`; }).join("");
   return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Not learned yet</span><span class="small muted">עוד לא למדנו</span></div>
     ${list || `<p class="small muted">כשאחת הבנות מסמנת בשאלה ״עוד לא למדנו את זה״, השאלה מופיעה כאן ובמייל של הערב.</p>`}
-    ${list ? `<p class="small faint">הן עונות על השאלה בכל מקרה. נושא שבאמת עוד לא נלמד אפשר לכבות עד שהכיתה תגיע אליו.</p>` : ""}</section>`;
+    ${list ? `<p class="small faint">הן עונות על השאלה בכל מקרה. נושא מסומן לא מקבל שאלות נוספות ולא חיזוק, אז סימון בטעות שווה להסיר. נושא שבאמת עוד לא נלמד אפשר לכבות עד שהכיתה תגיע אליו.</p>` : ""}</section>`;
 }
 /* Upcoming exams, every girl's, soonest first, as in the evening email; the week of focus is lit. */
 function examsCard() {
@@ -2030,7 +2034,7 @@ function parentLife() {
  * script leaves out. */
 const SCRIPT_API = 7;
 const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש",
-  6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות", 7: "צילום דפים מהמחברת (אחרי ההדבקה מריצים setup פעם אחת ומאשרים גישה ל־Drive)" };
+  6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות", 7: "צילום דפים מהמחברת, והסרת סימון ״עוד לא למדנו״ (אחרי ההדבקה מריצים setup פעם אחת ומאשרים גישה ל־Drive)" };
 function scriptCard(brief) {
   if (!LIVE) return "";
   const have = FAM.api | 0;
@@ -2932,6 +2936,12 @@ document.addEventListener("click", async e => {
       show(view); toast("המבחן נמחק"); break;
     }
     case "pickSub": $$("#tsub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
+    case "unflag": {
+      const d = b.dataset;
+      if (LIVE) { try { await api("unflag", { pin: parentPin, p: d.p, d: d.d, q: d.q }); await refresh(); } catch (err) { toast("לא הוסר. נסה שוב."); break; } }
+      else { [L.rows, EXAMPLE].forEach(list => list.forEach(r => { if (r.p === d.p && r.d === d.d && r.q === d.q) r.f = ""; })); save(); }
+      show("parent"); toast("הסימון הוסר. הנושא חוזר לשאלות ולחיזוק."); break;
+    }
     case "addPage": pageSheet(); break;
     case "pagePickSub": $$("#psub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
     case "pagePick": $("#pageFile").click(); break;
