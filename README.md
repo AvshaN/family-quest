@@ -34,6 +34,7 @@ No accounts, no server, no cost.
 | Formula sheet | Math questions for the eldest have the formula sheet her class gets in tests, one tap away. |
 | Her own look | Each girl picks her colours ("aura") and her photo or drawing, and her sisters see both on the board. Each has her own result screen: a generative art piece, a gymnastics score (D + E), or a live set. |
 | Motion | Her colours are a living background that brightens with a streak of right answers, greys at a miss and turns gold on a perfect day. Her result piece moves: the artwork assembles, the gymnast's apparatus of the day performs, the stage plays. The map has a sky of stars, one per topic, and a new token arrives with a ceremony. |
+| The art | A gold token coin, a laurel wreath, a crown, a black card for the ten-token prize, an emblem for every subject, and a piece of her own for each girl (a paint palette, a gymnast's hoop, ball and clubs, a stage microphone). The coin, the crown and the pieces are 3D models that turn; no 3D engine runs on the phone, each was drawn from every side ahead of time. Made with Meshy. |
 | The month's winner | On the first opening of a new month, a popup congratulates last month's winner in her own colours, and she taps for her token. Dad can add a gift token for everyone who kept playing, with his own words. |
 | Monthly recap | Her last month, as a story. |
 | Opening | The app opens at once from what the phone holds and asks the Sheet meanwhile; the start button waits for its answer. |
@@ -52,6 +53,8 @@ No accounts, no server, no cost.
 
 - `index.html`, `app.css`, `app.js`, `config.js`: the app (no build step).
 - `sw.js`, `manifest.webmanifest`, `icons/`: what makes it install and work offline.
+- `art/`: the pictures (the coin, the wreath, the crown, the card, the emblems, each girl's piece),
+  cut and packed by `tools/art.py` and `tools/spin/` from what Meshy made.
 - `data/bank/*.json`: the question banks.
 - `backend/Code.gs`: the Apps Script that runs inside the family's Sheet.
 - `tools/`: `check_bank.py` (checks the banks), `build_preview.py` (one-file demo),

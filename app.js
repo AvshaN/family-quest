@@ -1419,6 +1419,9 @@ function paintArt(root) {
   $$("canvas.stagecv", root).forEach(liveStage);
   $$("canvas.sky", root).forEach(liveSky);
   $$("canvas.luckcv", root).forEach(liveLuck);
+  $$("canvas.wreathcv", root).forEach(liveWreath);
+  $$("canvas.spin", root).forEach(liveSpin);
+  $$(".bcard-fig", root).forEach(liveCard);
   $$("[data-count]", root).forEach((el, i) => countUp(el, +el.dataset.count, el.dataset.dec == null ? 2 : +el.dataset.dec, 500 + i * 450));
 }
 function countUp(el, to, dec, delay) {
@@ -1580,6 +1583,205 @@ function liveSky(cv) {
     ctx.globalAlpha = 1;
   }, 30);
 }
+/* ---------- the app's art (Avsha, 2026-11-26: "elevate the app's design, added animations, appealing graphics") ----------
+ * Objects that Meshy made for the app and tools/art.py cut: a gold token coin, a laurel wreath, a crown, a black card,
+ * an emblem for each subject, and a piece of her own for each girl's kind of result (a palette, a rhythmic gymnast's
+ * hoop, ball and clubs, a stage microphone). The coin, the crown and the pieces are 3D models, and no 3D engine runs
+ * here: each was drawn once from every side (tools/spin) into one sheet, eight views a row, and a canvas shows the
+ * view for its angle, blended with the next (liveSpin). The pictures are in art/; the service worker keeps them for
+ * good, so a changed picture gets a new name. Each has what the app drew before it as a fallback: a picture that
+ * has not arrived (a first opening with no signal) leaves the screen as it was. */
+const ART = window.FQ_ART_BASE || new URL("art/", location.href).href;
+const artImg = (() => {
+  const kept = {};
+  return rel => kept[rel] || (kept[rel] = new Promise((ok, no) => {
+    const im = new Image();
+    im.decoding = "async"; im.onload = () => ok(im); im.onerror = () => { delete kept[rel]; no(new Error("no picture: " + rel)); };
+    im.src = ART + rel;
+  }));
+})();
+/* A picture in the page. One that fails is taken out, and its parent loses "pic", so the CSS shows what was there before. */
+const pic = (rel, cls) => `<img class="${cls || ""}" data-pic src="${ART}${rel}" alt="" decoding="async">`;
+document.addEventListener("error", e => {
+  const t = e.target;
+  if (!t || t.tagName !== "IMG" || t.dataset.pic == null) return;
+  const par = t.parentNode; t.remove(); if (par && par.classList) par.classList.remove("pic");
+}, true);
+const emb = subj => SUBJ[subj] ? pic(`em/${subj}.webp`, "emb") : "";
+/* The sheets of views: n of them, eight a row. The coin has two like faces, so its sheet is half a turn, edge to
+ * edge, played twice a turn. */
+const SPIN = {
+  coin: { src: "spin/coin.webp", n: 24, half: true },
+  crown: { src: "spin/crown.webp", n: 32 },
+  palette: { src: "spin/palette.webp", n: 32 },
+  gym: { src: "spin/gym.webp", n: 32 },
+  mic: { src: "spin/mic.webp", n: 32 }
+};
+const PIECE = { portfolio: "palette", routine: "gym", stage: "mic" };
+const PIECE_HE = { palette: "פלטת הצבעים", gym: "החישוק, הכדור והאלות", mic: "המיקרופון" };
+const pieceOf = p => PIECE[p && p.flavor] || "";
+const pieceCv = (p, cls, attrs) => pieceOf(p) ? `<canvas class="spin piece3d ${cls || ""}" data-spin="${pieceOf(p)}" ${attrs || ""} aria-hidden="true"></canvas>` : "";
+/* A turning object. data-spin names it. data-turn is its idle speed in turns a second (0.1); data-rock sways it about
+ * its front instead (the coin, whose face is the point); data-in is the spin it arrives with, in turns, coming to
+ * rest on its front after data-ins seconds; data-hold holds all of it back, in seconds; data-drag lets a finger turn it. With
+ * reduced motion it is its front, still. */
+function liveSpin(cv) {
+  const S = SPIN[cv.dataset.spin], ds = cv.dataset;
+  if (!S || !cv.clientWidth) return;   // not shown (a short phone hides a popup's backdrop): its sheet is not fetched
+  const idle = ds.turn == null ? 0.1 : +ds.turn, rock = +ds.rock || 0, entry = +ds.in || 0, ins = +ds.ins || 1.3, wait = +ds.hold || 0;
+  const box = cv.closest(".coinbox");
+  artImg(S.src).then(im => {
+    if (!cv.isConnected) return;
+    const { ctx, W, H } = sized(cv), fw = im.width / 8, side = Math.min(W, H), ox = (W - side) / 2, oy = (H - side) / 2, span = S.half ? 0.5 : 1;
+    cv.classList.add("on"); if (box) box.classList.add("has3d");
+    const put = (k, a) => { if (a < 0.004) return; k = ((k % S.n) + S.n) % S.n; ctx.globalAlpha = a; ctx.drawImage(im, (k % 8) * fw, Math.floor(k / 8) * fw, fw, fw, ox, oy, side, side); };
+    const draw = turn => {
+      const f = (((turn % span) + span) % span) / span * S.n, k = Math.floor(f), mix = f - k;
+      ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "lighter"; put(k, 1 - mix); put(k + 1, mix);   // two views that add up to one, edges and all
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    };
+    let ang = 0, vel = idle, held = null, last = 0, x0 = 0, a0 = 0, px = 0, pt = 0, free = 0;
+    if (ds.drag && !REDUCED) {
+      cv.style.touchAction = "pan-y";
+      cv.addEventListener("pointerdown", e => { held = e.pointerId; x0 = px = e.clientX; a0 = ang; pt = performance.now(); vel = 0; free = 1; try { cv.setPointerCapture(e.pointerId); } catch (err) { /* it still turns while the finger is on it */ } });
+      cv.addEventListener("pointermove", e => {
+        if (held !== e.pointerId) return;
+        const now = performance.now(), dt = (now - pt) / 1000;
+        ang = a0 + (e.clientX - x0) / side * 0.7;
+        if (dt > 0.008) { vel = vel * 0.4 + (e.clientX - px) / side * 0.7 / dt * 0.6; px = e.clientX; pt = now; }
+      });
+      const up = e => { if (held === e.pointerId) { held = null; vel = Math.max(-2.5, Math.min(2.5, vel)); } };
+      cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+    }
+    let drawn = -1;
+    animate(cv, t => {
+      if (REDUCED) { draw(0); return; }
+      const dt = Math.min(0.1, t - last), u = t - wait; last = t;
+      if (u < 0) { ctx.clearRect(0, 0, W, H); return; }
+      let calm = false;
+      if (held == null && !free && entry && u < ins) ang = -entry * Math.pow(1 - u / ins, 3);
+      else if (held == null && !free && rock) { ang = rock * Math.sin((u - (entry ? ins : 0)) * 1.25); calm = true; }
+      else if (held == null) { vel += (idle - vel) * (1 - Math.exp(-dt * 1.6)); ang += vel * dt; calm = Math.abs(vel - idle) < 0.03; }
+      if (calm && t - drawn < 0.04) return;   // turning slowly, 24 pictures a second are plenty
+      drawn = t; draw(ang);
+    }, 60);
+  }).catch(() => { cv.classList.add("none"); if (box) box.classList.add("flat"); });
+}
+/* The token's coin, in a ceremony: the 3D one spins in and comes to rest on its face. The coin drawn in CSS that the
+ * app had before waits under it, and shows only if the sheet cannot be had. */
+const coinBox = () => `<div class="coinbox" aria-hidden="true"><canvas class="spin coinspin" data-spin="coin" data-in="2.5" data-rock="0.045"></canvas>
+  <div class="coin3d"><div class="face">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</div><div class="face back"><span class="num">${+FAM.settings.tokenValue || 100}</span></div></div></div>`;
+/* The wreath round her photo. The picture's clear middle, as shares of its width (tools/art.py prints them): the box
+ * .wr is cut to the same shape in app.css, with her photo on that middle. Gold for what she has won; for a wish, the
+ * same leaves in her own colours, shaded by the gold's light and dark. */
+const WREATH = { cy: 0.443, r: 0.315, h: 0.948 };
+const TINTS = {};
+function tinted(im, cols) {
+  const key = cols.join();
+  if (TINTS[key]) return TINTS[key];
+  const c = document.createElement("canvas"), W = c.width = im.width, H = c.height = im.height, x = c.getContext("2d");
+  x.drawImage(im, 0, 0);
+  try {
+    const d = x.getImageData(0, 0, W, H), px = d.data, A = hex3(cols[0]), B = hex3(cols[1]);
+    for (let y = 0, i = 0; y < H; y++) {
+      const m = y / H, col = [0, 1, 2].map(j => A[j] * m + B[j] * (1 - m));   // her first colour at the foot, her second at the tips
+      for (let k = 0; k < W; k++, i += 4) {
+        if (!px[i + 3]) continue;
+        const l = (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) / 255, sh = l < 0.6 ? 0.3 + l / 0.6 * 0.7 : 1, wh = l < 0.6 ? 0 : (l - 0.6) / 0.4 * 0.8;
+        for (let j = 0; j < 3; j++) px[i + j] = (col[j] * sh * (1 - wh) + wh) * 255;
+      }
+    }
+    x.putImageData(d, 0, 0);
+  } catch (e) { /* a picture the page may not read (a preview opened from a file): it stays gold */ }
+  return TINTS[key] = c;
+}
+const wreathed = (p, n, gold, crown) => {
+  const a = AURAS[auraOf(p)] || AURAS.orchid;
+  return `<span class="wr n${Math.min(3, n)}" style="--a1:${a.c[0]};--a2:${a.c[1]};--a3:${a.c[2]}"><canvas class="wreathcv" ${gold ? 'data-gold="1"' : ""} aria-hidden="true"></canvas>${avatar(p, "ring")}${
+    crown ? `<canvas class="spin crownspin" data-spin="crown" data-in="1.25" data-ins="1.6" data-turn="0.09" data-hold="${crown}" style="animation-delay:${crown}s" aria-hidden="true"></canvas>` : ""}</span>`;
+};
+function liveWreath(cv) {
+  const gold = cv.dataset.gold === "1", cs = getComputedStyle(cv), col = n => cs.getPropertyValue(n).trim();
+  const cols = [col("--a1") || "#A855F7", col("--a2") || "#EC4899", col("--a3") || "#6366F1"];
+  artImg("wreath.webp").then(im => {
+    if (!cv.isConnected) return;
+    const { ctx, W, H } = sized(cv), img = gold ? im : tinted(im, cols), glint = document.createElement("canvas"), g = glint.getContext("2d");
+    glint.width = cv.width; glint.height = cv.height;
+    animate(cv, t => {
+      const k = REDUCED ? 1 : easeOut((t - 0.25) / 1.3);
+      ctx.clearRect(0, 0, W, H);
+      if (k <= 0) return;
+      // it grows from the foot up
+      ctx.save(); ctx.beginPath(); ctx.rect(0, H * (1 - k), W, H * k); ctx.clip();
+      const sc = 0.9 + 0.1 * k; ctx.translate(W / 2, H); ctx.scale(sc, sc); ctx.translate(-W / 2, -H);
+      ctx.drawImage(img, 0, 0, W, H); ctx.restore();
+      // once grown, a light runs up the leaves now and then
+      const ph = ((t - 1.7) % 3.6) / 1.2;
+      if (REDUCED || t < 1.7 || ph >= 1) return;
+      const gw = glint.width, gh = glint.height, at = 1.2 - ph * 1.4, band = g.createLinearGradient(0, gh * (at + 0.11), gw * 0.3, gh * (at - 0.11));
+      band.addColorStop(0, "rgba(255,255,255,0)"); band.addColorStop(0.5, "rgba(255,255,255,.42)"); band.addColorStop(1, "rgba(255,255,255,0)");
+      g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, gw, gh); g.drawImage(img, 0, 0, gw, gh);
+      g.globalCompositeOperation = "source-in"; g.fillStyle = band; g.fillRect(0, 0, gw, gh);
+      ctx.globalCompositeOperation = "lighter"; ctx.drawImage(glint, 0, 0, W, H); ctx.globalCompositeOperation = "source-over";
+    }, 40);
+  }).catch(() => drawnWreath(cv, gold, cols));
+}
+/* The wreath the app drew before it had a picture of one, kept for when the picture cannot be had: two branches of
+ * leaves that grow from the foot up each side of her photo, and a light running along them once they are grown. */
+function drawnWreath(cv, gold, cols0) {
+  if (!cv.isConnected) return;
+  const { ctx, W } = sized(cv), cx = W / 2, cy = W * WREATH.cy, rx = W * 0.445, ry = rx, u = W / 207, per = 12, leaves = [];
+  const cols = gold ? ["#F2C56B", cols0[0], "#FFE9B0"] : cols0;
+  // A pair of leaves at each node of a branch, one leaning out and one in. A node at angle a on the left branch
+  // (90° is the foot, 270° the top), mirrored for the right one; the leaves get smaller toward the tip.
+  for (const side of [-1, 1]) for (let i = 0; i < per; i++) {
+    const a = (99 + (i + 0.5) / per * 150) * Math.PI / 180, ex = Math.cos(a) * rx, ey = Math.sin(a) * ry, tx = -Math.sin(a) * rx, ty = Math.cos(a) * ry;
+    const along = Math.atan2(ty, side < 0 ? tx : -tx), size = (1 - 0.3 * (i / per)) * u;
+    for (const lean of [1, -1]) leaves.push({ i, x: cx + (side < 0 ? ex : -ex), y: cy + ey, dir: along + lean * 0.62 * (side < 0 ? 1 : -1),
+      at: 0.3 + i * 0.065 + (lean < 0 ? 0.05 : 0), len: (lean > 0 ? 23 : 18) * size, c: cols[(i + (lean > 0 ? 0 : 1)) % 3] });
+  }
+  const grown = 0.3 + per * 0.065 + 0.55;
+  animate(cv, t => {
+    ctx.clearRect(0, 0, W, W);
+    const k = Math.max(0, Math.min(1, (t - 0.2) / (per * 0.065 + 0.3)));   // the two stems, as far as the leaves have come
+    ctx.lineWidth = 2.4 * u; ctx.lineCap = "round";
+    for (let side = -1; side <= 1; side += 2) {
+      const g = ctx.createLinearGradient(cx, cy + ry, cx, cy - ry); g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
+      ctx.strokeStyle = g; ctx.globalAlpha = 0.8; ctx.beginPath();
+      for (let j = 0; j <= 40 * k; j++) { const a = (93 + j / 40 * 156) * Math.PI / 180, ex = Math.cos(a) * rx, ey = Math.sin(a) * ry; ctx[j ? "lineTo" : "moveTo"](cx + (side < 0 ? ex : -ex), cy + ey); }
+      ctx.stroke();
+    }
+    leaves.forEach(l => {
+      const e = easeOut((t - l.at) / 0.45);
+      if (e <= 0) return;
+      const glow = t > grown ? Math.max(0, Math.sin(t * 2.2 - l.i * 0.42)) : 0;
+      ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.dir); ctx.scale(e, e);
+      ctx.globalAlpha = 0.72 + 0.28 * glow; ctx.fillStyle = l.c;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(l.len * 0.45, -l.len * 0.42, l.len, 0); ctx.quadraticCurveTo(l.len * 0.45, l.len * 0.42, 0, 0); ctx.fill();
+      if (glow > 0.05) { ctx.globalAlpha = glow * 0.55; ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(l.len * 0.15, 0); ctx.quadraticCurveTo(l.len * 0.5, -l.len * 0.16, l.len * 0.85, 0); ctx.quadraticCurveTo(l.len * 0.5, l.len * 0.1, l.len * 0.15, 0); ctx.fill(); }
+      ctx.restore();
+    });
+    ctx.globalAlpha = 1;
+  }, 40);
+}
+/* The black card of the vault's ten-token prize leans toward the finger on it. */
+function liveCard(fig) {
+  const el = $(".bcard-in", fig);
+  if (!el || REDUCED) return;
+  const lean = e => { const r = fig.getBoundingClientRect(); el.classList.add("held");
+    el.style.setProperty("--ry", (((e.clientX - r.left) / r.width - 0.5) * 34).toFixed(1) + "deg"); el.style.setProperty("--rx", (((e.clientY - r.top) / r.height - 0.5) * -26).toFixed(1) + "deg"); };
+  const free = () => el.classList.remove("held");
+  fig.addEventListener("pointerdown", lean); fig.addEventListener("pointermove", e => { if (el.classList.contains("held")) lean(e); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(n => fig.addEventListener(n, free));
+}
+/* What she is likely to meet soon is fetched while the phone is idle, so a ceremony does not open on an empty place. */
+function artWarm(p) {
+  if (!p || SANDBOX) return;
+  const go = () => [SPIN.coin.src, "wreath.webp"].concat(pieceOf(p) ? [SPIN[pieceOf(p)].src] : []).forEach(rel => artImg(rel).catch(() => {}));
+  if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 6000 }); else setTimeout(go, 3000);
+}
+
 /* A new token is a moment (they are rare: a month won, four full weeks, a gift): the coin spins in under turning
  * rays, the aura turns gold. Shown once, the next time she is on her home screen. */
 function tokenCheck() {
@@ -1600,13 +1802,14 @@ function tokenCheck() {
   const lastIn = tokenLog().filter(t => t.p === p.id && t.change > 0).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0)[0];
   auraMood({ energy: 1, gold: 1.4 });
   layer.innerHTML = `<div class="ceremony" role="dialog" aria-modal="true" aria-label="אסימון חדש"><div class="rays" aria-hidden="true"></div>
-    <div class="coin3d" aria-hidden="true"><div class="face">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</div><div class="face back"><span class="num">${+FAM.settings.tokenValue || 100}</span></div></div>
+    ${coinBox()}
     <span class="eyebrow" style="color:var(--gold)">New token</span>
     <h2 class="display">${n - was > 1 ? `${n - was} אסימונים חדשים` : "אסימון חדש"}</h2>
     ${lastIn ? `<p class="muted">${reasonHe(lastIn)}</p>` : ""}
     <button type="button" class="btn btn-primary" data-act="closeQuiz" data-to="vault">לכספת</button></div>`;
+  paintArt(layer);
   SFX.coin(); buzz([30, 50, 30, 50, 60]);
-  setTimeout(() => { if ($(".ceremony", layer)) { sparks(innerWidth / 2, innerHeight * 0.34, ["#F2C56B", "#FFE9B0", "#ffffff"], 170, 9); SFX.done(); } }, 1050);
+  setTimeout(() => { const c = $(".ceremony .coinbox", layer); if (c) { const r = c.getBoundingClientRect(); sparks(r.left + r.width / 2, r.top + r.height / 2, ["#F2C56B", "#FFE9B0", "#ffffff"], 170, 9); SFX.done(); } }, 1250);
 }
 
 /* ---------- icons ---------- */
@@ -1757,8 +1960,8 @@ function renderHome() {
         <button type="button" class="btn btn-ghost wide" data-act="tab" data-to="board">לטבלה</button></div></section>`;
   } else {
     const subj = {};
-    set.forEach(q => { const s = SUBJ[subjOf(q.pool)]; subj[s] = (subj[s] || 0) + 1; });
-    const chips = Object.entries(subj).map(([k, n]) => `<span class="chip">${n} ${k}</span>`).join("");
+    set.forEach(q => { const s = subjOf(q.pool); subj[s] = (subj[s] || 0) + 1; });
+    const chips = Object.entries(subj).map(([k, n]) => `<span class="chip emchip">${emb(k)}${n} ${SUBJ[k] || ""}</span>`).join("");
     const resumed = L.progress[p.id] && L.progress[p.id].date === TODAY ? L.progress[p.id].i : 0;
     hero = `<section class="glass hero-card">
       <span class="eyebrow">${DAYS_FULL[NOW.getDay()]} · ${D} ב${MONTHS[M - 1]}</span>
@@ -1805,11 +2008,11 @@ function renderHome() {
     <div class="glass stat"><b class="num">${FAM.tokens[p.id] || 0}</b><span>אסימונים</span></div>
   </div>
   ${showRecap ? `<button type="button" class="glass pad row" data-act="recap" style="text-align:start"><span><span class="eyebrow">Recap</span><br><b style="font-size:18px">הסיכום שלך ל${MONTHS[pm - 1]}</b></span>${ICON.back.replace("<svg", '<svg width="20" height="20" style="transform:scaleX(-1)"')}</button>` : ""}
-  <section class="glass pad"><div class="row"><span class="eyebrow">${flavorTitle(p)} · ${MONTHS[M - 1]}</span><span class="small muted">${st.played} ימים</span></div>
+  <section class="glass pad"><div class="row"><span class="eyebrow pieceline">${pieceCv(p, "xs", 'data-turn="0.07"')}${flavorTitle(p)} · ${MONTHS[M - 1]}</span><span class="small muted">${st.played} ימים</span></div>
     <div class="grid">${tiles.join("")}</div></section>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Tests</span>
       <button type="button" class="btn btn-ghost btn-sm" data-act="addTest">${ICON.plus.replace("<svg", '<svg width="16" height="16"')} מבחן</button></div>
-    ${upcoming.length ? upcoming.map(t => `<div class="trow"><span>${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` · ${esc(t.note)}` : ""}</span><span class="muted">${DAYS_FULL[parseYmd(t.date).getDay()]} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}</span>${delTest(t)}</div>`).join("")
+    ${upcoming.length ? upcoming.map(t => `<div class="trow"><span>${emb(t.subj)}${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` · ${esc(t.note)}` : ""}</span><span class="muted">${DAYS_FULL[parseYmd(t.date).getDay()]} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}</span>${delTest(t)}</div>`).join("")
       : `<p class="small muted">יש מבחן בקרוב? שבוע לפניו, רוב השאלות יהיו מהמקצוע שלו.</p>`}</section>
   ${pagesCard(p)}
   ${LIVE ? "" : `<p class="demo">תצוגה לדוגמה: ההיסטוריה עד היום היא נתוני דוגמה.</p>`}`;
@@ -1846,7 +2049,8 @@ function renderKnow() {
     <div class="bar"><i style="width:${all ? known / all * 100 : 0}%"></i></div>
     <p class="small muted">נושא מתמלא אחרי ${KNOW} תשובות נכונות, בשלושה ימים שונים.</p>
     ${fading ? `<p class="small"><span class="chip warn">${fading === 1 ? "כוכב אחד דוהה" : `${fading} כוכבים דוהים`}</span> נושא שלא ענית עליו נכון ארבעה שבועות דוהה. תשובה נכונה אחת מדליקה אותו מחדש, והתרגול מביא אותם קודם.</p>` : ""}${cta}</section>
-  ${map.map(x => `<section class="glass pad"><div class="row"><b style="font-size:17px">${SUBJ[subjOf(x.pool)]}</b>
+  <div class="embgrid">${map.map((x, i) => { const s = subjOf(x.pool); return `<button type="button" class="embtile ${x.known ? "" : "dim"}" data-act="toSubj" data-k="${esc(x.pool)}" style="animation-delay:${i * 0.05}s">${emb(s)}<span>${SUBJ[s] || ""}</span><b class="num" dir="ltr">${x.known}/${x.topics.length}</b></button>`; }).join("")}</div>
+  ${map.map(x => `<section class="glass pad" id="subj-${esc(x.pool)}"><div class="row"><b class="subjname">${emb(subjOf(x.pool))}${SUBJ[subjOf(x.pool)]}</b>
       <span class="small muted">${x.test ? `<span class="chip warn">מבחן ${inDays(daysBetween(TODAY, x.test.date))}</span> ` : ""}<b class="num" style="color:var(--text)" dir="ltr">${x.known}/${x.topics.length}</b></span></div>
     <div class="kts">${x.topics.map(t => ktRow(t.t, t.n, t.fade)).join("")}</div></section>`).join("")}`;
 }
@@ -1888,7 +2092,7 @@ function renderBoard() {
 function renderVault() {
   const p = me(), n = +FAM.tokens[p.id] || 0, s = FAM.settings, val = +s.tokenValue || 100, ws = weeksOf(p.id);
   const coins = Array.from({ length: Math.max(10, n) }, (_, i) => i < n
-    ? `<span class="coin" style="animation-delay:${i * 0.06}s">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</span>`
+    ? `<span class="coin pic" style="animation-delay:${i * 0.06}s">${pic("coin-s.webp")}${ICON.star.replace("<svg", '<svg fill="currentColor"')}</span>`
     : `<span class="coin empty num">${i + 1}</span>`).join("");
   const tier = (k, label, text) => `<div class="glass tier ${n >= k ? "reached" : ""}"><span class="n num">${k}</span>
     <div><b>${esc(text)}</b><div class="small muted">${label}</div></div><span class="small ${n >= k ? "" : "muted"}" style="${n >= k ? "color:var(--gold)" : ""}">${n >= k ? "פתוח" : `עוד ${k - n}`}</span></div>`;
@@ -1899,10 +2103,11 @@ function renderVault() {
     <p class="small muted">כל ${PATH.every} שבועות מלאים (חמישה ימים עם משימה בשבוע) שווים אסימון, גם אם הם לא ברצף. יש לך ${ws.full % PATH.every} מתוך ${PATH.every}.</p></section>
   ${canProve() ? `<section class="glass pad stack"><div class="row"><span class="eyebrow">Exams above ${EXAMTOK.min}</span>${examDots(p.id)}</div>
     <p class="small muted">כל ${EXAMTOK.n} מבחנים עם ציון מעל ${EXAMTOK.min} שווים אסימון. מזינים את הציון אחרי המבחן, מצרפים צילום של המבחן הבדוק, ואבא מאשר. יש לך ${examCount(p.id) % EXAMTOK.n} מתוך ${EXAMTOK.n}.</p></section>` : ""}
-  ${n >= 10 ? `<div class="blackcard"><span class="eyebrow" style="color:var(--gold)">Black card</span><span class="display">${esc(s.prize10 || "הפרס הענק")}</span></div>` : ""}
   ${tier(1, "אפשר לפדות כל אסימון מתי שרוצים", `${val} ₪`)}
   ${tier(5, "חמישה אסימונים שמורים", s.prize5 || "פרס גדול (אבא עוד מחליט)")}
-  ${tier(10, "עשרה אסימונים שמורים", s.prize10 || "פרס ענק (אבא עוד מחליט)")}
+  <section class="glass bcard ${n >= 10 ? "open" : "locked"}"><div class="bcard-fig pic" aria-hidden="true"><div class="bcard-in pic">${pic("card.webp")}<i class="sheen" style="-webkit-mask-image:url('${ART}card.webp');mask-image:url('${ART}card.webp')"></i></div></div>
+    <div class="tier ${n >= 10 ? "reached" : ""}"><span class="n num">10</span><div><span class="eyebrow" style="color:var(--gold)">Black card</span><br><b>${esc(s.prize10 || "פרס ענק (אבא עוד מחליט)")}</b><div class="small muted">עשרה אסימונים שמורים</div></div>
+      <span class="small ${n >= 10 ? "" : "muted"}" style="${n >= 10 ? "color:var(--gold)" : ""}">${n >= 10 ? "פתוח" : `עוד ${10 - n}`}</span></div></section>
   <button type="button" class="btn btn-aura wide" data-act="redeem" ${n ? "" : "disabled"}>לפדות אסימון ב־${val} ₪</button>
   <p class="small muted" style="text-align:center">אלופת החודש מקבלת אסימון ב־1 לחודש הבא, וכל אחת מקבלת אחד על כל ${PATH.every} שבועות מלאים${canProve() ? ` ועל כל ${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min}` : ""}.</p>`;
 }
@@ -1920,7 +2125,7 @@ function levelLine(p, her) {
 function subjectBars(st, prof) {
   const bars = Object.entries(st.bySubj).sort((a, b) => b[1][1] - a[1][1]).map(([s, [ok, t]]) => {
     const v = Math.round(ok / t * 100);
-    return `<div class="sbar"><span>${SUBJ[s] || s}</span><span class="bar"><i style="width:${v}%"></i></span><span class="num muted">${v}%</span></div>`;
+    return `<div class="sbar"><span>${emb(s)}${SUBJ[s] || s}</span><span class="bar"><i style="width:${v}%"></i></span><span class="num muted">${v}%</span></div>`;
   }).join("") || `<p class="small muted">עוד אין תשובות החודש.</p>`;
   const none = prof && Object.keys(st.bySubj).length ? subjectsOf(prof).filter(s => !st.bySubj[s]).map(s => SUBJ[s] || s) : [];
   return bars + (none.length ? `<p class="small faint">עוד בלי שאלות החודש: ${none.join(", ")}. מקצוע אחד ביום מתחלף ביניהם.</p>` : "");
@@ -1941,6 +2146,8 @@ function renderMe() {
     <button type="button" class="link" data-act="photo">${L.avatars[p.id] ? "להחליף תמונה" : "להוסיף תמונה או ציור שלך"}</button>
     ${canShare() ? `<p class="small faint" style="margin-top:-8px">האחיות שלך ואבא רואים את התמונה ואת הצבעים שלך.${L.avatars[p.id] ? ` <button type="button" class="link" style="min-height:0;font-size:13px" data-act="photoOff">להסיר את התמונה</button>` : ""}</p>` : ""}
     <input type="file" id="photoFile" accept="image/*" hidden></section>
+  ${pieceOf(p) ? `<section class="glass pad mypiece"><div class="pieceglow">${pieceCv(p, "lg", 'data-drag="1" data-in="1" data-turn="0.08"')}</div>
+    <div class="stack"><span class="eyebrow">Your piece</span><b>${PIECE_HE[pieceOf(p)]}</b><p class="small muted">הפסלון שלך. הוא מופיע ביום טוב, וכשאת זוכה. אפשר לסובב אותו באצבע.</p></div></section>` : ""}
   <section class="glass pad stack"><span class="eyebrow">Your aura</span><div class="swatches">${sw}</div></section>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">What Dad sees</span><span class="small muted">${st.played} ימים · ${st.acc}% דיוק</span></div>
     ${subjectBars(st)}
@@ -2141,7 +2348,7 @@ function examsCard() {
   const rowsHTML = up.slice(0, 12).map(t => { const n = daysBetween(TODAY, t.date), p = profile(t.p);
     // when it is and how long until it share a cell: a fourth column ran off a phone's width
     return `<tr><td class="num"><b>${dateHe(t.date)}</b><br>${n <= TEST_LEAD ? `<span class="chip warn">${inDays(n)}</span>` : `<span class="small muted">${inDays(n)}</span>`}</td>
-      <td>${nameCell(p)}</td><td style="white-space:normal">${esc(SUBJ[t.subj] || t.subj)}${t.note ? `<br><span class="small faint">${esc(t.note)}</span>` : ""}</td>${canEdit() ? `<td style="padding:0">${delTest(t)}</td>` : ""}</tr>`; });
+      <td>${nameCell(p)}</td><td style="white-space:normal">${emb(t.subj)}${esc(SUBJ[t.subj] || t.subj)}${t.note ? `<br><span class="small faint">${esc(t.note)}</span>` : ""}</td>${canEdit() ? `<td style="padding:0">${delTest(t)}</td>` : ""}</tr>`; });
   return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Exams</span>
       <button type="button" class="btn btn-ghost btn-sm" data-act="addTest">${ICON.plus.replace("<svg", '<svg width="16" height="16"')} מבחן</button></div>
     ${up.length ? table(["מתי", "", "מקצוע"].concat(canEdit() ? [""] : []), rowsHTML) + `<p class="small faint">שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו. יום לפני המבחן, כל אחת מכם רואה פעם אחת ״בהצלחה״ עם התמונה שלה. <button type="button" class="link" style="min-height:0;font-size:13px" data-act="luckPreview">לראות איך זה נראה</button></p>`
@@ -2349,12 +2556,13 @@ function renderPop() {
       : `<div class="piece"><canvas width="640" height="300" data-art="champion|${first.id}|${monthKey(P.y, P.m)}~${auraOf(first)}~5" aria-hidden="true"></canvas></div>`;
     layer.innerHTML = `<div class="ceremony winpop" role="dialog" aria-modal="true" aria-label="אלופת החודש">${tag}
       <span class="eyebrow" style="color:var(--gold)">${many ? "Champions" : "Champion"} · ${month}</span>
-      <div class="winavs">${P.win.map(r => `<span class="crowned">${ICON.crown}${avatar(profile(r.id), "xl ring")}</span>`).join("")}</div>
+      <div class="luckbox winbox"><canvas class="luckcv" data-gold="1" aria-hidden="true"></canvas>
+        <div class="luckavs">${P.win.map((r, i) => `<span class="luckav" style="animation-delay:${0.2 + i * 0.14}s">${wreathed(profile(r.id), P.win.length, true, 0.95 + i * 0.2)}</span>`).join("")}</div></div>
       <h2 class="display">${joinHe(P.win.map(r => esc(profile(r.id).name)))}</h2>
       <p class="muted">${mine && !many ? `${month} היה שלך. את האלופה.` : many ? `האלופות של ${month}` : `האלופה של ${month}`}</p>
       <div class="winscore"><b class="display grad-text num" data-count="${top.points}" data-dec="0" dir="ltr">${top.points}</b>
         <span class="small muted">נקודות · ${top.played} ימים · <bdi dir="ltr">${top.acc}%</bdi> דיוק</span></div>
-      <div class="themebox">${theme}</div>
+      <div class="themebox">${theme}${many ? "" : pieceCv(first, "onstage", 'data-in="1" data-hold="1.3" data-turn="0.11"')}</div>
       <div class="coinslot" id="popcoin"></div>
       <div class="popact" id="popact">${mine ? tokenBtn : popButtons()}</div></div>`;
     const a = AURAS[auraOf(first)].c;
@@ -2379,7 +2587,8 @@ function popToken() {
   if (!P || !box || box.classList.contains("coining")) return;
   const kind = P.steps[P.i];
   box.classList.add("coining");
-  slot.innerHTML = `<div class="rays" aria-hidden="true"></div><div class="coin3d" aria-hidden="true"><div class="face">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</div><div class="face back"><span class="num">${+FAM.settings.tokenValue || 100}</span></div></div>`;
+  slot.innerHTML = `<div class="rays" aria-hidden="true"></div>${coinBox()}`;
+  paintArt(slot);
   act.innerHTML = "";
   auraMood({ energy: 1, gold: 1.4 }); SFX.coin(); buzz([30, 50, 30, 50, 60]);
   if (!P.preview) claimTok(P.viewer.id, (kind === "win" ? "winner " : "dedication ") + monthKey(P.y, P.m));
@@ -2456,12 +2665,12 @@ function renderStar() {
   layer.innerHTML = `<div class="ceremony winpop starpop" role="dialog" aria-modal="true" aria-label="אסימון על שלושה מבחנים">
     ${X.preview ? `<span class="chip warn">תצוגה מקדימה</span>` : ""}
     <span class="eyebrow" dir="ltr" style="color:var(--gold)">${EXAMTOK.n} exams above ${EXAMTOK.min}</span>
-    <div class="luckbox starbox"><canvas class="luckcv" data-n="1" data-gold="1" aria-hidden="true"></canvas>
-      <div class="luckavs"><span class="luckav" style="animation-delay:.25s">${avatar(p, "xl ring")}</span></div></div>
+    <div class="luckbox starbox"><canvas class="luckcv" data-gold="1" aria-hidden="true"></canvas>
+      <div class="luckavs"><span class="luckav" style="animation-delay:.25s">${wreathed(p, 1, true)}</span></div></div>
     <h2 class="display">${esc(p.name)}</h2>
     <p class="muted">${mine ? `${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min}. זה שלך, ביושר.` : `${EXAMTOK.n} מבחנים מעל ${EXAMTOK.min}. כל הכבוד!`}</p>
     <div class="medals">${ex.map((e, i) => `<div class="medal" style="animation-delay:${0.7 + i * 0.28}s"><b class="num" data-count="${+e.grade}" data-dec="0">${+e.grade}</b><span>${esc(SUBJ[e.subj] || e.subj)}</span></div>`).join("")}</div>
-    <div class="themebox">${theme}</div>
+    <div class="themebox">${theme}${pieceCv(p, "onstage", 'data-in="1" data-hold="1.6" data-turn="0.11"')}</div>
     <div class="coinslot" id="popcoin"></div>
     <div class="popact" id="popact">${mine ? `<button type="button" class="btn btn-gold" data-act="starToken">${ICON.star.replace("<svg", '<svg fill="currentColor" width="18" height="18"')}<bdi dir="ltr">+1</bdi> אסימון</button>`
       : `<button type="button" class="btn btn-primary" data-act="starNext">${X.i < X.steps.length - 1 ? "המשך" : "כל הכבוד!"}</button>`}</div></div>`;
@@ -2477,7 +2686,8 @@ function starToken() {
   if (!X || !box || box.classList.contains("coining")) return;
   const t = X.steps[X.i];
   box.classList.add("coining");
-  slot.innerHTML = `<div class="rays" aria-hidden="true"></div><div class="coin3d" aria-hidden="true"><div class="face">${ICON.star.replace("<svg", '<svg fill="currentColor"')}</div><div class="face back"><span class="num">${+FAM.settings.tokenValue || 100}</span></div></div>`;
+  slot.innerHTML = `<div class="rays" aria-hidden="true"></div>${coinBox()}`;
+  paintArt(slot);
   act.innerHTML = "";
   auraMood({ energy: 1, gold: 1.4 }); SFX.coin(); buzz([30, 50, 30, 50, 60]);
   claimTok(t.p, t.reason);
@@ -2653,11 +2863,11 @@ function renderLuck() {
   layer.innerHTML = `<div class="ceremony luckpop n${Math.min(3, girls.length)}" role="dialog" aria-modal="true" aria-label="בהצלחה במבחן">
     ${X.preview ? `<span class="chip warn">תצוגה מקדימה</span>` : ""}
     <span class="eyebrow">Good luck</span>
-    <div class="luckbox"><canvas class="luckcv" data-n="${girls.length}" aria-hidden="true"></canvas>
-      <div class="luckavs">${girls.map((p, i) => `<span class="luckav" style="animation-delay:${0.25 + i * 0.14}s">${avatar(p, (girls.length > 2 ? "lg" : "xl") + " ring")}<b>${esc(p.name)}</b></span>`).join("")}</div></div>
+    <div class="luckbox"><canvas class="luckcv" aria-hidden="true"></canvas>
+      <div class="luckavs">${girls.map((p, i) => `<span class="luckav" style="animation-delay:${0.25 + i * 0.14}s">${wreathed(p, girls.length, false)}<b>${esc(p.name)}</b></span>`).join("")}</div></div>
     <h2 class="display">בהצלחה במבחן ב${esc(subj)} ${when}!</h2>
     <p class="muted">${line}</p>
-    <p class="small faint">${dateHe(g.date)}${g.notes.length ? ` · ${g.notes.map(esc).join(" · ")}` : ""}</p>
+    <p class="small faint luckwhen">${emb(g.subj)}${dateHe(g.date)}${g.notes.length ? ` · ${g.notes.map(esc).join(" · ")}` : ""}</p>
     <button type="button" class="btn btn-primary" data-act="luckNext">${!last ? "המשך" : mine ? "תודה" : "בהצלחה!"}</button></div>`;
   paintArt(layer);
   const a = AURAS[auraOf(girls[0])].c;
@@ -2667,7 +2877,7 @@ function renderLuck() {
     const cv = $(".luckcv", layer);
     if (LUCK !== X || X.steps[X.i] !== g || !cv) return;
     const r = cv.getBoundingClientRect();
-    sparks(r.left + r.width / 2, r.top + r.height * 0.42, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], 110, 8); SFX.done();
+    sparks(r.left + r.width / 2, r.top + r.height * 0.4, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], 110, 8); SFX.done();
   }, 1500);
 }
 function closeLuck() {
@@ -2677,48 +2887,18 @@ function closeLuck() {
   if (X.preview || !X.viewer) { applyAura("chrome"); show("parent"); if (!X.preview) popupsFrom(3, null); return; }
   applyAura(auraOf(X.viewer)); show(X.back === "parent" ? "home" : X.back);
 }
-/* The wreath: two branches of leaves that grow from the foot up each side of her photo, a light running along them
- * once they are grown, and motes rising behind. Drawn in the colours on screen (hers). */
+/* Motes rising behind the photos, in the colours on screen (or gold). The wreath itself is each photo's own
+ * (wreathed, liveWreath). */
 function liveLuck(cv) {
-  const { ctx, W, H } = sized(cv), n = Math.max(1, +cv.dataset.n || 1), cx = W / 2, cy = H / 2 - 12;
-  const rx = Math.min(W / 2 - 22, n === 1 ? 92 : n === 2 ? 152 : 164), ry = n === 1 ? 92 : n === 2 ? 92 : 76;
+  const { ctx, W, H } = sized(cv);
   const cols = cv.dataset.gold === "1" ? ["#F2C56B", cssVar("--a1") || "#A855F7", "#FFE9B0"] : [cssVar("--a1") || "#A855F7", cssVar("--a2") || "#EC4899", cssVar("--a3") || "#6366F1"];
-  const per = n === 1 ? 12 : 16, leaves = [];
-  // A pair of leaves at each node of a branch, one leaning out and one in. A node at angle a on the left branch
-  // (90° is the foot, 270° the top), mirrored for the right one; the leaves get smaller toward the tip.
-  for (const side of [-1, 1]) for (let i = 0; i < per; i++) {
-    const a = (99 + (i + 0.5) / per * 150) * Math.PI / 180, ex = Math.cos(a) * rx, ey = Math.sin(a) * ry, tx = -Math.sin(a) * rx, ty = Math.cos(a) * ry;
-    const along = Math.atan2(ty, side < 0 ? tx : -tx), size = 1 - 0.3 * (i / per);
-    for (const lean of [1, -1]) leaves.push({ i, x: cx + (side < 0 ? ex : -ex), y: cy + ey, dir: along + lean * 0.62 * (side < 0 ? 1 : -1),
-      at: 0.3 + i * 0.065 + (lean < 0 ? 0.05 : 0), len: (lean > 0 ? 23 : 18) * size, c: cols[(i + (lean > 0 ? 0 : 1)) % 3] });
-  }
   const motes = Array.from({ length: 26 }, (_, i) => { const r = rng(hash("mote" + i)); return { x: r() * W, s: 1 + r() * 2.2, v: 14 + r() * 22, p: r() * 10, c: i % 4 === 3 ? "#ffffff" : cols[i % 3], sw: 6 + r() * 12 }; });
-  const grown = 0.3 + per * 0.065 + 0.55;
   animate(cv, t => {
     ctx.clearRect(0, 0, W, H);
     motes.forEach(m => {
       const life = ((t * m.v / (H + 20)) + m.p) % 1, y = H + 10 - life * (H + 20);
       ctx.globalAlpha = Math.sin(life * Math.PI) * 0.5; ctx.fillStyle = m.c;
       ctx.beginPath(); ctx.arc(m.x + Math.sin(t * 0.8 + m.p * 7) * m.sw, y, m.s, 0, 7); ctx.fill();
-    });
-    // the two stems, as far as the leaves have come
-    const k = Math.max(0, Math.min(1, (t - 0.2) / (per * 0.065 + 0.3)));
-    ctx.lineWidth = 2.4; ctx.lineCap = "round";
-    for (let side = -1; side <= 1; side += 2) {
-      const g = ctx.createLinearGradient(cx, cy + ry, cx, cy - ry); g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
-      ctx.strokeStyle = g; ctx.globalAlpha = 0.8; ctx.beginPath();
-      for (let j = 0; j <= 40 * k; j++) { const a = (93 + j / 40 * 156) * Math.PI / 180, ex = Math.cos(a) * rx, ey = Math.sin(a) * ry; ctx[j ? "lineTo" : "moveTo"](cx + (side < 0 ? ex : -ex), cy + ey); }
-      ctx.stroke();
-    }
-    leaves.forEach(l => {
-      const e = easeOut((t - l.at) / 0.45);
-      if (e <= 0) return;
-      const glow = t > grown ? Math.max(0, Math.sin(t * 2.2 - l.i * 0.42)) : 0;
-      ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.dir); ctx.scale(e, e);
-      ctx.globalAlpha = 0.72 + 0.28 * glow; ctx.fillStyle = l.c;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(l.len * 0.45, -l.len * 0.42, l.len, 0); ctx.quadraticCurveTo(l.len * 0.45, l.len * 0.42, 0, 0); ctx.fill();
-      if (glow > 0.05) { ctx.globalAlpha = glow * 0.55; ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(l.len * 0.15, 0); ctx.quadraticCurveTo(l.len * 0.5, -l.len * 0.16, l.len * 0.85, 0); ctx.quadraticCurveTo(l.len * 0.5, l.len * 0.1, l.len * 0.15, 0); ctx.fill(); }
-      ctx.restore();
     });
     ctx.globalAlpha = 1;
   }, 40);
@@ -2914,7 +3094,7 @@ function renderQuestion(keepClock) {
     ${segs()}
     <div class="qhead"><button type="button" class="round" data-act="quit" aria-label="${Q.kind === "day" ? "יציאה, ההתקדמות נשמרת" : Q.kind === "fix" ? "סיום החיזוק" : "סיום התרגול"}">${ICON.close}</button>
       <span class="combo" id="combo" ${Q.combo >= 2 ? "" : "hidden"}>${ICON.flame.replace("<svg", '<svg width="20" height="20"')}<span dir="ltr">×${Q.combo}</span></span></div>
-    <div class="qsubj"><span class="chip"><i></i>${SUBJ[subjOf(q.pool)]} · ${esc(q.topic)}</span><span class="lvl-dots" aria-label="רמה ${q.level} מתוך 3">${lv}</span>${tag}</div>
+    <div class="qsubj"><span class="chip emchip">${emb(subjOf(q.pool))}${SUBJ[subjOf(q.pool)]} · ${esc(q.topic)}</span><span class="lvl-dots" aria-label="רמה ${q.level} מתוך 3">${lv}</span>${tag}</div>
     ${pairs ? `<h2 class="q">חברי כל מילה לפירוש שלה</h2>${pairs.decoy ? `<p class="small muted" style="margin-top:-10px">יש פירוש אחד מיותר.</p>` : ""}` : `<h2 class="q" ${ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</h2>`}
     ${SANDBOX && !pairs ? `<p class="small faint sandhint">ניסיון · התשובה הנכונה: <b dir="${optDir(q.options[0])}">${fmt(q.options[0])}</b></p>` : ""}
     ${body}
@@ -3080,7 +3260,8 @@ function renderResult(p, gained, weekBonus, st, x) {
   const art = flavorBlock(p, Q.items, Q.res, st), more = canPractice() && practiceLeft(p.id) > 0;
   layer.innerHTML = quizShell(`
     <div class="row"><span class="eyebrow">${["Done", "Done", "Well done", "Perfect"][tier]}</span><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button></div>
-    <div class="res-top ${tier ? "" : "low"}"><span class="display num ${tier ? "grad-text" : "muted"}" id="gain" data-to="${gained}" dir="ltr">+0</span>
+    <div class="res-top ${tier ? "" : "low"}">${tier ? `<div class="pieceglow ${tier === 3 ? "gold" : ""}">${pieceCv(p, tier === 3 ? "lg" : "md", `data-in="${tier === 3 ? 2 : 1}" data-hold="0.35" data-turn="0.1" ${tier === 3 ? 'data-drag="1"' : ""}`)}</div>` : ""}
+      <span class="display num ${tier ? "grad-text" : "muted"}" id="gain" data-to="${gained}" dir="ltr">+0</span>
       <p class="muted"><bdi dir="ltr">${ok}/${Q.items.length}</bdi> נכונות · נקודות לטבלה${weekBonus ? ", כולל 15 על שבוע מלא" : ""}</p>
       ${notes.map(t => `<p class="small">${t}</p>`).join("")}</div>
     ${tier ? art + review : review + art}
@@ -3192,6 +3373,7 @@ document.addEventListener("click", async e => {
   if (act === "storyNext" && e.target.closest("[data-act=storyClose]")) return;
   switch (act) {
     case "tab": SFX.tap(); show(b.dataset.to); break;
+    case "toSubj": { const el = document.getElementById("subj-" + b.dataset.k); if (el) { SFX.tap(); el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" }); } break; }
     case "start": { const r = b.getBoundingClientRect(); startQuest(); if (Q) iris(r); break; }
     case "practice": { const r = b.getBoundingClientRect(); startPractice(); if (Q) iris(r); break; }
     case "fix": { const r = b.getBoundingClientRect(); startFix(); if (Q) iris(r); break; }
@@ -3497,6 +3679,7 @@ function greet() {
   if (L.parent || view === "parent") { if (parentOK && view === "parent") dadPopups(); return; }
   const p = me();
   if (!p || !["home", "know", "board", "vault", "me"].includes(view)) return;
+  artWarm(p);
   if (monthCheck(p)) { L.seenRecap = THIS_MONTH; save(); return; }   // her recap is the popup's last button
   if (LIVE && L.seenRecap !== THIS_MONTH && D <= 7) {
     const [py, pm] = prevMonth(Y, M);

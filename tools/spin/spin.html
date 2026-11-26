@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
+</head>
+<body>
+<script type="module">
+// Draws a Meshy model (a GLB) as a turntable for the app: window.frame(k, n) turns it to view k of n and returns the
+// picture as a PNG data URL. Run by spin.js; the options come in the address:
+//   size   the frame, in px (512; art.py halves it)          yaw, lean  the model's own turn, so view 0 is its front
+//   tilt   how far above the camera looks from (12 degrees)  fill       how much of the frame it may take (0.93)
+//   axis   "base" turns it round its foot, not its middle    half       1: a coin with two like faces, half a turn
+//   env, key, warm, rimi, rim=hex,hex, tint=hex, exposure    the light
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+const Q = new URLSearchParams(location.search), num = (k, d) => Q.has(k) ? +Q.get(k) : d;
+const SIZE = num("size", 512), HALF = num("half", 0) === 1;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setSize(SIZE, SIZE); renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = num("exposure", 1);
+renderer.setClearColor(0x000000, 0);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+// A white room washes gold out to pale (the first crown, 2026-11-26): less of the room, and warm lights on the metal.
+scene.environmentIntensity = num("env", 0.55);
+const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+const light = (c, i, x, y, z) => { const l = new THREE.DirectionalLight(c, i); l.position.set(x, y, z); scene.add(l); };
+light(0xfff1d0, num("key", 2.2), 2, 3, 4);
+light(0xffc56b, num("warm", 2.4), -2, 2, 3);
+// two lights from behind draw the object's edge: neutral by default, so a piece suits whichever colours a girl picked
+const rim = (Q.get("rim") || "dfe6ff,fff0dc").split(",").map(c => new THREE.Color("#" + c));
+const rimA = new THREE.PointLight(rim[0], num("rimi", 34), 20); rimA.position.set(-3, 1.5, -2); scene.add(rimA);
+const rimB = new THREE.PointLight(rim[1], num("rimi", 34) * 0.75, 20); rimB.position.set(3, 0.5, -2.5); scene.add(rimB);
+const pivot = new THREE.Group(); scene.add(pivot);
+// view k of n: a whole turn, or for a coin half of one. A coin with two like faces shows, past its edge, what its
+// front shows from the other side, so the views run from edge to edge and the app plays them twice a turn.
+const angle = (k, n) => { let a = k / n * Math.PI * (HALF ? 1 : 2); if (HALF && a > Math.PI / 2 + 1e-6) a -= Math.PI; return a; };
+new GLTFLoader().load("/model.glb", g => {
+  const m = g.scene, hold = new THREE.Group();
+  hold.add(m); hold.rotation.y = num("yaw", 0) * Math.PI / 180; hold.rotation.x = num("lean", 0) * Math.PI / 180; pivot.add(hold);
+  const tint = Q.get("tint") ? new THREE.Color("#" + Q.get("tint")) : null;
+  m.traverse(o => { if (o.isMesh && o.material) { o.material.envMapIntensity = 1; if (tint && o.material.color) o.material.color.multiply(tint); } });
+  // a few thousand of its points, to measure with
+  pivot.updateMatrixWorld(true);
+  const pts = [];
+  m.traverse(o => { if (!o.isMesh) return; const p = o.geometry.attributes.position, step = Math.max(1, Math.floor(p.count / 6000));
+    for (let i = 0; i < p.count; i += step) pts.push(new THREE.Vector3().fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld)); });
+  const box = new THREE.Box3().setFromPoints(pts), c = box.getCenter(new THREE.Vector3()), h = box.max.y - box.min.y;
+  if (Q.get("axis") === "base") {   // a trophy turns round its foot: the middle of its lowest points
+    const foot = pts.filter(p => p.y < box.min.y + h * 0.06), s = foot.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplyScalar(1 / foot.length);
+    c.x = s.x; c.z = s.z;
+  }
+  hold.position.sub(c); pts.forEach(p => p.sub(c));
+  // The camera: as near as keeps every view inside the frame. Measured, not guessed from a sphere, which left a flat
+  // crown small in its frame.
+  const tilt = num("tilt", 12) * Math.PI / 180, fill = num("fill", 0.93), N = 48, v = new THREE.Vector3();
+  let d = box.getBoundingSphere(new THREE.Sphere()).radius / Math.sin(camera.fov / 2 * Math.PI / 180), aim = 0;
+  for (let pass = 0; pass < 6; pass++) {
+    camera.position.set(0, aim + Math.sin(tilt) * d, Math.cos(tilt) * d); camera.lookAt(0, aim, 0);
+    camera.near = d / 50; camera.far = d * 4; camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
+    let x = 0, lo = 9, hi = -9;
+    for (let k = 0; k < N; k++) { const a = angle(k, N), ca = Math.cos(a), sa = Math.sin(a);
+      for (const p of pts) { v.set(p.x * ca + p.z * sa, p.y, -p.x * sa + p.z * ca).project(camera); x = Math.max(x, Math.abs(v.x)); lo = Math.min(lo, v.y); hi = Math.max(hi, v.y); } }
+    aim += (lo + hi) / 2 * d * Math.tan(camera.fov / 2 * Math.PI / 180);
+    d *= Math.max(x, (hi - lo) / 2) / fill;
+  }
+  window.frame = (k, n) => { pivot.rotation.y = angle(k, n); renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); };
+  window.ready = true;
+}, undefined, e => { window.failed = String(e && e.message || e); });
+</script>
+</body>
+</html>

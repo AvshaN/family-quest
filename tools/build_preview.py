@@ -43,6 +43,7 @@ def main():
     with open(os.path.join(ROOT, "data", "facts.json"), encoding="utf-8") as f:
         facts = json.dumps(json.load(f), ensure_ascii=False).replace("</", "<\\/")
     fact_base = "file://" + os.path.join(ROOT, "data", "facts") + "/"   # the pictures stay files: a preview is opened on this machine
+    art_base = "file://" + os.path.join(ROOT, "art") + "/"
     data = json.dumps(banks, ensure_ascii=False).replace("</", "<\\/")
     demo_js = json.dumps(demo, ensure_ascii=False).replace("</", "<\\/")
     out = (
@@ -56,7 +57,7 @@ def main():
         "<script>\n"
         'window.FQ_CONFIG = { apiUrl: "" };\nwindow.FQ_PREVIEW = true;\n'
         f"window.FQ_DEMO = {demo_js};\nwindow.FQ_BANKS = {data};\n"
-        f"window.FQ_FACTS = {facts};\nwindow.FQ_FACT_BASE = {json.dumps(fact_base)};\n"
+        f"window.FQ_FACTS = {facts};\nwindow.FQ_FACT_BASE = {json.dumps(fact_base)};\nwindow.FQ_ART_BASE = {json.dumps(art_base)};\n"
         "</script>\n"
         f"<script>\n{read('app.js')}\n</script>\n"
     )

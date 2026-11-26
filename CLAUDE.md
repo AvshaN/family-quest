@@ -472,6 +472,8 @@ tests with the girls and gives feedback; Claude writes the code.
 - `node --check app.js`
 - `python3 tools/check_bank.py`
 - `python3 tools/facts.py check` after touching the facts or their pictures.
+- `python3 tools/art.py check` after touching the art or a line that names a
+  picture: every picture app.js names is in `art/`, and each sheet fits.
 - `python3 tools/build_preview.py /tmp/x.html --names "A,B,C"` and open it
   (or walk it with Playwright) for a demo-mode look at every screen.
 - The walks of 2026-11-26 are the pattern for a new feature: stage rows with
@@ -539,39 +541,95 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   learned yet". The pool came from worksheets sent on 2026-11-13 (change,
   Rabbi Akiva, a poem, the role model).
 
-## Meshy, for the app's art (tested 2026-11-26, nothing built into the app yet)
+## The app's art, from Meshy (built 2026-11-26)
 
 Avsha has a Meshy subscription and added its skill ("meshy-3d-agent"), as in
-his football project, and asked to "test for ideas to elevate the app's
-design, added animations, appealing graphics". What was found:
-- **Access**: the CLI runs with `npm exec --yes --package=meshy-cli@0.4.0 --
+his football project. He asked to "test for ideas to elevate the app's
+design, added animations, appealing graphics", saw a mock page, and said:
+"build all five in and the 3d pieces for each girl, I don't mind investing
+up to 1-2K credits on this app (probably more if we'll find worthy additions
+in the future)". So far 231 credits are spent (4,269 of 4,500 left).
+
+- **What is in the app** (`art/`, 20 pictures, 1.8 MB; app.js "the app's
+  art"; app.css, the last block):
+  - **The token coin**, a 3D model: it spins in and comes to rest on its
+    face in every token ceremony (`coinBox`: a new token, the winner's and
+    the exam token's "+1" tap), and is the small coin of the vault.
+  - **The laurel wreath** round her photo (`wreathed`, `liveWreath`): gold
+    for what she won (the month's winner, the exam token), and for a
+    good-luck wish the same leaves in her own colours (`tinted`: the gold's
+    light and dark over her two colours). Each girl of a shared wish has her
+    own. It grows from the foot up and a light runs along it.
+  - **The crown**, a 3D model, drops onto the month's winner and turns (one
+    each when two share the month).
+  - **An emblem for each of the twelve subjects** (`emb`): on the day's
+    chips, the question's chip, the map (a tile for each subject that
+    scrolls to its topics, dim until a topic is known, and by each subject's
+    name), her exams, the good-luck popup, the accuracy bars (hers and
+    Dad's) and Dad's exam table.
+  - **The black card** is the vault's ten-token prize (`.bcard`,
+    `liveCard`): always there as what she is saving for, muted until she
+    has ten, then shining; it sways and leans to a finger.
+  - **Her own piece** (`PIECE`, `pieceOf`, `pieceCv`), a 3D model for each
+    kind of result: a paint palette for `portfolio`, a rhythmic gymnast's
+    hoop, ball and clubs for `routine`, a stage microphone for `stage`. It
+    stands over her points on a good day's result (larger on a perfect day,
+    when a finger can turn it), on her Me screen (to turn), small by her
+    month on the home screen, and before her backdrop in the winner's and
+    the exam token's popups. He was told which piece each girl got and that
+    one can be swapped (39 credits); ask if he wants another.
+- **No 3D engine runs on a phone** (the old Xiaomi). A model is drawn once,
+  here, from every side: `node tools/spin/spin.js MODEL.glb DIR` (three.js
+  in headless Chromium; `--axis=base` turns a trophy round its foot,
+  `--half=1` is a coin with two like faces) and `python3 tools/art.py sheet
+  DIR NAME` packs the views into one sheet, eight a row (250 to 390 KB).
+  `liveSpin` shows the view for the angle, blended with the next
+  (`data-turn`, `data-rock`, `data-in`, `data-hold`, `data-drag`). Do not
+  name a new attribute `data-wait`: that is the app's mark of a button
+  waiting for the Sheet, and a walk waited for ever on a canvas that had it.
+- **Each picture has its fallback**, what the app drew before: a picture
+  that fails is taken out (`pic`, the `error` listener) and the CSS coin,
+  the drawn wreath (`drawnWreath`), the plain chip show. Tested with every
+  request for `art/` refused.
+- **The service worker keeps `art/` for good** (`fq-art` in sw.js, served
+  without asking the site), so 1.8 MB is not fetched again at every
+  version. **A changed picture therefore gets a new name.** `artWarm`
+  fetches the coin, the wreath and her piece while the phone is idle.
+- **Making more.** The CLI: `npm exec --yes --package=meshy-cli@0.4.0 --
   meshy`. A new machine is signed out: `auth login --device` prints a link
-  and a code for him to approve in his browser (he did, in a minute); keep
-  the turn alive until it exits. 4,500 credits then; the test used 75.
-- **Prices** (Meshy's list, read that day): an image 9 credits
-  (`text-to-image`, model `nano-banana-pro`), a textured 3D model from an
-  image 30 (`image-to-3d --should-texture true`).
-- **Made**: five images in the app's look, each asked for "on pure solid
-  black, no text" (a gold token coin with a star, a gold laurel wreath with
-  an empty middle, a slender crown with amethysts, eight glass-and-gold
-  subject emblems on one sheet, a black card with an aurora), and the crown
-  as a 3D model. Text-to-image tasks 01a2193b-d57b…, -d9bc…, -de30…, -e2ab…,
-  -e73c…; the model is image-to-3d 01a2193d-7e6c-7207-8e4a-99cdc148bf28.
-  They can be downloaded again from his account at no cost.
-- **How they become app art**: a solid object is cut off the black by a
-  flood from the frame's edges; a glowing or thin one by brightness as
-  opacity; the emblem sheet is cut in eight. As WebP they weigh 9 to 110
-  KB. A 3D model is never shipped (the GLB is 16 MB): it is drawn as a
-  turntable by three.js in headless Chromium (a room environment turned
-  down, a warm key, the aura's two colours as rim lights) and the 32 frames
-  go in one strip stepped through with CSS `steps(32)`: 234 KB for the
-  crown. So no 3D engine runs in the app, which matters for the old Xiaomi.
-- **Shown to him** as a mock page (not the app): the token coin flipping in
-  under rays with a sheen, the winner's photo in the gold wreath with the 3D
-  crown dropping on and turning, the emblems on the day's chips and the map,
-  the black card tilting. He is to say which of it to build in. Keep the
-  rule for the facts: no AI picture standing for a real animal or planet;
-  these are objects and emblems. No text inside a picture: the app is Hebrew.
+  and a code for him to approve in his browser; keep the turn alive until it
+  exits. An image is 9 credits (`text-to-image`, model `nano-banana-pro`,
+  or `image-to-image` with one of ours as the reference, which is how the
+  four later emblems match the first eight), a textured 3D model from an
+  image 30 (`image-to-3d --should-texture true`; download with
+  `--model-format glb`). Ask for "pure solid black background, no text";
+  for a piece, "a small trophy sculpture ... on a small round black base,
+  polished gold and dark smoked glass", neutral light, so it suits whichever
+  colours she picked. `python3 tools/art.py cut DIR` cuts the flat ones (a
+  solid object by clearing what the black reaches from the frame's edge, a
+  thin one by brightness as opacity). The GLBs (16 to 58 MB) and Meshy's
+  PNGs are not in the repo; they can be downloaded again from his account
+  at no cost. Tasks: images coin 01a2193b-d57b-77ea-8076-ac649483b9d9,
+  wreath 01a2193b-d9bc-7556-8f6f-5a6df5a0a8da, crown
+  01a2193b-de30-73fa-ba25-1835f06a00af, emblems
+  01a2193b-e2ab-7219-9660-9b9f8bb63ba2, card
+  01a2193b-e73c-7480-9aeb-877ca06ca693, palette
+  01a2194f-2dbc-720a-99db-8db7c5f8c4ff, gym
+  01a2194f-32c9-7236-bf03-513854dba8c9, mic
+  01a2194f-3704-740b-aedb-34827dcb8f16, emblems2 (image-to-image)
+  01a2194f-3bdf-77d1-b655-8afb14207f1e; models crown
+  01a2193d-7e6c-7207-8e4a-99cdc148bf28, palette
+  01a2194f-cebb-743e-8760-eb73b65ee104, gym
+  01a2194f-d61a-7466-b9be-21b79d997157, mic
+  01a2194f-debf-7572-b8d7-1f995c56e920, coin
+  01a2194f-e69c-722d-bc24-b1fdb8769edd.
+- **Rules.** No AI picture standing for a real animal or planet (the facts
+  keep their free photographs); these are objects and emblems. No text
+  inside a picture: the app is Hebrew. Propose a spend before making it
+  beyond what he has said.
+- **Never seen on a real phone**: how the turning pieces run on the old
+  Xiaomi, and whether the coin's sheet (386 KB) arrives in time for a
+  ceremony on the phones' first opening after the update. Ask.
 
 ## Reminders (looked into 2026-11-14, not built)
 
