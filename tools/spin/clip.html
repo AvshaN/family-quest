@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
+</head>
+<body>
+<script type="module">
+// Plays a rigged, animated Meshy model (a GLB with one motion) and gives its pictures: window.info() says how long
+// the motion is and where the camera must stand to hold it; window.frame(t) draws the moment t and returns a PNG.
+// The same camera is used for every motion of a creature (d, aim in the address), so it does not change size
+// between them. Options: size, d, aim, tilt, fill, inplace (1: its hips stay over one spot), yaw, wear (a second
+// GLB set on its head: /wear.glb, with wearscale, wearup, wearfwd), eyes (closed | happy: lids over its eyes).
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+const Q = new URLSearchParams(location.search), num = (k, d) => Q.has(k) ? +Q.get(k) : d;
+const SIZE = num("size", 512);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setSize(SIZE, SIZE); renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = num("exposure", 1.05);
+renderer.setClearColor(0x000000, 0);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = num("env", 0.75);
+const camera = new THREE.PerspectiveCamera(24, 1, 0.01, 100);
+const light = (c, i, x, y, z) => { const l = new THREE.DirectionalLight(c, i); l.position.set(x, y, z); scene.add(l); };
+light(0xfff4e2, num("key", 1.9), 2, 3, 4);
+light(0xffe0c0, num("warm", 0.9), -2.5, 1.5, 3);
+const rim = (Q.get("rim") || "c9d4ff,ffd9ec").split(",").map(c => new THREE.Color("#" + c));
+const rimA = new THREE.PointLight(rim[0], num("rimi", 26), 20); rimA.position.set(-3, 1.5, -2); scene.add(rimA);
+const rimB = new THREE.PointLight(rim[1], num("rimi", 26) * 0.75, 20); rimB.position.set(3, 0.5, -2.5); scene.add(rimB);
+const pivot = new THREE.Group(); pivot.rotation.y = num("yaw", 0) * Math.PI / 180; scene.add(pivot);
+const loader = new GLTFLoader();
+const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no));
+(async () => {
+  const g = await load("/model.glb"), m = g.scene, clip = g.animations[num("clip", 0)];
+  pivot.add(m);
+  m.traverse(o => { if (o.isMesh) { o.frustumCulled = false; if (o.material) o.material.envMapIntensity = 1; } });
+  const skinned = []; m.traverse(o => { if (o.isSkinnedMesh) skinned.push(o); });
+  const bones = {}; m.traverse(o => { if (o.isBone) bones[o.name] = o; });
+  if (clip && num("inplace", 1)) {   // its hips stay over one spot: a dance does not walk it out of its box
+    const root = Object.keys(bones).find(n => /hips|pelvis|root/i.test(n));
+    // over the spot it stands on at rest, whichever way the motion begins (one that starts a step forward came out larger)
+    // "lift" stretches how far its hips rise and fall: on legs this short a human's jump barely leaves the floor
+    clip.tracks.forEach(tr => { if (root && tr.name === root + ".position") { const v = tr.values, x0 = bones[root].position.x, y0 = bones[root].position.y, z0 = bones[root].position.z, k = num("lift", 1),
+        unit = y0 / Math.max(1e-6, bones[root].getWorldPosition(new THREE.Vector3()).y), up = num("rise", 0) * unit;   // the skeleton may be in centimetres
+      for (let i = 0; i < v.length; i += 3) { v[i] = x0; v[i + 2] = z0; v[i + 1] = y0 + (v[i + 1] - y0) * (v[i + 1] > y0 ? k : 1) + up * Math.sin(Math.PI * i / (v.length - 3)); } } });
+  }
+  const mixer = new THREE.AnimationMixer(m); let action = null;
+  if (clip) { action = mixer.clipAction(clip); action.play(); }
+  const pose = t => { if (action) { mixer.setTime(Math.max(0, Math.min(clip.duration - 1e-4, t))); } pivot.updateMatrixWorld(true); skinned.forEach(s => s.skeleton.update()); };
+  // points of the skin, where it is at this moment
+  const v = new THREE.Vector3();
+  const points = () => { const out = []; skinned.forEach(s => { const p = s.geometry.attributes.position, step = Math.max(1, Math.floor(p.count / 2500));
+    for (let i = 0; i < p.count; i += step) { s.getVertexPosition(i, v); out.push(v.clone().applyMatrix4(s.matrixWorld)); } }); return out; };
+  // something worn on its head: a second model, carried by the head bone
+  if (Q.get("wear")) {
+    const w = (await load("/wear.glb")).scene, head = bones[Object.keys(bones).find(n => /^head$/i.test(n)) || Object.keys(bones).find(n => /head/i.test(n))];
+    pose(0);
+    const hb = new THREE.Box3().setFromPoints(points()), height = hb.max.y - hb.min.y, wb = new THREE.Box3().setFromObject(w), ws = wb.getSize(new THREE.Vector3());
+    const hold = new THREE.Group(); w.position.sub(wb.getCenter(new THREE.Vector3())); hold.add(w);
+    const k = num("wearscale", 0.42) * height / Math.max(ws.x, ws.z);
+    // placed in the world over its head, then handed to the head bone so it rides every motion
+    const hp = head.getWorldPosition(new THREE.Vector3());
+    hold.scale.setScalar(k); hold.position.set(hp.x + num("wearx", 0) * height, hb.max.y + num("wearup", -0.06) * height, hp.z + num("wearfwd", 0) * height);
+    scene.add(hold); hold.updateMatrixWorld(true); head.attach(hold);
+    w.traverse(o => { if (o.isMesh && o.material && Q.get("weartint")) o.material.color.multiply(new THREE.Color("#" + Q.get("weartint"))); });
+  }
+  // Its face is painted on, so it cannot blink. Lids are made for it: its eyes are found as the dark patches on the
+  // front of its head (in its own texture), and over each goes a small dome in the colour of the skin round the eye,
+  // with a dark curved line: turned down for sleep ("closed"), up for delight ("happy"). The head bone carries them.
+  if (Q.get("eyes")) {
+    pose(0);
+    const head = bones[Object.keys(bones).find(n => /^head$/i.test(n))], all = points(), box = new THREE.Box3().setFromPoints(all), H = box.max.y - box.min.y;
+    const dark = [], skin = [], p = new THREE.Vector3();
+    for (const s of skinned) {
+      const map = s.material.map, uv = s.geometry.attributes.uv; if (!map || !uv) continue;
+      const cv = document.createElement("canvas"), W = cv.width = 1024, Hh = cv.height = 1024, cx = cv.getContext("2d", { willReadFrequently: true });
+      cx.drawImage(map.image, 0, 0, W, Hh); const px = cx.getImageData(0, 0, W, Hh).data, n = s.geometry.attributes.position.count, step = Math.max(1, Math.floor(n / 220000));
+      for (let i = 0; i < n; i += step) {
+        const x = Math.min(W - 1, Math.max(0, Math.floor(uv.getX(i) * W))), y = Math.min(Hh - 1, Math.max(0, Math.floor(uv.getY(i) * Hh))), k = (y * W + x) * 4;
+        const r = px[k] / 255, g2 = px[k + 1] / 255, b = px[k + 2] / 255, lum = 0.3 * r + 0.59 * g2 + 0.11 * b;
+        s.getVertexPosition(i, p); p.applyMatrix4(s.matrixWorld);
+        if (p.y < box.min.y + H * 0.42) continue;
+        (lum < 0.2 ? dark : skin).push({ p: p.clone(), c: [r, g2, b], lum });
+      }
+    }
+    const hc = head.getWorldPosition(new THREE.Vector3()), midx = dark.reduce((a, d) => a + d.p.x, 0) / Math.max(1, dark.length), found = [];
+    for (const side of [-1, 1]) {
+      const pts = dark.filter(d => (d.p.x - midx) * side > 0 && d.p.z > hc.z);
+      if (pts.length < 8) continue;
+      const c = pts.reduce((a, d) => a.add(d.p), new THREE.Vector3()).multiplyScalar(1 / pts.length);
+      const centre = new THREE.Vector3(hc.x, c.y, hc.z), n = c.clone().sub(centre).normalize();
+      const flat = pts.map(d => { const q = d.p.clone().sub(c), along = q.dot(n); return { r: q.sub(n.clone().multiplyScalar(along)).length(), along }; }).sort((a, b) => a.r - b.r);
+      const r = flat[Math.floor(flat.length * 0.96)].r, bulge = Math.max(...flat.map(f => f.along));
+      // the skin's colour: what lies just above the eye (below and beside it are its cheek and the eye's white rim),
+      // the middle value of each channel so a stray highlight does not tint it
+      const near = skin.filter(d => { const dd = d.p.distanceTo(c); return dd > r * 1.3 && dd < r * 1.9 && d.p.y > c.y + r * 0.9 && d.lum > 0.3 && d.lum < 0.95 && Math.max(...d.c) - Math.min(...d.c) > 0.12; });
+      const mid = j => { const v = near.map(d => d.c[j]).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : 0.8; };
+      const col = [mid(0), mid(1), mid(2)];
+      found.push({ side, c, n, r, bulge, col, count: pts.length });
+    }
+    window.eyesFound = found.map(e => ({ side: e.side, at: e.c.toArray().map(x => +x.toFixed(3)), r: +e.r.toFixed(3), bulge: +e.bulge.toFixed(3), col: e.col.map(x => +x.toFixed(2)), n: e.count }));
+    const up = Q.get("eyes") === "happy" ? 1 : -1;
+    for (const e of found) {
+      const R = e.r * num("lid", 1.2), h = e.bulge + H * 0.012 + H * 0.006, Rs = (R * R + h * h) / (2 * h), theta = Math.asin(Math.min(1, R / Rs));
+      const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(e.col[0], e.col[1], e.col[2], THREE.SRGBColorSpace), roughness: 0.55, metalness: 0 });
+      const pole = e.c.clone().add(e.n.clone().multiplyScalar(e.bulge + H * 0.012)), centre = pole.clone().sub(e.n.clone().multiplyScalar(Rs));
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(Rs, 40, 20, 0, Math.PI * 2, 0, theta), mat);
+      cap.position.copy(centre); cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), e.n);
+      // the line of the closed eye, lying on the dome
+      const t = new THREE.Vector3(1, 0, 0).sub(e.n.clone().multiplyScalar(e.n.x)).normalize(), b = new THREE.Vector3().crossVectors(e.n, t).normalize(); if (b.y < 0) b.negate();
+      const line = [];
+      for (let k = 0; k <= 16; k++) { const s = -1 + k / 8, x = s * R * 0.6, y = up * (0.5 - s * s) * R * 0.36;
+        line.push(centre.clone().add(e.n.clone().multiplyScalar(Math.sqrt(Math.max(0, Rs * Rs - x * x - y * y)) * 1.004)).add(t.clone().multiplyScalar(x)).add(b.clone().multiplyScalar(y))); }
+      const arc = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(line), 32, R * 0.07, 8), new THREE.MeshStandardMaterial({ color: 0x2b1a12, roughness: 0.6 }));
+      scene.add(cap); scene.add(arc); cap.updateMatrixWorld(true); arc.updateMatrixWorld(true); head.attach(cap); head.attach(arc);
+    }
+  }
+  const tilt = num("tilt", 6) * Math.PI / 180, tan = Math.tan(camera.fov / 2 * Math.PI / 180);
+  const place = (d, aim) => { camera.position.set(0, aim + Math.sin(tilt) * d, Math.cos(tilt) * d); camera.lookAt(0, aim, 0); camera.near = d / 50; camera.far = d * 4; camera.updateProjectionMatrix(); camera.updateMatrixWorld(true); };
+  window.info = () => {
+    // where the camera must stand for this motion to stay in the frame, and for its first moment alone
+    const dur = clip ? clip.duration : 0, fill = num("fill", 0.9), fit = times => { let d = 3, aim = 0.5;
+      for (let pass = 0; pass < 6; pass++) { place(d, aim); let x = 0, lo = 9, hi = -9;
+        for (const t of times) { pose(t); for (const p of points()) { v.copy(p).project(camera); x = Math.max(x, Math.abs(v.x)); lo = Math.min(lo, v.y); hi = Math.max(hi, v.y); } }
+        aim += (lo + hi) / 2 * d * tan; d *= Math.max(x, (hi - lo) / 2) / fill; }
+      return { d, aim }; };
+    const all = fit(Array.from({ length: 16 }, (_, i) => dur * i / 15)), rest = fit([0]);
+    pose(0); const b = new THREE.Box3().setFromPoints(points());
+    return { duration: dur, clips: g.animations.map(a => [a.name, +a.duration.toFixed(2)]), all, rest, height: b.max.y - b.min.y, floor: b.min.y, bones: Object.keys(bones) };
+  };
+  place(num("d", 3), num("aim", 0.5));
+  window.frame = t => { pose(t); renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); };
+  window.ready = true;
+})().catch(e => { window.failed = String(e && e.message || e); });
+</script>
+</body>
+</html>

@@ -631,6 +631,67 @@ in the future)". So far 231 credits are spent (4,269 of 4,500 left).
   Xiaomi, and whether the coin's sheet (386 KB) arrives in time for a
   ceremony on the phones' first opening after the update. Ask.
 
+## A creature to care for (an idea; its first step done 2026-11-26, nothing in the app)
+
+Avsha, 2026-11-26: the girls play Adopt Me! on Roblox (the eldest confirmed
+it, and that they enjoy all of it: raising, dressing up, collecting, showing
+each other), and it reminded him of the Tamagotchi. His idea: each girl
+picks a cute creature and cares for it by answering questions, "daily points
+are also translated to the amount of actions allowed each day", with "proper
+animations as reactions to the actions picked, maybe a reaction to a pet by
+swiping on the screen", perhaps a second creature and a house after a high
+threshold. "This is an added layer on the current, all other systems like
+rewards stay the same." The eldest also sent a screenshot of a streak pet
+(it looks like TikTok's): a simple round creature shared by two friends,
+with outfits, a level bar of growth points and a "grow your pet" list of
+daily tasks.
+
+- **Agreed so far**: a pet never gets sick and never dies (his word); a day
+  off costs nothing, as with full weeks. Tokens, the board and the prizes
+  are untouched, and nothing of the pet is bought with tokens.
+- **What I proposed** (he has not said yes to the build): today's points
+  become today's care actions (feed, play, wash, walk, sleep; petting by a
+  swipe is free); care and learning tasks give growth points and levels;
+  a "wish of the day" that asks for what helps her most (her fix-it lesson,
+  a faded star, exam practice); outfits earned by learning; sisters visiting
+  each other's creature; a second creature and a house last. One study
+  (EdSurge 2014, a Taiwanese class): a pet alone made lessons more fun but
+  not more learned; with competition it did. The board stays central.
+- **The first step, done** (125 credits; 4,144 left): six designs in one
+  family for the girls to react to (fox, dragon, axolotl, bunny, cat, a star
+  spirit; text-to-image tasks 01a219f7-ed5f…, 01a219f7-f9cf…, 01a219f8-04e2…,
+  -0975…, -146e…, -2144…), and the star spirit as a model (image-to-3d with
+  `--pose-mode a-pose`, 01a219f8-c541-76ec-908f-b3935db0ba6a), rigged
+  (`rigging create --input-task-id`, 5 credits, 01a219fa-410f-7390-a9a4-
+  da6e5cd1690a) and given twelve of Meshy's 680 ready-made motions (3 each,
+  `animate create --rig-task-id --action-id`; the list with preview GIFs is
+  public at api.meshy.ai/web/public/animations/resources). He was sent two
+  recordings of a mock page and stills, and is to say whether the motion is
+  good enough and which creatures the girls want.
+- **What was learned about the motions.** They are human motion capture.
+  On a creature with a big head and short arms the whole-body ones read
+  well (0 idle and look about, 22 a dance, 466 a hop, 452 a backflip, 62 a
+  waddle, 363 sitting down, 342 hand to mouth for eating) and the ones with
+  hands by the head do not (290 a wave, 27 a heart, 316 a head rub, 298 a
+  cheer). On legs this short a jump hardly leaves the floor.
+- **The renderer** is `tools/spin/clip.html` and `clip.js` (as spin.js, for
+  a GLB with a motion): `--info` gives the length, the bones and where a
+  camera must stand; one camera for every motion of a creature (`--d`,
+  `--aim`), its hips kept over one spot, `--lift` and `--rise` to make a
+  jump leave the floor, `--from --to --fps`. **Eyelids** (`--eyes=closed`
+  or `happy`): its face is painted on and cannot blink, so the tool finds
+  its eyes as the dark patches on the front of its head and sets a small
+  dome in the skin's colour over each, with a curved line, carried by the
+  head bone: a blink, sleep, delight. **Something worn** (`--wear=FILE.glb`
+  with `--wearscale --wearup`): a second model handed to the head bone, so
+  it rides every motion (tried with the crown). Fast motion needs 16 frames
+  a second shown one at a time: at 10 with frames blended, as the turning
+  objects are, an arm or an eye came out double. Fourteen motions at 320 px
+  came to 6 MB for one look: for the app, fewer and shorter ones.
+- **Not decided**: which creatures; whether a girl may skip it; how its
+  state is kept (it must be in the Sheet to survive a new phone: a new tab,
+  a new `api`, his paste).
+
 ## Reminders (looked into 2026-11-14, not built)
 
 Avsha asked whether a girl who hasn't played can get an evening reminder on
