@@ -323,6 +323,19 @@ tests with the girls and gives feedback; Claude writes the code.
   each girl's weeks as a chart and each exam with the week before it and
   the grade (`trendChart`, `overTime`; the script's `trend_`, `examsPast_`).
   Her Me screen shows her own, and says Dad sees them: keep that true.
+  The app's own form takes only a date from today on; the script takes any
+  date. So an exam that has already passed (she wants to enter its grade)
+  is a row appended to the Tests tab with the Sheets connector, and only
+  when Avsha asks for those rows in so many words: on 2026-11-26 he sent
+  the eldest's English tests and quizzes of the year (her class group's
+  list) and nine were appended (when as text, profile, date as text, `eng`,
+  note "מבחן" or "בוחן"); an append he had not asked for was refused
+  earlier that day. Read the tab first and do not add an exam that may be
+  one already there: her list's 22.11 was held back, because every date on
+  it is a Sunday and she already had an English test on 24.11 (two rows for
+  one test would count twice for the token). Dates on such a list may be
+  the week's Sunday and not the day: the week of focus and the good-luck
+  popup follow the row, so say so.
 - **Three exams above 85 are a token** (`EXAMTOK` / `EXAM`, `counts`,
   `examCount`, `gradesCard`, `gradeRow`; `setGrade_`, `gradeOk_`,
   `examTokens_` in Code.gs; Avsha, 2026-11-26: "3 exams above 85 grants a
