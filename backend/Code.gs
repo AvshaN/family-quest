@@ -40,17 +40,19 @@ var DEFAULTS = [
   ["improved_reward", "פרס קטן מאבא", "what the most improved girl of the month gets (given by hand)"]
 ];
 /* Points by month, as POINTS_BY in app.js: the new rule from December 2026 (Avsha, 2026-11-14). */
-var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, week: 15, weekDays: 5 }],
-                 ["", { day: 10, right: 4, perfect: 0, revenge: 8, week: 15, weekDays: 5 }]];
+var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson: 5, week: 15, weekDays: 5 }],
+                 ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 5;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end
+var API = 6;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak
 // (the parent's Settings tab compares this with SCRIPT_API in app.js and says when the script here is behind: raise both together)
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
 var WEEK_DAYS = 5;
 /* A day with 3 of the five answered in under 3 seconds each is marked as rushed. */
 var RUSH = { secs: 3, n: 3 };
+var LESSON_N = 3;   // a fix-it lesson's questions (FIX.n in app.js)
+var FIX = { min: 3, days: 28, right: 0.5 };   // when a topic is stuck (FIX in app.js)
 var SUBJ = { math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", civ: "אזרחות", midrash: "בית מדרש", bible: "תנ״ך", geo: "גאוגרפיה", art: "אמנות", bio: "ביולוגיה", lit: "ספרות" };
 var DAYS_FULL = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 var AURA_COL = { orchid: "#A855F7", lagoon: "#14B8A6", ember: "#F97316", cherry: "#F43F5E", matcha: "#22C55E", chrome: "#8B95A8" };
@@ -171,18 +173,19 @@ function submit_(b) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.d)) || !rows.length || rows.length > 8) throw new Error("bad submission");
   // A day is five questions and at most one revenge round: a phone that played a day twice (22.11.2026, before the
   // app held on to what it had sent) had its five dropped here as known, but its second revenge round was new.
-  var have = {}, regular = 0, revenge = 0;
+  var have = {}, regular = 0, revenge = 0, lesson = 0;
   answers_().forEach(function (r) {
     if (r.p !== b.p || r.d !== b.d) return;
     have[r.q + "|" + r.r] = true;
-    if (r.r === 0) regular++; else if (r.r === 1) revenge++;
+    if (r.r === 0) regular++; else if (r.r === 1) revenge++; else if (r.r === 3) lesson++;
   });
   var now = new Date(), add = [];
   rows.forEach(function (r) {
-    var kind = Number(r.r) === 2 ? 2 : r.r ? 1 : 0, key = String(r.q) + "|" + kind;
+    var kind = Number(r.r) === 2 ? 2 : Number(r.r) === 3 ? 3 : r.r ? 1 : 0, key = String(r.q) + "|" + kind;
     if (have[key] || r.p !== b.p || r.d !== b.d) return;
     if (kind === 0 && regular++ >= 5) return;
     if (kind === 1 && revenge++ >= 1) return;
+    if (kind === 3 && lesson++ >= 2 * LESSON_N) return;   // a fix-it lesson is three questions; one left and taken up again, six
     have[key] = true;
     add.push([now, b.d, b.p, String(r.q), String(r.pool), String(r.t || ""), Number(r.l) || 1, r.ok ? 1 : 0, kind,
               Math.max(0, Math.min(999, Number(r.s) || 0)), String(r.f || "").slice(0, 300)]);
@@ -398,7 +401,7 @@ function report_(today, y, m) {
   var girls = profs.map(function (p) {
     var todays = rows.filter(function (x) { return x.p === p.id && x.d === today; });
     var reg = todays.filter(function (x) { return !x.r; }), rev = todays.filter(function (x) { return x.r === 1; });
-    var prac = todays.filter(function (x) { return x.r === 2; });
+    var prac = todays.filter(function (x) { return x.r === 2; }), fix = todays.filter(function (x) { return x.r === 3; });
     var secs = reg.map(function (x) { return x.s; }).filter(function (x) { return x > 0; }).sort(function (a, b) { return a - b; });
     var fast = secs.filter(function (x) { return x < RUSH.secs; }).length, half = Math.floor(secs.length / 2);
     var mo = rank.filter(function (x) { return x.id === p.id; })[0];
@@ -411,8 +414,9 @@ function report_(today, y, m) {
                secs: secs.length ? (secs.length % 2 ? secs[half] : (secs[half - 1] + secs[half]) / 2) : 0,
                fast: fast, rushed: reg.length >= 5 && fast >= RUSH.n,
                prac: prac.length, pracOk: prac.filter(function (x) { return x.ok; }).length,
+               fix: fix.length, fixOk: fix.filter(function (x) { return x.ok; }).length, fixTopic: fix.length ? fix[0].t : "",
                flags: todays.filter(function (x) { return x.f; }).map(function (x) { return { t: x.t, q: x.f, ok: x.ok }; }) },
-      week: weekDays_(rows, p.id, today),
+      week: weekDays_(rows, p.id, today), stuck: stuck_(rows, profs, p, today),
       month: { place: placeOf_(rank, mo), points: mo.points, played: mo.played, acc: mo.acc, weeks: mo.full,
                right: mo.right, gap: lead - mo.points, weak: weak_(rows, p.id, mk) },
       life: lifetime_(rows, toks, p.id)
@@ -441,6 +445,25 @@ function lifetimeAll_() {
   var rows = answers_(), toks = tokenRows_(), out = {};
   profiles_().forEach(function (p) { out[p.id] = lifetime_(rows, toks, p.id); });
   return out;
+}
+/* The topic she is most stuck in (stuckOf in app.js): over four weeks her misses less half her right answers come to
+ * three or more. A topic she or a girl of her pair marked "not learned yet" is left out. The app also leaves out
+ * topics her class has not reached (STUDYING, which only the app knows): one switched off since then may show here
+ * until its rows are four weeks old. */
+function stuck_(rows, profs, prof, today) {
+  var by = {}, off = {}, mates = {};
+  profs.forEach(function (x) { if (x.id === prof.id || (prof.pair && x.pair === prof.pair)) mates[x.id] = true; });
+  rows.forEach(function (r) {
+    if (r.d > today || daysTo_(r.d, today) > FIX.days) return;
+    var k = r.pool + "|" + r.t;
+    if (r.f && mates[r.p]) off[k] = true;
+    if (r.p !== prof.id) return;
+    var e = by[k] || (by[k] = { pool: r.pool, topic: r.t, n: 0, miss: 0, score: 0, last: "" });
+    e.n++; e.score += r.ok ? -FIX.right : 1;
+    if (!r.ok) { e.miss++; if (r.d > e.last) e.last = r.d; }
+  });
+  return Object.keys(by).filter(function (k) { return by[k].score >= FIX.min && !off[k]; }).map(function (k) { return by[k]; })
+    .sort(function (a, b) { return b.score - a.score || (a.last < b.last ? 1 : a.last > b.last ? -1 : (a.topic < b.topic ? -1 : 1)); })[0] || null;
 }
 function weak_(rows, pid, mk) {
   var miss = {};
@@ -525,6 +548,9 @@ function focusSection_(r) {
         "' style='display:block;color:" + C.soft + "'>" + esc_(x.q).replace(/\{([^}]*)\}/g, "<span dir='ltr' style='unicode-bidi:isolate;display:inline-block'>$1</span>") + "</span>");
     });
     if (g.today.prac) bits.push("תרגלה עוד, בלי נקודות: " + g.today.pracOk + " נכונות מתוך " + g.today.prac);
+    if (g.today.fix) bits.push("עשתה חיזוק ב" + esc_(g.today.fixTopic) + ": " + g.today.fixOk + " נכונות מתוך " + g.today.fix);
+    if (g.stuck) bits.push("<b>תקוע אצלה: " + esc_(g.stuck.topic) + "</b> (" + esc_(SUBJ[String(g.stuck.pool).split("-")[1]] || "") + "): " + g.stuck.miss + " טעויות מתוך " + g.stuck.n +
+      " שאלות בארבעה שבועות. שווה לשבת איתה עשר דקות; האפליקציה מציעה לה חיזוק בנושא.");
     if (g.month.weak.length) bits.push("כדאי לחזק החודש: " + g.month.weak.map(esc_).join(" · "));
     return bits.length ? "<p style='margin:0 0 10px;font-size:14px;line-height:1.6'>" + who_(g) + "<br>" + bits.join("<br>") + "</p>" : "";
   }).join("");
@@ -575,25 +601,27 @@ function footer_(r) {
 
 /* ---------- scoring: keep in step with stats() in app.js ---------- */
 function scoreMonth_(rows, pid, y, m) {
-  var mk = y + "-" + pad_(m), P = pointsOf_(mk), firstDow = new Date(y, m - 1, 1).getDay(), byDay = {}, pracOk = 0;
+  var mk = y + "-" + pad_(m), P = pointsOf_(mk), firstDow = new Date(y, m - 1, 1).getDay(), byDay = {}, pracOk = 0, fixOk = 0;
   rows.forEach(function (r) {
     if (r.p !== pid || r.d.slice(0, 7) !== mk) return;
     if (r.r === 2) { if (r.ok) pracOk++; return; }   // practice: no points, only the family goal
-    var e = byDay[r.d] || (byDay[r.d] = { reg: 0, ok: 0, revOk: 0 });
-    if (r.r) { if (r.ok) e.revOk++; } else { e.reg++; if (r.ok) e.ok++; }
+    var e = byDay[r.d] || (byDay[r.d] = { reg: 0, ok: 0, revOk: 0, fix: 0 });
+    if (r.r === 3) { e.fix++; if (r.ok) fixOk++; }   // a fix-it lesson: `lesson` points once its three are answered
+    else if (r.r) { if (r.ok) e.revOk++; } else { e.reg++; if (r.ok) e.ok++; }
   });
   var days = Object.keys(byDay).filter(function (d) { return byDay[d].reg >= 5; });
-  var weeks = {}, reg = 0, ok = 0, revOk = 0, perfect = 0;
+  var weeks = {}, reg = 0, ok = 0, revOk = 0, perfect = 0, lessons = 0;
   days.forEach(function (d) {
     if (byDay[d].ok >= 5) perfect++;
+    if (byDay[d].fix >= LESSON_N) lessons++;
     var w = Math.floor((Number(d.slice(8)) - 1 + firstDow) / 7);
     weeks[w] = (weeks[w] || 0) + 1;
     reg += byDay[d].reg; ok += byDay[d].ok; revOk += byDay[d].revOk;
   });
   var full = Object.keys(weeks).filter(function (w) { return weeks[w] >= P.weekDays; }).length;
   return { id: pid, played: days.length, acc: reg ? Math.round(ok / reg * 100) : 0, ok: ok, revOk: revOk, full: full,
-           pracOk: pracOk, perfect: perfect, right: ok + revOk + pracOk,
-           points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + full * P.week };
+           pracOk: pracOk, fixOk: fixOk, perfect: perfect, lessons: lessons, right: ok + revOk + pracOk + fixOk,
+           points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + lessons * P.lesson + full * P.week };
 }
 function ranking_(rows, profs, y, m) {
   return profs.map(function (p) { return scoreMonth_(rows, p.id, y, m); }).sort(function (a, b) {

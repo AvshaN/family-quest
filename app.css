@@ -551,3 +551,11 @@ button.chip{min-height:44px;padding:4px 14px}
 .luckpop.n1 .av.xl{--s:110px}
 @keyframes luckin{from{opacity:0;transform:scale(.55)}}
 @media (max-height:700px){.luckbox{height:200px}.ceremony.luckpop .display{font-size:34px}.luckpop .av.xl{--s:92px}}
+/* the fix-it lesson */
+.fixcard{border-color:var(--hair-hi)}
+.fixname{font-size:19px;line-height:1.25}
+.fixhead{font-size:40px;line-height:1.1}
+.idea{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.idea li{position:relative;padding-inline-start:16px;line-height:1.55}
+.idea li::before{content:"";position:absolute;inset-inline-start:0;top:.62em;width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--a1),var(--a2))}
+.exq{font-size:18px;font-weight:600;line-height:1.45}

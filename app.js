@@ -343,20 +343,24 @@ function revengeFor(prof, date, todays) {
  * Under the old rule a day of random taps earned half a perfect day's points (10 + a quarter of 20, of 30), and one
  * twin got 18 for none right of five and a revenge round; now it earns a third. The revenge round pays what a
  * right answer does: at double, missing a question on purpose and winning it back paid more than knowing it.
- * Practice rounds (r = 2) earn no points: they count for the map and the family goal only. */
-const POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, week: 15, weekDays: 5 }],
-                   ["", { day: 10, right: 4, perfect: 0, revenge: 8, week: 15, weekDays: 5 }]];
+ * Practice rounds (r = 2) earn no points: they count for the map and the family goal only.
+ * A fix-it lesson (r = 3, from 2026-11-26) earns `lesson` once its three questions are answered, on a day that
+ * counts, whatever she got right: it pays for the work. No row of that kind exists before that date, so adding it
+ * to both lines changes no closed month. */
+const POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson: 5, week: 15, weekDays: 5 }],
+                   ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, week: 15, weekDays: 5 }]];
 const pointsOf = mk => POINTS_BY.find(x => mk >= x[0])[1];
 const POINTS = pointsOf(THIS_MONTH);
-const dayPoints = (e, P) => P.day + e.ok * P.right + (e.ok >= 5 ? P.perfect : 0) + e.revOk * P.revenge;
+const dayPoints = (e, P) => P.day + e.ok * P.right + (e.ok >= 5 ? P.perfect : 0) + e.revOk * P.revenge + ((e.fix | 0) >= FIX.n ? P.lesson : 0);
 function stats(pid, y, m) {
   const mk = monthKey(y, m), P = pointsOf(mk), firstDow = new Date(y, m - 1, 1).getDay();
   const rs = rows().filter(r => r.p === pid && r.d.slice(0, 7) === mk);
   const byDay = {}, bySubj = {}, miss = {};
-  let pracOk = 0;
+  let pracOk = 0, fixOk = 0;
   rs.forEach(r => {
-    const e = byDay[r.d] || (byDay[r.d] = { reg: 0, ok: 0, rev: 0, revOk: 0, prac: 0 });
+    const e = byDay[r.d] || (byDay[r.d] = { reg: 0, ok: 0, rev: 0, revOk: 0, prac: 0, fix: 0 });
     if (r.r === 2) { e.prac++; if (r.ok) pracOk++; }
+    else if (r.r === 3) { e.fix++; if (r.ok) fixOk++; }
     else if (r.r) { e.rev++; if (r.ok) e.revOk++; } else { e.reg++; if (r.ok) e.ok++; }
     const s = subjOf(r.pool); bySubj[s] = bySubj[s] || [0, 0]; bySubj[s][1]++;
     if (r.ok) bySubj[s][0]++; else miss[r.t] = (miss[r.t] || 0) + 1;
@@ -366,11 +370,11 @@ function stats(pid, y, m) {
   days.forEach(e => { const w = Math.floor((+e.d.slice(8) - 1 + firstDow) / 7); weeks[w] = (weeks[w] || 0) + 1; });
   const fullWeeks = Object.values(weeks).filter(n => n >= P.weekDays).length;
   const reg = days.reduce((s, e) => s + e.reg, 0), ok = days.reduce((s, e) => s + e.ok, 0), revOk = days.reduce((s, e) => s + e.revOk, 0);
-  const perfect = days.filter(e => e.ok >= 5).length;
+  const perfect = days.filter(e => e.ok >= 5).length, lessons = days.filter(e => e.fix >= FIX.n).length;
   const elapsed = mk === THIS_MONTH ? D : daysIn(y, m);
   return {
-    days, byDay, played: days.length, reg, ok, revOk, pracOk, perfect, fullWeeks, bySubj, right: ok + revOk + pracOk,
-    points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + fullWeeks * P.week,
+    days, byDay, played: days.length, reg, ok, revOk, pracOk, fixOk, perfect, lessons, fullWeeks, bySubj, right: ok + revOk + pracOk + fixOk,
+    points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + lessons * P.lesson + fullWeeks * P.week,
     part: elapsed ? Math.round(days.length / elapsed * 100) : 0,
     acc: reg ? Math.round(ok / reg * 100) : 0,
     weak: Object.entries(miss).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(x => x[0])
@@ -500,6 +504,169 @@ function practiceSet(prof) {
   }
   return out;
 }
+
+/* ---------- the fix-it lesson (2026-11-26) ----------
+ * Their first fifteen days showed the app testing a gap again and again without closing it: one twin had signed
+ * numbers wrong 7 times of 12, the other perimeter and area 6 of 10, and each met an explanation only after a miss.
+ * A topic is stuck when, over four weeks, her misses in it less half her right answers come to three or more (a
+ * miss one, a right answer half off, as the weakest topic's count; every kind of row). The topic most stuck is
+ * offered as a lesson, once a day, from the day after: the idea in a few lines (LESSONS, written for the math
+ * topics so far), an example worked through, then three questions, the easier first and the one she last missed
+ * to close. It is a round like any other (a miss comes back until it is right) and its rows are kind 3: they count
+ * for the map and the family goal, and three of them in a day earn `lesson` points. The count reads the days before
+ * today, so the offer does not change through the day. A topic she or her twin marked "not learned yet" is left
+ * out, as it is for the weakest topic. Needs the script that knows kind 3 (api 6). */
+const FIX = { min: 3, days: 28, right: 0.5, n: 3 };
+const canFix = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 6;
+function stuckOf(prof, date) {
+  date = date || TODAY;
+  const by = {}, off = new Set(), mates = new Set(FAM.profiles.filter(x => x.id === prof.id || (prof.pair && x.pair === prof.pair)).map(x => x.id).concat(prof.id));
+  rows().forEach(r => {
+    if (r.d >= date || daysBetween(r.d, date) > FIX.days) return;
+    const q = QIDX[r.q];
+    if (!q || !studied(prof, q)) return;
+    const k = q.pool + "|" + q.topic;
+    if (r.f && mates.has(r.p)) off.add(k);
+    if (r.p !== prof.id) return;
+    const e = by[k] || (by[k] = { pool: q.pool, topic: q.topic, n: 0, miss: 0, score: 0, last: "" });
+    e.n++; e.score += r.ok ? -FIX.right : 1;
+    if (!r.ok) { e.miss++; if (r.d > e.last) e.last = r.d; }
+  });
+  return Object.keys(by).filter(k => by[k].score >= FIX.min && !off.has(k)).map(k => by[k])
+    .sort((a, b) => b.score - a.score || (a.last < b.last ? 1 : a.last > b.last ? -1 : (a.topic < b.topic ? -1 : 1)))[0] || null;
+}
+const fixToday = pid => rows().filter(r => r.p === pid && r.d === TODAY && r.r === 3).length;
+/* The lesson on offer today: its topic and questions, or null (none stuck, done already, or too few questions). */
+function fixOffer(prof) {
+  if (!canFix()) return null;
+  const st = stuckOf(prof), done = fixToday(prof.id);
+  if (!st || done >= FIX.n) return null;
+  const today = new Set(), last = {}, theirs = new Set(), sis = new Set(sharers(prof, st.pool).map(x => x.id).filter(id => id !== prof.id));
+  rows().forEach(r => {
+    if (r.pool !== st.pool) return;
+    if (r.p === prof.id) { if (r.d === TODAY) today.add(r.q); if (!last[r.q] || r.d >= last[r.q].d) last[r.q] = { d: r.d, ok: r.ok }; }
+    else if (sis.has(r.p)) theirs.add(r.q);
+  });
+  const share = shareOf(prof, st.pool), mine = share.filter(q => q.topic === st.topic && studied(prof, q) && !today.has(q.id) && (last[q.id] || !theirs.has(q.id)));
+  const need = FIX.n - done;
+  // the one she missed last closes the lesson; before it the easiest, a new question before one she has met
+  const closer = mine.filter(q => last[q.id] && !last[q.id].ok).sort((a, b) => last[a.id].d < last[b.id].d ? 1 : last[a.id].d > last[b.id].d ? -1 : (a.id < b.id ? -1 : 1))[0] || null;
+  const easy = mine.filter(q => q !== closer).sort((a, b) => a.level - b.level || (!!last[a.id] - !!last[b.id]) || (a.id < b.id ? -1 : 1));
+  const set = easy.slice(0, closer ? need - 1 : need).concat(closer ? [closer] : []);
+  if (set.length < Math.min(2, need)) return null;
+  // the worked example: a question she will not be asked (her twin's half of the pool), else one she has got right;
+  // the easiest there is, another each day
+  const used = new Set(set.map(q => q.id)), inTopic = (BANKS[st.pool] || []).filter(q => q.topic === st.topic && !used.has(q.id));
+  const hers = new Set(share.map(q => q.id));
+  let ex = inTopic.filter(q => !hers.has(q.id));
+  if (!ex.length) ex = inTopic.filter(q => last[q.id] && last[q.id].ok);
+  if (!ex.length) ex = inTopic;
+  const low = Math.min(...ex.map(q => q.level)), pick = ex.filter(q => q.level === low);
+  return { st, set, example: pick.length ? pick[mod(dayIndex(TODAY), pick.length)] : null, idea: (LESSONS[st.pool] || {})[st.topic] || null };
+}
+/* The idea of a topic, in the words of the questions' own explanations. Add a topic's lines as it shows up stuck;
+ * a topic without them gets the worked example alone. */
+const LESSONS = {
+  "g7-math": {
+    "מספרים מכוונים": [
+      "חיבור: כשהסימנים שווים, מחברים ושומרים על הסימן. כשהם שונים, מחסרים, והתוצאה מקבלת את הסימן של המספר הרחוק יותר מאפס: {−7 + 12 = 5}, {−12 + 7 = −5}.",
+      "חיסור של מספר שלילי הוא חיבור של הנגדי שלו: {6 − (−9) = 6 + 9 = 15}.",
+      "כפל וחילוק: סימנים שווים נותנים תוצאה חיובית, סימנים שונים נותנים תוצאה שלילית: {(−4) · (−6) = 24}, {(−36) : 9 = −4}.",
+      "כשמתבלבלים, ציר המספרים עוזר: חיבור הוא צעדים ימינה, חיסור צעדים שמאלה."],
+    "היקף ושטח": [
+      "היקף הוא אורך הדרך מסביב לצורה: מחברים את כל הצלעות. היחידות הן ס״מ.",
+      "שטח הוא כמה מקום הצורה תופסת. היחידות הן סמ״ר.",
+      "מלבן: אורך כפול רוחב. משולש: בסיס כפול גובה, חלקי 2. מקבילית: צלע כפול הגובה אליה. טרפז: סכום הבסיסים כפול הגובה, חלקי 2.",
+      "לפני שעונים, בודקים מה שאלו. במלבן של 9 על 4 ההיקף הוא 26 והשטח 36."],
+    "זוויות": [
+      "זוויות צמודות יוצרות יחד קו ישר: סכומן {180°}.",
+      "זוויות קודקודיות, זו מול זו בנקודת החיתוך, שוות.",
+      "סכום הזוויות במשולש הוא {180°}.",
+      "בין ישרים מקבילים זוויות מתחלפות שוות, וזוויות חד־צדדיות משלימות זו את זו ל־{180°}."],
+    "סדר פעולות חשבון": [
+      "קודם מה שבסוגריים.",
+      "אחר כך כפל וחילוק, משמאל לימין.",
+      "בסוף חיבור וחיסור, משמאל לימין.",
+      "{2 + 3 × 4 = 14}, ולא 20: הכפל קודם לחיבור."],
+    "אחוזים": [
+      "אחוז הוא חלק ממאה: {15%} הם {15/100}.",
+      "כמה הם אחוזים ממספר: כופלים. {15%} מ־80 הם {80 · 15/100 = 12}.",
+      "כמה אחוזים הם חלק מהשלם: מחלקים את החלק בשלם. 8 מתוך 32 הם {8/32 = 1/4}, כלומר {25%}.",
+      "הנחה והתייקרות מחושבות תמיד מהמחיר שלפני השינוי."],
+    "משוואות": [
+      "משוואה היא מאזניים: מה שעושים לאגף אחד, עושים גם לשני.",
+      "מעבירים את איברי ה־{x} לאגף אחד ואת המספרים לאגף השני. איבר שעובר אגף מחליף סימן.",
+      "בסוף מחלקים במקדם של {x}, עם הסימן שלו.",
+      "בודקים: מציבים את התשובה במשוואה המקורית."],
+    "ביטויים אלגבריים": [
+      "{2a} פירושו {2 · a}. מספר שלילי מציבים בתוך סוגריים: {2 · (−3)}.",
+      "מכנסים רק איברים דומים: איברי {x} עם איברי {x}, מספרים עם מספרים. כל איבר לוקח איתו את הסימן שלפניו.",
+      "בפתיחת סוגריים כופלים את מה שבחוץ בכל איבר שבפנים, עם הסימן: {−3(2x − 5) = −6x + 15}."],
+    "חוק הפילוג": [
+      "כופלים את המספר שמחוץ לסוגריים בכל אחד מהמחוברים: {4 × (10 + 3) = 4 × 10 + 4 × 3}.",
+      "כך מחשבים בראש: מפרקים לעשרות ולאחדות. {8 × 14 = 80 + 32 = 112}."],
+    "יחס ופרופורציה": [
+      "יחס של {3 : 2} מחלק את השלם ל־{3 + 2 = 5} חלקים שווים.",
+      "מוצאים כמה שווה חלק אחד, וכופלים במספר החלקים שמבקשים.",
+      "במחיר קבוע מוצאים קודם את המחיר של אחד."],
+    "בעיות מילוליות": [
+      "בוחרים מה יהיה {x}: בדרך כלל מה ששואלים עליו, או הקטן מבין הגדלים.",
+      "כותבים את שאר הגדלים בעזרת {x}.",
+      "בונים משוואה ממה שנתון, ופותרים.",
+      "בסוף חוזרים לשאלה: שאלו על {x}, או על גודל אחר?"],
+    "סטטיסטיקה": [
+      "ממוצע: סכום הנתונים חלקי מספרם.",
+      "חציון: הנתון האמצעי אחרי שממיינים. כשמספר הנתונים זוגי, הממוצע של שני האמצעיים.",
+      "שכיח: הנתון שמופיע הכי הרבה פעמים."]
+  },
+  "g10-math": {
+    "משוואות": [
+      "במשוואה ריבועית מעבירים הכול לאגף אחד, כך שבאגף השני נשאר 0.",
+      "אם אפשר, מפרקים לגורמים: מכפלה שווה 0 כשאחד הגורמים שווה 0. {x(x − 3) = 0} נותן {x = 0} או {x = 3}.",
+      "אם לא, נוסחת השורשים: {x = (−b ± √(b² − 4ac)) / 2a}.",
+      "לא מחלקים ב־{x}: כך מאבדים את הפתרון {x = 0}.",
+      "במשוואה עם שברים כופלים במכנה המשותף, ומינוס שלפני שבר חל על כל המונה שלו."],
+    "ישרים מאונכים": [
+      "מכפלת השיפועים של שני ישרים מאונכים היא {−1}.",
+      "כדי למצוא שיפוע מאונך הופכים את השבר ומחליפים סימן: המאונך ל־{2/3} הוא {−3/2}, והמאונך ל־2 הוא {−1/2}.",
+      "ישרים מקבילים, לעומתם, הם בעלי אותו שיפוע."],
+    "ישרים מקבילים": [
+      "לישרים מקבילים אותו שיפוע, וחיתוך שונה עם ציר ה־{y}.",
+      "ישר מקביל דרך נקודה: אותו שיפוע, ומציבים את הנקודה כדי למצוא את {b}."],
+    "שיפוע": [
+      "שיפוע הוא השינוי ב־{y} חלקי השינוי ב־{x}: {m = (y₂ − y₁) / (x₂ − x₁)}.",
+      "שומרים על אותו סדר במונה ובמכנה, ונזהרים במספרים שליליים: {3 − (−1) = 4}.",
+      "כשהמשוואה אינה בצורה {y = mx + b}, מבודדים קודם את {y}. השיפוע הוא המקדם של {x}."],
+    "משוואת הישר": [
+      "{y = mx + b}: {m} הוא השיפוע, ו־{b} נקודת החיתוך עם ציר ה־{y}.",
+      "שיפוע ונקודה: מציבים את הנקודה במשוואה ומוצאים את {b}.",
+      "שתי נקודות: קודם מחשבים את השיפוע, ואז מציבים אחת מהן.",
+      "נקודה נמצאת על הישר אם היא מקיימת את המשוואה שלו."],
+    "שטח משולש": [
+      "{S = (a · h) / 2}: צלע כפול הגובה אליה, חלקי 2.",
+      "במערכת צירים בוחרים צלע שמקבילה לאחד הצירים: אורכה הוא הפרש השיעורים, והגובה אליה הוא המרחק של הקדקוד השלישי ממנה.",
+      "במשולש קהה זווית הגובה יוצא אל המשך הצלע, מחוץ למשולש."],
+    "מערכות משוואות": [
+      "מחפשים זוג מספרים שמקיים את שתי המשוואות.",
+      "חיבור או חיסור של המשוואות מבטל נעלם אחד. אפשר גם לבודד נעלם ולהציב אותו במשוואה השנייה.",
+      "מוצאים נעלם אחד, מציבים ומוצאים את השני, ובודקים בשתי המשוואות."],
+    "מרחק בין נקודות": [
+      "{d = √((x₂ − x₁)² + (y₂ − y₁)²)}: ההפרשים הם הניצבים, והמרחק הוא היתר.",
+      "נזהרים במספרים שליליים: {2 − (−1) = 3}."],
+    "פיתגורס": [
+      "במשולש ישר זווית {a² + b² = c²}, ו־{c} הוא היתר: הצלע שמול הזווית הישרה.",
+      "מחפשים יתר: מחברים את ריבועי הניצבים ומוציאים שורש.",
+      "מחפשים ניצב: מחסרים מריבוע היתר את ריבוע הניצב הידוע, ומוציאים שורש."],
+    "נוסחאות הכפל המקוצר": [
+      "{(a + b)² = a² + 2ab + b²} ו־{(a − b)² = a² − 2ab + b²}: לא שוכחים את האיבר האמצעי.",
+      "{(a + b)(a − b) = a² − b²}.",
+      "{(2x)² = 4x²}: מעלים בריבוע גם את המקדם."],
+    "שברים אלגבריים": [
+      "מצמצמים רק גורמים, לא מחוברים: קודם מפרקים את המונה ואת המכנה לגורמים.",
+      "הכלים הם הוצאת גורם משותף והכפל המקוצר: {x² − 9 = (x + 3)(x − 3)}.",
+      "{(4 − x) = −(x − 4)}: היפוך הסדר מוסיף מינוס."]
+  }
+};
 
 /* ---------- how fast she answers (Avsha, 2026-11-14) ----------
  * Each first answer is timed, and nothing on her screen shows a clock. A day with three of the five answered in
@@ -1201,10 +1368,16 @@ function renderHome() {
   }
   const upcoming = tests().filter(t => t.p === p.id && t.date >= TODAY).sort((a, b) => a.date < b.date ? -1 : 1);
   const [py, pm] = prevMonth(Y, M), showRecap = stats(p.id, py, pm).played > 0 && (D <= 10 || !LIVE);
+  const fx = fixOffer(p);
+  const fixCard = fx ? `<section class="glass pad stack fixcard"><div class="row"><span class="eyebrow">Focus · ${SUBJ[subjOf(fx.st.pool)]}</span><span class="chip"><bdi dir="ltr">+${POINTS.lesson}</bdi></span></div>
+    <b class="fixname">חיזוק: ${esc(fx.st.topic)}</b>
+    <p class="small muted">בנושא הזה היו לך ${fx.st.miss} טעויות מתוך ${fx.st.n} שאלות בחודש האחרון. שלוש דקות: ${fx.idea ? "הרעיון, " : ""}דוגמה פתורה ו${fx.set.length === 1 ? "שאלה אחת" : `־${fx.set.length} שאלות`}, מהקלה לקשה.</p>
+    <button type="button" class="btn btn-aura wide" data-act="fix" ${waitAttr()}>${waiting() ? WAIT_TEXT : "לחיזוק"}</button></section>` : "";
   return `
   <header class="top"><div class="hello">${avatar(p, "ring")}<div><b>${hi}, ${esc(p.name)}</b><span>${esc((TRACKS[p.track] || TRACKS.g7).grade)}</span></div></div>
     <button type="button" class="round" data-act="tab" data-to="me" aria-label="ההגדרות שלי">${ICON.me}</button></header>
   ${hero}
+  ${fixCard}
   <section class="glass pad stack"><div class="row"><span class="eyebrow">This week</span><span class="small muted"><b class="num" style="color:var(--text)">${Math.min(wk.n, 5)}/5</b> ימים · שבוע מלא = 15 נק׳</span></div>${wk.html}
     <div class="streak"><span class="flame ${ws.streak ? "on" : ""}">${ICON.flame}</span><b class="n num">${ws.streak}</b>
       <span class="small muted">${ws.streak === 1 ? "שבוע מלא" : "שבועות מלאים ברצף"}</span>${pathDots(ws)}</div>
@@ -1276,7 +1449,7 @@ function renderBoard() {
   ${champs.length ? `<section class="glass pad stack"><span class="eyebrow">${MONTHS[pm - 1]}</span>
     <div class="row"><span>${champs.length > 1 ? "האלופות" : "האלופה"}: <b>${champs.map(c => esc(c.name)).join(" ו")}</b></span>${imp ? `<span>השתפרה הכי הרבה: <b>${esc(profile(imp.id).name)}</b> <span class="muted">(+${imp.gain}% דיוק)</span></span>` : ""}</div></section>` : ""}
   <details class="glass pad how"><summary>איך סופרים נקודות <span class="muted">+</span></summary>
-    <ul><li>${POINTS.day} על כל יום עם משימה</li><li>${POINTS.right} על כל תשובה נכונה</li>${POINTS.perfect ? `<li>${POINTS.perfect} על יום מושלם, חמש מחמש</li>` : ""}<li>${POINTS.revenge} על סיבוב נקמה מוצלח</li><li>${POINTS.week} על שבוע עם ${POINTS.weekDays} ימי משימה</li>
+    <ul><li>${POINTS.day} על כל יום עם משימה</li><li>${POINTS.right} על כל תשובה נכונה</li>${POINTS.perfect ? `<li>${POINTS.perfect} על יום מושלם, חמש מחמש</li>` : ""}<li>${POINTS.revenge} על סיבוב נקמה מוצלח</li>${canFix() ? `<li>${POINTS.lesson} על חיזוק שהושלם (דוגמה פתורה ושלוש שאלות בנושא שעוד לא יושב)</li>` : ""}<li>${POINTS.week} על שבוע עם ${POINTS.weekDays} ימי משימה</li>
     <li>רק התשובה הראשונה נספרת. מה שפספסת חוזר בסוף הסבב עד שהוא נכון, בלי נקודות.</li>
     <li>כל אחת עונה ברמה של הכיתה שלה, אז הניקוד הוגן בין ז׳ לי׳.</li>${s.improvedReward ? `<li>מי שמשתפרת הכי הרבה בדיוק לעומת החודש הקודם: ${esc(s.improvedReward)}.</li>` : ""}</ul></details>`;
 }
@@ -1366,7 +1539,7 @@ const joinHe = a => a.length < 2 ? (a[0] || "") : a.slice(0, -1).join(", ") + " 
 function todayOf(p) {
   const st = stats(p.id, Y, M), e = st.byDay[TODAY] || { reg: 0, ok: 0, rev: 0, revOk: 0 };
   const mine = rows().filter(r => r.p === p.id && r.d === TODAY), reg = mine.filter(r => !r.r), rev = mine.filter(r => r.r === 1);
-  const prac = mine.filter(r => r.r === 2), secs = reg.map(r => +r.s).filter(x => x > 0);
+  const prac = mine.filter(r => r.r === 2), fix = mine.filter(r => r.r === 3), secs = reg.map(r => +r.s).filter(x => x > 0);
   const played = reg.length >= 5;
   let points = 0;
   if (played) {
@@ -1378,7 +1551,8 @@ function todayOf(p) {
   return { played, ok: e.ok, rev: rev.length ? rev[0].ok : null, points, at: (reg[reg.length - 1] || {}).w || "",
            missed: [...new Set(reg.filter(r => !r.ok).map(r => r.t))], asked: reg.map(r => r.t), week: weekStrip(p.id).n,
            secs: secs.length ? median(secs) : 0, fast: fastOnes(reg), rushed: played && fastOnes(reg) >= RUSH.n,
-           prac: prac.length, pracOk: prac.filter(r => r.ok).length, wrong: reg.concat(rev).filter(r => !r.ok) };
+           prac: prac.length, pracOk: prac.filter(r => r.ok).length, wrong: reg.concat(rev).filter(r => !r.ok),
+           fix: fix.length, fixOk: fix.filter(r => r.ok).length, fixTopic: fix.length ? fix[0].t : "", stuck: stuckOf(p, addDays(TODAY, 1)) };
 }
 function parentToday() {
   const ts = FAM.profiles.map(p => [p, todayOf(p)]), n = ts.filter(([, t]) => t.played).length;
@@ -1391,8 +1565,10 @@ function parentToday() {
     ${t.played ? `<p class="small"><span class="muted">היום:</span> ${t.asked.map(esc).join(" · ")}</p>
       ${t.secs ? `<p class="small"><span class="muted">זמן לשאלה:</span> ${secText(t.secs)} (החציון)${t.rushed ? ` · <span class="bad-t">${t.fast} תשובות בפחות מ־${RUSH.secs} שניות</span>` : ""}</p>` : ""}
       ${t.prac ? `<p class="small"><span class="muted">תרגלה עוד:</span> ${t.prac} שאלות, ${t.pracOk} נכונות</p>` : ""}
+      ${t.fix ? `<p class="small"><span class="muted">חיזוק:</span> ${esc(t.fixTopic)}, ${t.fixOk} נכונות מתוך ${t.fix}</p>` : ""}
       ${t.wrong.length ? t.wrong.map(missedRow).join("") : `<p class="small good-t">בלי טעויות</p>`}`
-      : `<p class="small"><span class="muted">מחכות לה:</span> ${dailySet(p, TODAY).map(q => esc(q.topic)).join(" · ")}</p>`}</div>`).join("");
+      : `<p class="small"><span class="muted">מחכות לה:</span> ${dailySet(p, TODAY).map(q => esc(q.topic)).join(" · ")}</p>`}
+      ${t.stuck ? `<p class="small"><span class="chip warn">תקוע</span> <b>${esc(t.stuck.topic)}</b> <span class="muted">(${SUBJ[subjOf(t.stuck.pool)]})</span>: ${t.stuck.miss} טעויות מתוך ${t.stuck.n} שאלות בארבעה שבועות. שווה לשבת איתה עשר דקות${canFix() ? "; האפליקציה מציעה לה חיזוק בנושא" : ""}.</p>` : ""}</div>`).join("");
   const pairs = {};
   FAM.profiles.filter(p => p.pair).forEach(p => (pairs[p.pair] = pairs[p.pair] || []).push(p));
   const twins = Object.values(pairs).filter(g => g.length > 1).map(g => {
@@ -1501,8 +1677,9 @@ function parentLife() {
  * only when Avsha pastes it, and nothing told him (or Claude: the Sheet shows no trace until a girl plays) whether a
  * paste had taken. SCRIPT_API is the `API` of backend/Code.gs: raise both together, and say here what an older
  * script leaves out. */
-const SCRIPT_API = 5;
-const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש" };
+const SCRIPT_API = 6;
+const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש",
+  6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות" };
 function scriptCard(brief) {
   if (!LIVE) return "";
   const have = FAM.api | 0;
@@ -1891,6 +2068,27 @@ function startPractice() {
   Q = newRound("practice", p, set.map(q => ({ q, rev: false })));
   renderQuestion();
 }
+/* The lesson's first screen: the idea and an example worked through. Its questions are a round of kind "fix". */
+function startFix() {
+  if (waiting()) { toast("רגע, מתעדכן…"); return; }
+  const p = me(), fx = fixOffer(p);
+  if (!fx) { show("home"); return; }
+  Q = newRound("fix", p, fx.set.map(q => ({ q, rev: false })));
+  Q.topic = fx.st.topic;
+  const ex = fx.example;
+  auraMood({ calm: 1, energy: 0.2 });
+  layer.innerHTML = quizShell(`
+    <div class="row"><span class="eyebrow">Focus · ${SUBJ[subjOf(fx.st.pool)]}</span><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button></div>
+    <h2 class="display fixhead">${esc(fx.st.topic)}</h2>
+    ${fx.idea ? `<section class="glass pad stack"><span class="eyebrow">The idea</span><ul class="idea">${fx.idea.map(t => `<li>${fmt(t)}</li>`).join("")}</ul></section>` : ""}
+    ${ex ? `<section class="glass pad stack"><span class="eyebrow">Worked example</span>
+      <p class="exq" ${ex.ltr ? 'dir="ltr"' : ""}>${fmt(ex.q)}</p>
+      <p>התשובה: <b dir="${optDir(ex.options[0])}">${fmt(ex.options[0])}</b></p>
+      <p class="muted" ${ex.ltr ? 'dir="ltr"' : ""}>${fmt(ex.explain)}</p></section>` : ""}
+    <button type="button" class="btn btn-primary wide" data-act="fixGo">הבנתי, לשאלות</button>
+    <p class="small faint" style="text-align:center">${fx.set.length === 1 ? "שאלה אחת" : `${fx.set.length} שאלות`}, מהקלה לקשה. חיזוק שהושלם שווה ${POINTS.lesson} נקודות.</p>`);
+  $(".quiz-in", layer).classList.add("reveal");
+}
 function keepProgress() {
   if (Q.kind !== "day") return;
   L.progress[Q.pid] = { date: TODAY, ids: idsOf(Q.items), queue: Q.queue, i: Q.i, res: Q.res, secs: Q.secs, fixed: Q.fixed,
@@ -1973,10 +2171,10 @@ function renderQuestion(keepClock) {
   }
   const tag = redo ? `<span class="revtag again">${ICON.revenge.replace("<svg", '<svg width="16" height="16"')} שוב, עד שזה נכון</span>`
     : it.rev ? `<span class="revtag">${ICON.revenge.replace("<svg", '<svg width="16" height="16"')} סיבוב נקמה · <bdi dir="ltr">+${POINTS.revenge}</bdi></span>`
-    : Q.kind === "practice" ? `<span class="revtag again">תרגול · בלי נקודות</span>` : "";
+    : Q.kind === "practice" ? `<span class="revtag again">תרגול · בלי נקודות</span>` : Q.kind === "fix" ? `<span class="revtag again">חיזוק</span>` : "";
   layer.innerHTML = quizShell(`
     ${segs()}
-    <div class="qhead"><button type="button" class="round" data-act="quit" aria-label="${Q.kind === "day" ? "יציאה, ההתקדמות נשמרת" : "סיום התרגול"}">${ICON.close}</button>
+    <div class="qhead"><button type="button" class="round" data-act="quit" aria-label="${Q.kind === "day" ? "יציאה, ההתקדמות נשמרת" : Q.kind === "fix" ? "סיום החיזוק" : "סיום התרגול"}">${ICON.close}</button>
       <span class="combo" id="combo" ${Q.combo >= 2 ? "" : "hidden"}>${ICON.flame.replace("<svg", '<svg width="20" height="20"')}<span dir="ltr">×${Q.combo}</span></span></div>
     <div class="qsubj"><span class="chip"><i></i>${SUBJ[subjOf(q.pool)]} · ${esc(q.topic)}</span><span class="lvl-dots" aria-label="רמה ${q.level} מתוך 3">${lv}</span>${tag}</div>
     ${pairs ? `<h2 class="q">חברי כל מילה לפירוש שלה</h2>${pairs.decoy ? `<p class="small muted" style="margin-top:-10px">יש פירוש אחד מיותר.</p>` : ""}` : `<h2 class="q" ${ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</h2>`}
@@ -2078,7 +2276,7 @@ async function finishQuest() {
   const p = me(), day = Q.kind === "day", before = stats(p.id, Y, M), kb = knowOf(p), wb = weeksOf(p.id), add = [];
   Q.items.forEach((it, k) => {
     if (Q.res[k] != null) add.push({ d: TODAY, p: p.id, q: it.q.id, pool: it.q.pool, t: it.q.topic, l: it.q.level, ok: Q.res[k] ? 1 : 0,
-                                    r: day ? (it.rev ? 1 : 0) : 2, s: Q.secs[k] || 0, f: Q.flags[k] ? it.q.q.slice(0, 300) : "" });
+                                    r: day ? (it.rev ? 1 : 0) : Q.kind === "fix" ? 3 : 2, s: Q.secs[k] || 0, f: Q.flags[k] ? it.q.q.slice(0, 300) : "" });
   });
   if (!add.length) { Q = null; layer.innerHTML = ""; show("home"); return; }
   if (SANDBOX) L.sand.rows.push(...add); else if (LIVE) L.outbox.push({ p: p.id, d: TODAY, rows: add }); else L.rows.push(...add);
@@ -2091,7 +2289,8 @@ async function finishQuest() {
     if (tier) { SFX.done(); buzz([20, 60, 20]); } else buzz(20);
     auraMood({ calm: 0.35, energy: [0.12, 0.45, 0.75, 1][tier], gold: tier === 3 ? 1.3 : 0 });
     if (tier >= 2) setTimeout(() => sparks(innerWidth / 2, innerHeight * 0.28, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], tier === 3 ? 170 : 80, tier === 3 ? 10 : 7), 250);
-  } else { renderPractice(p, grew); SFX.done(); auraMood({ calm: 0.35, energy: 0.5 }); }
+  } else if (Q.kind === "fix") { renderFixDone(p, grew); SFX.done(); auraMood({ calm: 0.35, energy: 0.6 }); }
+  else { renderPractice(p, grew); SFX.done(); auraMood({ calm: 0.35, energy: 0.5 }); }
   if (LIVE && !SANDBOX) flush().then(okd => { if (okd) refresh().then(fetchPhotos).catch(() => {}); });
 }
 function flavorBlock(p, items, res, st) {
@@ -2152,6 +2351,20 @@ function renderResult(p, gained, weekBonus, st, x) {
   const t0 = performance.now();
   (function step(t) { const k = Math.min(1, (t - t0) / 1000); el.textContent = "+" + Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); })(t0);
   return tier;
+}
+function renderFixDone(p, grew) {
+  const n = Q.res.filter(r => r != null).length, ok = Q.res.filter(Boolean).length, done = fixToday(p.id) >= FIX.n, played = playedOn(p.id, TODAY);
+  layer.innerHTML = quizShell(`
+    <div class="row"><span class="eyebrow">Focus</span><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button></div>
+    <div class="res-top"><span class="display num ${done ? "grad-text" : "muted"}" dir="ltr" style="font-size:72px">${done ? "+" + POINTS.lesson : `${ok}/${n}`}</span>
+      <p class="muted">חיזוק: ${esc(Q.topic || "")} · <bdi dir="ltr">${ok}/${n}</bdi> נכונות בפעם הראשונה</p>
+      ${done ? `<p class="small">${played ? `החיזוק הושלם: ${POINTS.lesson} נקודות לטבלה.` : `החיזוק הושלם. ${POINTS.lesson} הנקודות נספרות עם חמש השאלות של היום.`}</p>`
+        : `<p class="small">עוד ${FIX.n - fixToday(p.id)} שאלות והחיזוק של היום הושלם. אפשר לחזור אליו ממסך הבית.</p>`}</div>
+    ${grew.length ? `<section class="glass pad"><span class="eyebrow">On your map</span>${grew.map(g => ktRow(g.t, g.n)).join("")}</section>` : ""}
+    <section class="glass pad review"><span class="eyebrow">This round</span>${reviewList()}</section>
+    <div class="row" style="flex-wrap:nowrap">${played ? "" : `<button type="button" class="btn btn-aura wide" data-act="start">לשאלות של היום</button>`}
+      <button type="button" class="btn btn-ghost wide" data-act="closeQuiz">סיום</button></div>`);
+  $(".quiz-in", layer).classList.add("reveal");
 }
 function renderPractice(p, grew) {
   const n = Q.res.filter(r => r != null).length, ok = Q.res.filter(Boolean).length, left = practiceLeft(p.id);
@@ -2233,6 +2446,8 @@ document.addEventListener("click", async e => {
     case "tab": SFX.tap(); show(b.dataset.to); break;
     case "start": { const r = b.getBoundingClientRect(); startQuest(); if (Q) iris(r); break; }
     case "practice": { const r = b.getBoundingClientRect(); startPractice(); if (Q) iris(r); break; }
+    case "fix": { const r = b.getBoundingClientRect(); startFix(); if (Q) iris(r); break; }
+    case "fixGo": if (Q && Q.kind === "fix") renderQuestion(); break;
     case "answer": answer(+b.dataset.j, b); break;
     case "num": numKey(b.dataset.k); break;
     case "numGo": numGo(); break;
@@ -2476,7 +2691,8 @@ async function boot() {
 }
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
-  round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic };
+  round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
+  shareOf, stuckOf, fixOffer, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
