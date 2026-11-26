@@ -530,3 +530,7 @@ button.chip{min-height:44px;padding:4px 14px}
 .giftnote{font-size:20px;line-height:1.5;max-width:28ch}
 @media (max-height:700px){.themebox{display:none}.av.xl{--s:92px}.winscore b{font-size:60px}}
 .seg-pick button{min-width:44px}
+/* a button that starts a round, while the Sheet's answer is on its way */
+.btn[data-wait]{opacity:.7;animation:waitpulse 1.3s ease-in-out infinite}
+@keyframes waitpulse{50%{opacity:.4}}
+@media (prefers-reduced-motion: reduce){.btn[data-wait]{animation:none}}

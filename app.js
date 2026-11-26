@@ -172,17 +172,58 @@ function rows() {
 }
 const tests = () => (LIVE ? (FAM.tests || []) : L.tests).concat(SANDBOX ? L.sand.tests : []);
 
-/* ---------- question banks ---------- */
-const BANKS = {}, QIDX = {};
-async function loadBanks(pools) {
+/* ---------- question banks ----------
+ * A phone keeps its own copy of each bank (the cache BANK_KEPT, which the service worker leaves alone when the app's
+ * version changes), so the app opens from it with no wait; each opening then asks the site for the banks again and
+ * takes any that changed (freshBanks) before she starts the day. */
+const BANKS = {}, QIDX = {}, BANK_SIG = {};
+const BANK_KEPT = "fq-banks";
+const bankUrl = p => new URL(`data/bank/${p}.json`, location.href).href;
+function setBank(p, items, text) {
+  (BANKS[p] || []).forEach(q => { delete QIDX[q.id]; });
+  BANKS[p] = Array.isArray(items) ? items : [];
+  BANKS[p].forEach(q => { q.pool = p; QIDX[q.id] = q; });
+  BANK_SIG[p] = text == null ? "" : text.length + "." + hash(text);
+  delete PERM[p];
+}
+async function bankKept(p) {
+  try {
+    if (!("caches" in window)) return null;
+    const r = (await (await caches.open(BANK_KEPT)).match(bankUrl(p))) || (await caches.match(bankUrl(p)));
+    return r ? await r.text() : null;
+  } catch (e) { return null; }
+}
+async function bankFetch(p) {
+  try {
+    const r = await fetch(bankUrl(p), { cache: "no-cache" });
+    if (!r.ok) return null;
+    const text = await r.text();
+    JSON.parse(text);
+    if ("caches" in window) caches.open(BANK_KEPT).then(c => c.put(bankUrl(p), new Response(text, { headers: { "Content-Type": "application/json" } }))).catch(() => {});
+    return text;
+  } catch (e) { return null; }
+}
+/* kept: start from the copies this phone holds, and fetch only a bank it has none of. */
+async function loadBanks(pools, kept) {
   await Promise.all(pools.filter(p => !BANKS[p]).map(async p => {
-    let items = window.FQ_BANKS && window.FQ_BANKS[p];
-    if (!items) {
-      try { const r = await fetch(`data/bank/${p}.json`, { cache: "no-cache" }); if (r.ok) items = await r.json(); } catch (e) { items = null; }
-    }
-    BANKS[p] = Array.isArray(items) ? items : [];
-    BANKS[p].forEach(q => { q.pool = p; QIDX[q.id] = q; });
+    const given = window.FQ_BANKS && window.FQ_BANKS[p];
+    if (given) { setBank(p, given, null); return; }
+    let text = kept ? await bankKept(p) : null, items = null;
+    try { items = text == null ? null : JSON.parse(text); } catch (e) { items = null; }
+    if (!items) { text = await bankFetch(p); try { items = text == null ? null : JSON.parse(text); } catch (e) { items = null; } }
+    setBank(p, items, items ? text : null);
   }));
+}
+/* The site's banks, asked again: true if any is not the one on screen. */
+async function freshBanks(pools) {
+  let changed = false;
+  await Promise.all(pools.map(async p => {
+    if (window.FQ_BANKS && window.FQ_BANKS[p]) return;
+    const text = await bankFetch(p);
+    if (text == null || text.length + "." + hash(text) === BANK_SIG[p]) return;
+    setBank(p, JSON.parse(text), text); changed = true;
+  }));
+  return changed;
 }
 
 /* ---------- today's five ----------
@@ -483,12 +524,16 @@ function makeExample() {
 }
 
 /* ---------- the Sheet (live mode) ---------- */
+const API_WAIT = 40000;   // a request with no answer by then has failed: on a weak signal a fetch can hang for minutes
 async function api(action, body) {
-  const url = String(CFG.apiUrl).trim();
+  const url = String(CFG.apiUrl).trim(), ac = window.AbortController ? new AbortController() : null;
+  const timer = ac ? setTimeout(() => ac.abort(), API_WAIT) : 0, sig = ac ? { signal: ac.signal } : {};
   let r;
-  if (action === "state" || action === "photos") r = await fetch(`${url}?action=${action}&code=${encodeURIComponent(L.code)}`, { redirect: "follow" });
-  else r = await fetch(url, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" },
-                              body: JSON.stringify(Object.assign({ action, code: L.code }, body || {})) });
+  try {
+    if (action === "state" || action === "photos") r = await fetch(`${url}?action=${action}&code=${encodeURIComponent(L.code)}`, Object.assign({ redirect: "follow" }, sig));
+    else r = await fetch(url, Object.assign({ method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" },
+                                body: JSON.stringify(Object.assign({ action, code: L.code }, body || {})) }, sig));
+  } finally { clearTimeout(timer); }
   if (!r.ok) throw new Error("http " + r.status);
   const j = await r.json();
   if (!j.ok) throw new Error(j.error || "refused");
@@ -1094,7 +1139,7 @@ function weekStrip(pid) {
   }
   return { html: `<div class="week" role="img" aria-label="השבוע: ${n} ימים">${cells.join("")}</div>`, n };
 }
-function show(v) {
+function show(v, quiet) {
   view = v;
   layer.innerHTML = "";
   const girlTabs = ["home", "know", "board", "vault", "me"].includes(v);
@@ -1104,14 +1149,17 @@ function show(v) {
                   code: renderCode, who: renderWho, aura: renderAuraPick, error: renderError })[v]();
   app.innerHTML = (SANDBOX && girlTabs ? `<div class="sandbar"><span><b>פרופיל ניסיון</b><br><span class="small">נשאר בטלפון הזה. לא נשמר בגיליון ולא נספר לבנות.</span></span>
     <span class="sandbtns"><button type="button" class="btn btn-ghost btn-sm" data-act="sandReset">איפוס</button><button type="button" class="btn btn-primary btn-sm" data-act="sandExit">חזרה</button></span></div>` : "") + html;
-  app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter");
+  if (!quiet) { app.classList.remove("enter"); void app.offsetWidth; app.classList.add("enter"); }
   paintArt(app);
-  window.scrollTo(0, 0);
+  if (!quiet) window.scrollTo(0, 0);
   auraMood({ calm: 0, energy: v === "parent" ? 0.15 : v === "know" ? 0.2 : 0.32 });
   if (v === "home") setTimeout(tokenCheck, 500);
 }
 const flavorTitle = p => ({ portfolio: "Portfolio", routine: "The season", stage: "Setlist" })[p.flavor] || "החודש";
 
+/* A button that starts a round, while the Sheet's answer is on its way (sync): it says so and takes no tap. */
+const WAIT_TEXT = "מתעדכן…";
+const waitAttr = () => waiting() ? "disabled data-wait" : "";
 function renderHome() {
   const p = me(), st = stats(p.id, Y, M), rk = ranking(Y, M), place = placeOf(rk, p.id);
   const done = playedOn(p.id, TODAY), set = dailySet(p, TODAY), rev = done ? null : revengeFor(p, TODAY, set);
@@ -1125,7 +1173,7 @@ function renderHome() {
       <span class="eyebrow">Done for today</span>
       <div class="row" style="align-items:flex-end"><span class="display big num" dir="ltr">${e.ok}/5</span><span class="display grad-text" style="font-size:40px" dir="ltr">+${pts}</span></div>
       <p class="muted">המשימה הבאה נפתחת בעוד ${Math.floor(left / 60)} שעות ו־${left % 60} דקות.</p>
-      ${more ? `<button type="button" class="btn btn-primary wide" data-act="practice">${test ? `תרגול למבחן ב${esc(SUBJ[test.subj] || test.subj)}` : "עוד תרגול, בלי נקודות"}</button>
+      ${more ? `<button type="button" class="btn btn-primary wide" data-act="practice" ${waitAttr()}>${waiting() ? WAIT_TEXT : test ? `תרגול למבחן ב${esc(SUBJ[test.subj] || test.subj)}` : "עוד תרגול, בלי נקודות"}</button>
       <p class="small faint">לא חובה. חמש שאלות ממה שעוד לא מלא במפה שלך; נספר למפה וליעד המשפחתי.</p>` : ""}
       <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-ghost wide" data-act="tab" data-to="know">למפה</button>
         <button type="button" class="btn btn-ghost wide" data-act="tab" data-to="board">לטבלה</button></div></section>`;
@@ -1139,7 +1187,7 @@ function renderHome() {
       <h1 class="display">${resumed ? `עוד ${set.length - resumed} שאלות` : "חמש שאלות"}</h1>
       <div class="chips">${chips}${test ? `<span class="chip warn">${ICON.cal.replace("<svg", '<svg width="14" height="14"')} מבחן ב${esc(SUBJ[test.subj] || test.subj)} ${inDays(daysBetween(TODAY, test.date))}</span>` : ""}${rev ? `<span class="chip warn">+1 סיבוב נקמה</span>` : ""}</div>
       <div class="meta"><span>בערך <b>3 דקות</b></span><span>עד <b class="num">${POINTS.day + 5 * POINTS.right + POINTS.perfect + (rev ? POINTS.revenge : 0)}</b> נקודות</span></div>
-      <button type="button" class="btn btn-primary wide" data-act="start">${resumed ? "להמשיך" : "להתחיל"}</button></section>`;
+      <button type="button" class="btn btn-primary wide" data-act="start" ${waitAttr()}>${waiting() ? WAIT_TEXT : resumed ? "להמשיך" : "להתחיל"}</button></section>`;
   }
   const tiles = [];
   for (let d = 1; d <= daysIn(Y, M); d++) {
@@ -1186,7 +1234,7 @@ function renderKnow() {
   const p = me(), map = knowMap(p), all = map.reduce((n, x) => n + x.topics.length, 0), known = map.reduce((n, x) => n + x.known, 0);
   const left = practiceLeft(p.id);
   const cta = !canPractice() ? "" : !playedOn(p.id, TODAY) ? `<p class="small faint">אחרי חמש השאלות של היום אפשר לתרגל כאן עוד, בלי נקודות.</p>`
-    : left ? `<button type="button" class="btn btn-aura wide" data-act="practice">לתרגל עכשיו</button>
+    : left ? `<button type="button" class="btn btn-aura wide" data-act="practice" ${waitAttr()}>${waiting() ? WAIT_TEXT : "לתרגל עכשיו"}</button>
       <p class="small faint">לא חובה. חמש שאלות ממה שעוד לא מלא, בלי נקודות לטבלה; נספר למפה וליעד המשפחתי.</p>`
     : `<p class="small faint">זה מספיק תרגול להיום. מחר יש עוד.</p>`;
   return `
@@ -1464,6 +1512,16 @@ function scriptCard(brief) {
     <p class="small">הסקריפט בגיליון הוא גרסה <bdi dir="ltr">${have || 1}</bdi>, והאפליקציה צריכה <bdi dir="ltr">${SCRIPT_API}</bdi>. עד שמדביקים את החדש ומפרסמים ״גרסה חדשה״, לא פועלים: ${missing.join("; ")}.</p>
     <p class="small faint">אם כבר הדבקת: סגור ופתח את האפליקציה. אם זה עדיין כאן, בפרסום נבחרה הגרסה הישנה ולא ״New version״.</p></section>`;
 }
+/* How long this phone's last opening waited for the Sheet (Avsha, 2026-11-26: half a minute before anything showed).
+ * The screen no longer waits for it, so this line is how to know whether the Sheet's script is slow again. */
+function loadCard() {
+  const x = LIVE && L.load;
+  if (!x) return "";
+  const secs = n => (Math.round(n / 100) / 10).toFixed(1);
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Speed</span><span class="small muted">הפתיחה האחרונה בטלפון הזה</span></div>
+    <p class="small">${x.ok ? `הגיליון ענה תוך <b dir="ltr">${secs(x.ms)}</b> שניות.` : "הגיליון לא ענה (אין חיבור, או שהוא איטי מאוד)."}${x.shown ? ` המסך הופיע אחרי <b dir="ltr">${secs(x.shown)}</b> שניות.` : ""}</p>
+    <p class="small faint">המסך נפתח ממה שהטלפון זוכר ולא מחכה לגיליון. אם הגיליון עונה אחרי יותר מ־6 שניות, שווה לספר ל־Claude.</p></section>`;
+}
 function parentSettings() {
   const s = FAM.settings;
   return `<section class="glass pad stack"><span class="eyebrow">Prizes</span>
@@ -1474,6 +1532,7 @@ function parentSettings() {
   <section class="glass pad stack"><span class="eyebrow">Give a token</span><p class="small muted">מעבר לאסימון של אלופת החודש. היא תראה אותו בכספת.</p>
     <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="grant" data-id="${p.id}">${dot(p)} +1 ל${esc(p.name)}</button>`).join("")}</div></section>
   ${scriptCard()}
+  ${loadCard()}
   ${canGift() ? bonusCard() : ""}
   <section class="glass pad stack"><span class="eyebrow">Test profile</span>
     <p class="small muted">פרופיל ניסיון, כמו של הבנות, שקיים רק בטלפון הזה: אפשר לענות נכון ולא נכון, לתרגל ולראות כל מסך. שום דבר ממנו לא נשלח לגיליון, לא נספר בטבלה של הבנות ולא מגיע למייל. בוחרים של מי השאלות:</p>
@@ -1637,6 +1696,8 @@ function bonusCard() {
     ${on ? `<p class="small faint">${due.length ? `לפי הימים עד עכשיו, יקבלו: ${joinHe(due.map(p => esc(p.name)))}.` : "לפי הימים עד עכשיו, אף אחת עוד לא עמדה בתנאי."} אפשר לשנות עד סוף החודש.</p>` : ""}</section>`;
 }
 
+function luckCheck() { return false; }
+
 /* ---------- the formula sheet (the eldest, 2026-11-22) ----------
  * In a math test her class is handed a sheet of formulas, and the app asked the same questions without it: her
  * example was "what can be said of x² + 2x + 5 = 0?", which wants the roots' formula. A math question now has a
@@ -1681,6 +1742,7 @@ const again = () => Q.queue.indexOf(Q.queue[Q.i]) < Q.i;
 const tryNo = () => Q.queue.slice(0, Q.i + 1).filter(k => k === Q.queue[Q.i]).length;
 function startQuest() {
   const p = me();
+  if (waiting()) { toast("רגע, מתעדכן…"); return; }
   if (playedOn(p.id, TODAY)) { show("home"); return; }
   const set = dailySet(p, TODAY), rev = revengeFor(p, TODAY, set);
   const items = set.map(q => ({ q, rev: false }));
@@ -1712,6 +1774,7 @@ function iris(r) {
   q.classList.add("iris");
 }
 function startPractice() {
+  if (waiting()) { toast("רגע, מתעדכן…"); return; }
   const p = me(), set = practiceSet(p);
   if (!set.length) { toast("אין כרגע מה לתרגל. מחר יהיו שאלות חדשות."); return; }
   Q = newRound("practice", p, set.map(q => ({ q, rev: false })));
@@ -2095,7 +2158,7 @@ document.addEventListener("click", async e => {
         let good = false;
         if (LIVE) { try { await api("pin", { pin }); good = true; } catch (err) { good = false; } }
         else good = pin === String(FAM.settings.parentPin || "1234");
-        if (good) { parentOK = true; parentPin = pin; pin = ""; keepUnlock(); show("parent"); monthCheck(null); return; }
+        if (good) { parentOK = true; parentPin = pin; pin = ""; keepUnlock(); show("parent"); if (!monthCheck(null)) luckCheck(null); return; }
         pin = ""; show("parent"); $("#pinDots").classList.add("err"); buzz(80); return;
       }
       show("parent"); break;
@@ -2207,7 +2270,61 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden && ym
 
 /* ---------- start ---------- */
 function allPools() { return [...new Set(FAM.profiles.flatMap(p => trackPools(p.track)))]; }
-new MutationObserver(() => document.body.classList.toggle("deep", !!$(".quiz, .story, .ceremony", layer))).observe(layer, { childList: true });
+new MutationObserver(() => {
+  document.body.classList.toggle("deep", !!$(".quiz, .story, .ceremony", layer));
+  if (STALE && !layer.innerHTML) repaint();
+}).observe(layer, { childList: true });
+/* ---------- opening (Avsha, 2026-11-26: "I see the purple screen and about 30 seconds later the app loads") ----------
+ * The app drew nothing until the Sheet had answered and every bank had come from the site, one after the other,
+ * and the Sheet's answer alone took most of that half minute (Code.gs, "reading the tabs"). Now a phone that has
+ * opened the app before opens it from what it holds: its last copy of the Sheet (L.cache) and its own copies of the
+ * banks. The Sheet and the site are asked meanwhile (sync), and the screen is drawn again when they answer.
+ * Until then SYNC is "wait" and a round cannot be started: the day's five are picked from her sisters' rows too
+ * (a twin never gets a question her sister has answered) and from the exams entered, which the last copy may lack.
+ * The popups (the month's winner, an exam tomorrow) wait for the answer as well. With no connection the wait ends
+ * as it always did, on the last copy. */
+let SYNC = "ok", STALE = false, SHOWN = 0;
+const T0 = performance.now();
+const waiting = () => SYNC === "wait";
+function repaint() {
+  if (!BOOTED) return;
+  // a sheet or a round is open, or Dad is typing his settings: drawn again when that is done
+  if (layer.innerHTML || (view === "parent" && parentOK && ptab === "settings" && !!$("input", app))) { STALE = true; return; }
+  STALE = false;
+  const y = window.scrollY;
+  show(view, true);
+  window.scrollTo(0, y);
+}
+async function sync() {
+  const was = JSON.stringify(FAM);
+  let ok = true, ms = 0, banks = false;
+  const b = freshBanks(allPools()).then(ch => { banks = ch; }).catch(() => {});
+  try { await flush(); const t = performance.now(); await refresh(); ms = performance.now() - t; } catch (err) { ok = false; }
+  await b;
+  if (ok) await loadBanks(allPools());   // a track the last copy did not have
+  L.load = { at: TODAY, ok, ms: Math.round(ms), shown: Math.round(SHOWN - T0) }; save();
+  return banks || (ok && JSON.stringify(FAM) !== was);
+}
+function firstScreen() {
+  if (LIVE && L.parent) { takeUnlock(); applyAura("chrome"); show("parent"); }
+  else if (LIVE && !me()) show("who");
+  else { applyAura(auraOf(me())); show("home"); }
+  BOOTED = true; SHOWN = performance.now();
+}
+/* After the first screen, once the Sheet has answered (or cannot): the photos, and whatever popup is due. */
+function greet() {
+  if (LIVE) (me() && !L.parent ? sharePhoto() : Promise.resolve()).then(fetchPhotos);
+  if (layer.innerHTML || SANDBOX) return;
+  if (LIVE && L.parent) { if (parentOK && view === "parent" && !monthCheck(null)) luckCheck(null); return; }
+  const p = me();
+  if (!p || !["home", "know", "board", "vault", "me"].includes(view)) return;
+  if (monthCheck(p)) { L.seenRecap = THIS_MONTH; save(); return; }   // her recap is the popup's last button
+  if (LIVE && L.seenRecap !== THIS_MONTH && D <= 7) {
+    const [py, pm] = prevMonth(Y, M);
+    if (stats(p.id, py, pm).played) { L.seenRecap = THIS_MONTH; save(); openRecap(p.id); return; }
+  }
+  luckCheck(p);
+}
 async function boot() {
   auraStart();
   if (LIVE) {
@@ -2215,28 +2332,27 @@ async function boot() {
     /* The code stays in the address: on an iPhone the home-screen copy keeps its own storage, and the address it is saved from carries the code into it. */
     if (k) { L.code = k; save(); }
     if (!L.code) { FAM = { profiles: [], settings: {}, tokens: {}, rows: [], tests: [] }; show("code"); return; }
-    try { await flush(); await refresh(); } catch (err) {
-      /* Offline: carry on from the last copy of the Sheet, and send the answers when the connection is back. */
-      if (L.cache) FAM = L.cache; else { show("error"); return; }
+    if (L.cache && Array.isArray(L.cache.profiles) && L.cache.profiles.length) {
+      FAM = L.cache;
+      await loadBanks(allPools(), true);
+      SYNC = "wait";
+      firstScreen();
+      sync().then(changed => { SYNC = "ok"; if (changed || $("[data-wait]", app)) repaint(); greet(); });
+      return;
     }
+    // a phone's first opening: nothing to show yet but that it is on its way
+    app.innerHTML = `<div class="onb"><span class="wordmark" dir="ltr">Aura</span><p class="muted">טוענת…</p></div>`;
+    try { await flush(); const t = performance.now(); await refresh(); L.load = { at: TODAY, ok: true, ms: Math.round(performance.now() - t), shown: 0 }; save(); }
+    catch (err) { show("error"); return; }
     await loadBanks(allPools());
-    if (L.parent) { takeUnlock(); applyAura("chrome"); show("parent"); BOOTED = true; fetchPhotos(); if (parentOK) monthCheck(null); return; }
-    if (!me()) { show("who"); BOOTED = true; fetchPhotos(); return; }
   } else {
     FAM = demoFamily();
     await loadBanks(allPools());
     EXAMPLE = makeExample();
     if (!me()) L.me = FAM.profiles[0].id;
   }
-  applyAura(auraOf(me()));
-  show("home");
-  BOOTED = true;
-  if (LIVE) sharePhoto().then(fetchPhotos);
-  if (monthCheck(me())) { L.seenRecap = THIS_MONTH; save(); }   // her recap is the popup's last button
-  else if (LIVE && L.seenRecap !== THIS_MONTH && D <= 7) {
-    const [py, pm] = prevMonth(Y, M);
-    if (stats(me().id, py, pm).played) { L.seenRecap = THIS_MONTH; save(); openRecap(me().id); }
-  }
+  firstScreen();
+  greet();
 }
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },

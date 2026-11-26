@@ -99,6 +99,7 @@ function setup() {
 /* ---------- the web app ---------- */
 function doGet(e) {
   return guard_(function () {
+    wrote_();
     var p = (e && e.parameter) || {};
     checkCode_(p.code);
     if (p.action === "photos") return { ok: true, photos: photos_() };
@@ -109,6 +110,7 @@ function doGet(e) {
 
 function doPost(e) {
   return guard_(function () {
+    wrote_();
     var b = JSON.parse((e && e.postData && e.postData.contents) || "{}");
     checkCode_(b.code);
     var lock = LockService.getScriptLock();
@@ -189,10 +191,11 @@ function submit_(b) {
   if (add.length) {
     var sh = sheet_("Answers");
     // a Sheet set up before the seconds were kept has no heading for them
-    var head = sh.getDataRange().getValues()[0];
+    var head = values_("Answers")[0] || [];
     if (String(head[9] || "") !== "secs") sh.getRange(1, 10).setValue("secs");
     if (String(head[10] || "") !== "flag") sh.getRange(1, 11).setValue("flag");
     sh.getRange(sh.getLastRow() + 1, 1, add.length, add[0].length).setValues(add);
+    wrote_();
     tokens = pathTokens_(b.p);
   }
   return { ok: true, added: add.length, tokens: tokens };
@@ -201,7 +204,7 @@ function submit_(b) {
 var PIC_OK = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;
 function setProfile_(b) {
   needProfile_(b.p);
-  var sh = sheet_("Profiles"), v = sh.getDataRange().getValues(), row = 0;
+  var sh = sheet_("Profiles"), v = values_("Profiles"), row = 0;
   for (var i = 1; i < v.length; i++) if (String(v[i][0]) === b.p) row = i + 1;
   if (b.aura !== undefined) {
     if (["orchid", "lagoon", "ember", "cherry", "matcha", "chrome"].indexOf(b.aura) < 0) throw new Error("bad aura");
@@ -213,11 +216,12 @@ function setProfile_(b) {
     if (String(v[0][7] || "") !== "photo") sh.getRange(1, 8).setValue("photo");
     sh.getRange(row, 8).setValue(ph);
   }
+  wrote_();
   return { ok: true };
 }
 function photos_() {
   var out = {};
-  sheet_("Profiles").getDataRange().getValues().slice(1).forEach(function (r) { if (r[0] !== "" && PIC_OK.test(String(r[7] || ""))) out[String(r[0])] = String(r[7]); });
+  values_("Profiles").slice(1).forEach(function (r) { if (r[0] !== "" && PIC_OK.test(String(r[7] || ""))) out[String(r[0])] = String(r[7]); });
   return out;
 }
 /* A short stamp of a photo: its length and a sum over it, so a phone can tell a new photo without fetching it. */
@@ -232,15 +236,16 @@ function addTest_(b) {
   needProfile_(b.p);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.date)) || !SUBJ[b.subj]) throw new Error("bad test");
   sheet_("Tests").appendRow([new Date(), b.p, b.date, b.subj, String(b.note || "").slice(0, 40)]);
+  wrote_();
   return { ok: true };
 }
 
 /* An exam entered wrong: hers taken off by her, anyone's by the parent. */
 function delTest_(b) {
   needProfile_(b.p);
-  var sh = sheet_("Tests"), v = sh.getDataRange().getValues();
+  var sh = sheet_("Tests"), v = values_("Tests");
   for (var i = v.length - 1; i >= 1; i--) {
-    if (String(v[i][1]) === b.p && dateText_(v[i][2]) === String(b.date) && String(v[i][3]) === String(b.subj)) { sh.deleteRow(i + 1); return { ok: true, removed: 1 }; }
+    if (String(v[i][1]) === b.p && dateText_(v[i][2]) === String(b.date) && String(v[i][3]) === String(b.subj)) { sh.deleteRow(i + 1); wrote_(); return { ok: true, removed: 1 }; }
   }
   return { ok: true, removed: 0 };
 }
@@ -344,6 +349,7 @@ function bonusTokens_(key) {
 
 /* ---------- timers ---------- */
 function nightlyDigest() {
+  wrote_();
   var today = ymd_(new Date()), y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
   var r = report_(today, y, m), n = r.girls.filter(function (g) { return g.today.played; }).length;
   var missing = r.girls.filter(function (g) { return !g.today.played; }).map(function (g) { return g.name; });
@@ -355,13 +361,14 @@ function nightlyDigest() {
 }
 
 function monthlyClose() {
+  wrote_();
   var today = ymd_(new Date());
   if (today.slice(8) !== "01") return;
   var y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
   var pm = m === 1 ? [y - 1, 12] : [y, m - 1], key = pm[0] + "-" + pad_(pm[1]);
   var gifted = bonusTokens_(key);   // the parent's gift, whether or not the month had a winner
   var reason = "winner " + key;
-  var done = sheet_("Tokens").getDataRange().getValues().some(function (row) { return String(row[3]) === reason; });
+  var done = values_("Tokens").some(function (row) { return String(row[3]) === reason; });
   if (done) return;
   var profs = profiles_(), rank = ranking_(answers_(), profs, pm[0], pm[1]);
   if (!rank.length || !rank[0].points) return;
@@ -618,33 +625,49 @@ function weekDays_(rows, pid, today) {
   return n;
 }
 
-/* ---------- reading the tabs ---------- */
-function sheet_(name) { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name); }
+/* ---------- reading the tabs ----------
+ * Each tab is read once a request and kept (Avsha, 2026-11-26: the app took about 30 seconds to open). One `state`
+ * read the Sheet about twenty times over (Settings once for every setting it sends, Answers four times, Profiles and
+ * Tokens three each), and every reading of Answers asked Google to format each row's time of day: with 330 rows,
+ * over 1,300 calls, and more with every day played. A request that only checks the family code took 2.8 seconds,
+ * so each reading and each call counts. Now a reading is kept until something is written (wrote_), the rows of
+ * Answers are worked out once, and a row's time of day is formatted only for yesterday's and today's rows, the only
+ * ones whose hour is shown (the evening email's and Dad's Today). */
+var SS_ = null, TAB_ = {}, ROWS_ = null, FMT_ = {};
+function sheet_(name) { return (SS_ || (SS_ = SpreadsheetApp.getActiveSpreadsheet())).getSheetByName(name); }
+function values_(name) { return TAB_[name] || (TAB_[name] = sheet_(name).getDataRange().getValues()); }
+/* Something was written, or a request begins: what was read is read again. */
+function wrote_() { TAB_ = {}; ROWS_ = null; }
 function settingsMap_() {
   var map = {};
-  sheet_("Settings").getDataRange().getValues().slice(1).forEach(function (r) { map[String(r[0])] = r[1]; });
+  values_("Settings").slice(1).forEach(function (r) { map[String(r[0])] = r[1]; });
   return map;
 }
 function setting_(k) { var v = settingsMap_()[k]; return v === undefined || v === null ? "" : v; }
 function setSetting_(k, v) {
-  var sh = sheet_("Settings"), vals = sh.getDataRange().getValues();
-  for (var i = 1; i < vals.length; i++) if (vals[i][0] === k) { sh.getRange(i + 1, 2).setValue(v); return; }
+  var sh = sheet_("Settings"), vals = values_("Settings");
+  for (var i = 1; i < vals.length; i++) if (vals[i][0] === k) { sh.getRange(i + 1, 2).setValue(v); wrote_(); return; }
   sh.appendRow([k, v, ""]);
+  wrote_();
 }
 function profiles_() {
-  return sheet_("Profiles").getDataRange().getValues().slice(1).filter(function (r) { return r[0] !== ""; }).map(function (r) {
+  return values_("Profiles").slice(1).filter(function (r) { return r[0] !== ""; }).map(function (r) {
     return { id: String(r[0]), name: String(r[1]), track: String(r[2]), pair: String(r[3] || ""), slot: Number(r[4]) || 0,
              flavor: String(r[5] || ""), aura: String(r[6] || "orchid"), pic: picStamp_(r[7]) };
   });
 }
 function answers_() {
-  return sheet_("Answers").getDataRange().getValues().slice(1).filter(function (r) { return r[2] !== ""; }).map(function (r) {
-    return { d: dateText_(r[1]), p: String(r[2]), q: String(r[3]), pool: String(r[4]), t: String(r[5]), l: Number(r[6]) || 1,
-             ok: Number(r[7]) ? 1 : 0, r: Number(r[8]) === 2 ? 2 : Number(r[8]) ? 1 : 0, s: Number(r[9]) || 0, f: String(r[10] || ""), w: r[0] instanceof Date ? Utilities.formatDate(r[0], TZ, "HH:mm") : "" };
-  });
+  if (ROWS_) return ROWS_;
+  var recent = addDays_(ymd_(new Date()), -1);
+  return (ROWS_ = values_("Answers").slice(1).filter(function (r) { return r[2] !== ""; }).map(function (r) {
+    var d = dateText_(r[1]), k = Number(r[8]);
+    return { d: d, p: String(r[2]), q: String(r[3]), pool: String(r[4]), t: String(r[5]), l: Number(r[6]) || 1,
+             ok: Number(r[7]) ? 1 : 0, r: k === 2 ? 2 : k === 3 ? 3 : k ? 1 : 0, s: Number(r[9]) || 0, f: String(r[10] || ""),
+             w: d >= recent && r[0] instanceof Date ? Utilities.formatDate(r[0], TZ, "HH:mm") : "" };
+  }));
 }
 function tokenRows_() {
-  return sheet_("Tokens").getDataRange().getValues().slice(1).filter(function (r) { return r[1] !== ""; }).map(function (r) {
+  return values_("Tokens").slice(1).filter(function (r) { return r[1] !== ""; }).map(function (r) {
     return { d: dateText_(r[0]), p: String(r[1]), change: Number(r[2]) || 0, reason: String(r[3] || "") };
   });
 }
@@ -654,11 +677,12 @@ function tokens_() {
   return t;
 }
 function tests_() {
-  return sheet_("Tests").getDataRange().getValues().slice(1).filter(function (r) { return r[1] !== ""; }).map(function (r) {
-    return { p: String(r[1]), date: dateText_(r[2]), subj: String(r[3]), note: String(r[4] || "") };
+  return values_("Tests").slice(1).filter(function (r) { return r[1] !== ""; }).map(function (r) {
+    return { p: String(r[1]), date: dateText_(r[2]), subj: String(r[3]), note: String(r[4] || ""), grade: gradeOf_(r[5]) };
   });
 }
-function addToken_(pid, change, reason) { sheet_("Tokens").appendRow([new Date(), pid, change, reason]); }
+function gradeOf_(v) { var n = Number(v); return v === "" || v === null || v === undefined || isNaN(n) ? "" : Math.max(0, Math.min(100, Math.round(n))); }
+function addToken_(pid, change, reason) { sheet_("Tokens").appendRow([new Date(), pid, change, reason]); wrote_(); }
 
 /* ---------- small helpers ---------- */
 function checkCode_(code) {
@@ -686,7 +710,7 @@ function makeCode_() {
   for (var i = 0; i < 6; i++) s += abc.charAt(Math.floor(Math.random() * abc.length));
   return s;
 }
-function ymd_(d) { return Utilities.formatDate(d, TZ, "yyyy-MM-dd"); }
+function ymd_(d) { var k = d.getTime(); return FMT_[k] || (FMT_[k] = Utilities.formatDate(d, TZ, "yyyy-MM-dd")); }
 function dateText_(v) { return v instanceof Date ? ymd_(v) : String(v).slice(0, 10); }
 function addDays_(s, n) {
   var d = new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8)) + n);

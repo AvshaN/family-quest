@@ -10,6 +10,8 @@
  *   /__load  (POST {tab, rows})                                       appends rows to a tab, to stage a history
  *   /__score?y=2026&m=12                                              the script's ranking for a month
  *   /__mails                                                          the emails sent since last asked
+ *   /__lag?ms=4000                                                    the Sheet answers that much later, as Google does
+ *   /__reads                                                          tab readings in the last /exec request, and date formats so far
  * The stand-ins below cover only what Code.gs calls. */
 const fs = require("fs"), path = require("path"), http = require("http"), vm = require("vm"), url = require("url");
 const ROOT = path.join(__dirname, "..");
@@ -31,6 +33,7 @@ class Sheet {
     };
   }
   getDataRange() {
+    READS++;
     const nc = Math.max(1, ...this.rows.map(r => r.length));
     const rows = this.rows.length ? this.rows : [[]];
     return { getValues: () => rows.map(r => { const x = r.slice(); while (x.length < nc) x.push(""); return x; }) };
@@ -45,7 +48,7 @@ const SS = {
   deleteSheet: s => { book.tabs = book.tabs.filter(t => t !== s); },
   getUrl: () => "https://docs.google.com/spreadsheets/d/EXAMPLE/edit"
 };
-let FIXED = null;
+let FIXED = null, LAG = 0, READS = 0, LAST_READS = 0, FORMATS = 0;
 const RealDate = Date;
 class FakeDate extends RealDate {
   constructor(...a) { if (!a.length && FIXED) super(FIXED); else super(...a); }
@@ -62,7 +65,7 @@ const ctx = vm.createContext({
   Session: { getEffectiveUser: () => ({ getEmail: () => "parent@example.com" }) },
   Logger: { log: s => console.log("[script]", s) },
   ContentService: { createTextOutput: s => ({ s, setMimeType() { return this; } }), MimeType: { JSON: "json" } },
-  Utilities: { formatDate: (d, tz, f) => f === "HH:mm"
+  Utilities: { formatDate: (d, tz, f) => (FORMATS++, f === "HH:mm")
     ? new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).format(d)
     : new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d) }
 });
@@ -75,11 +78,19 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 http.createServer((req, res) => {
   const u = url.parse(req.url, true), cors = { "Access-Control-Allow-Origin": "*" };
   const send = (code, type, body) => { res.writeHead(code, Object.assign({ "Content-Type": type }, cors)); res.end(body); };
+  // Google runs every request in a fresh copy of the script; here one copy serves them all, so what it kept of the
+  // Sheet (values_ in Code.gs) is dropped before each.
+  if (ctx.wrote_) ctx.wrote_();
   if (u.pathname === "/exec") {
-    if (req.method === "GET") return send(200, "application/json", ctx.doGet({ parameter: u.query }).s);
+    // the Sheet's answer after LAG ms, as Google's takes seconds
+    const later = (code, type, body) => LAG ? setTimeout(() => send(code, type, body), LAG) : send(code, type, body);
+    READS = 0;
+    if (req.method === "GET") { const out = ctx.doGet({ parameter: u.query }).s; LAST_READS = READS; return later(200, "application/json", out); }
     let body = ""; req.on("data", c => body += c);
-    return req.on("end", () => send(200, "application/json", ctx.doPost({ postData: { contents: body } }).s));
+    return req.on("end", () => { const out = ctx.doPost({ postData: { contents: body } }).s; LAST_READS = READS; later(200, "application/json", out); });
   }
+  if (u.pathname === "/__lag") { LAG = +u.query.ms || 0; return send(200, "application/json", JSON.stringify({ lag: LAG })); }
+  if (u.pathname === "/__reads") return send(200, "application/json", JSON.stringify({ reads: LAST_READS, formats: FORMATS }));
   if (u.pathname === "/__run") {
     const was = FIXED;
     if (u.query.now) FIXED = u.query.now;
