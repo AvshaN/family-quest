@@ -616,20 +616,23 @@ function practiceSet(prof) {
  * topics so far), an example worked through, then three questions, the easier first and the one she last missed
  * to close. It is a round like any other (a miss comes back until it is right) and its rows are kind 3: they count
  * for the map and the family goal, and three of them in a day earn `lesson` points. The count reads the days before
- * today, so the offer does not change through the day. A topic she or her twin marked "not learned yet" is left
- * out, as it is for the weakest topic. Needs the script that knows kind 3 (api 6). */
+ * today, so the offer does not change through the day. A topic she herself marked "not learned yet" is left out.
+ * Her twin's mark does not count here, as it does for the weakest topic: on 2026-11-26 the art twin marked one hard
+ * question on the power of a negative number, and from the next day that would have kept her sister's lesson on
+ * signed numbers away, the topic the sister had got wrong 7 times of 12 without marking anything. A lesson is
+ * offered, not dealt, and it teaches. (stuck_ in Code.gs, for the email, still counts the twin's mark: bring it
+ * in step at the next change to the script.) Needs the script that knows kind 3 (api 6). */
 const FIX = { min: 3, days: 28, right: 0.5, n: 3 };
 const canFix = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 6;
 function stuckOf(prof, date) {
   date = date || TODAY;
-  const by = {}, off = new Set(), mates = new Set(FAM.profiles.filter(x => x.id === prof.id || (prof.pair && x.pair === prof.pair)).map(x => x.id).concat(prof.id));
+  const by = {}, off = new Set();
   rows().forEach(r => {
-    if (r.d >= date || daysBetween(r.d, date) > FIX.days) return;
+    if (r.p !== prof.id || r.d >= date || daysBetween(r.d, date) > FIX.days) return;
     const q = QIDX[r.q];
     if (!q || !studied(prof, q)) return;
     const k = q.pool + "|" + q.topic;
-    if (r.f && mates.has(r.p)) off.add(k);
-    if (r.p !== prof.id) return;
+    if (r.f) off.add(k);
     const e = by[k] || (by[k] = { pool: q.pool, topic: q.topic, n: 0, miss: 0, score: 0, last: "" });
     e.n++; e.score += r.ok ? -FIX.right : 1;
     if (!r.ok) { e.miss++; if (r.d > e.last) e.last = r.d; }

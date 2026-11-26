@@ -86,8 +86,11 @@ tests with the girls and gives feedback; Claude writes the code.
   shows up stuck in another subject), a worked example (a question of her
   twin's half of the pool, which she is never asked), then three questions,
   easiest first, the one she last missed to close. Three answers of kind 3
-  in a day earn `lesson` points on a day that counts. Dad's Today and the
-  evening email name what is stuck. Needs api 6: the older script stores
+  in a day earn `lesson` points on a day that counts. Only her own "not
+  learned yet" mark keeps a topic's lesson away, not her twin's (the app;
+  `stuck_` in the script still counts the twin's: align it at the next
+  change to the script). Dad's Today and the evening email name what is
+  stuck. Needs api 6: the older script stores
   kind 3 as a revenge round.
 - **Difficulty** (`bandOf`, `LEVEL`): over her last two weeks in a pool, nine
   in ten right and her new questions come hardest first; six in ten or
@@ -379,18 +382,18 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The evening reminder** (below): which phones, and whether the girls
   use Telegram.
   He is still to confirm, and may replace one twin's phone in a few days.
-- **The mark on perimeter**: taught, a mis-click. Once the script of api 7
-  is pasted he takes it off with "זה נלמד" on his Today tab; ask whether he
-  did (the Answers tab's flag column shows it).
+- **The script of api 7 is in the Sheet** (pasted 2026-11-26; his Settings
+  tab said so, the Pages tab exists, and the mark on perimeter is gone: he
+  took it off). The art twin marked another that day, the power of a
+  negative number (`g7-math-100`, level 3): was it taught?
 - **The other twin's major** (exemplary figures): is the pool `g7-midrash`
   that major, and so hers alone, or a class both take? Both tracks draw on
   it. He does not know (the classes are new to him and the notebooks say
   little): the girls can say, or the art twin can mark its questions "not
   learned yet". The pool came from worksheets sent on 2026-11-13 (change,
   Rabbi Akiva, a poem, the role model).
-- **The English exam of 2026-12-06** is entered for the art twin only; her
-  sister sits it too. He can add it from his Exams card (Claude's write to
-  the Tests tab was refused).
+- **What the Speed line on his Settings tab says** (how long the Sheet
+  takes to answer with the new script): not told yet.
 
 ## Reminders (looked into 2026-11-14, not built)
 
