@@ -107,7 +107,15 @@ STUDYING.g7 = STUDYING["g7-art"] = {
   // Their English book is Teamwork (7th grade, Band II of the Ministry's word list); no unit started yet.
   "g7-eng": ["Vocabulary", "Vocabulary: Word List 1", "Vocabulary: Band II", "Reading", "Present Simple", "Present Progressive"]
 };
-const studied = (prof, q) => { const t = (STUDYING[prof.track] || {})[q.pool]; return !t || t.includes(q.topic); };
+/* What Dad stopped (2026-11-26: "if a flag is clicked, notify me ... and I'll decide if to block or remove the
+ * flag"). A "not learned yet" mark changes nothing by itself. He removes it, or stops what it is about until the
+ * class gets there: the one question, or its whole topic, for her and for the girl she shares a class with (the
+ * pair's name, or her own id). The Sheet keeps the list (settings.blocked; block_ in Code.gs), and a stopped
+ * question is as one her class has not reached: out of the five, the revenge rounds, practice, the lesson, the map. */
+const blocks = () => (FAM && FAM.settings && FAM.settings.blocked) || [];
+const scopeOf = prof => prof.pair || prof.id;
+const stopped = (prof, q) => blocks().some(b => b.s === scopeOf(prof) && b.pool === q.pool && (b.q ? b.q === q.id : b.t === q.topic));
+const studied = (prof, q) => { const t = (STUDYING[prof.track] || {})[q.pool]; return (!t || t.includes(q.topic)) && !stopped(prof, q); };
 const SUBJ = {
   math: "מתמטיקה", eng: "אנגלית", sci: "מדע", heb: "לשון", hist: "היסטוריה", civ: "אזרחות", midrash: "בית מדרש", bible: "תנ״ך",
   geo: "גאוגרפיה", art: "אמנות", bio: "ביולוגיה", lit: "ספרות"
@@ -262,21 +270,19 @@ const examTopics = (prof, test) => { const e = test && EXAM_TOPICS.find(x => x.t
  * numbers and the other's in perimeter and area, while the daily pick spreads over the whole pool): over the last
  * four weeks a miss counts one and a right answer takes half off, and the topic with the most left over is it. One
  * of her two math questions a day is drawn from it, a new question of the topic if there is one (the revenge round
- * already brings back the very questions she missed). A topic she or her classmate marked "not learned yet" in
- * that time is left out: more of it would be more of what was not taught. */
+ * already brings back the very questions she missed). A topic Dad stopped is left out, as everywhere (studied);
+ * until 2026-11-26 a "not learned yet" mark of hers or her twin's left it out by itself. */
 const WEAK = { days: 28, right: 0.5 };
 function weakTopic(prof, pool, date, src) {
-  const score = {}, missed = {}, off = new Set(), mates = new Set(sharers(prof, pool).map(x => x.id));
+  const score = {}, missed = {};
   src.forEach(r => {
-    if (r.pool !== pool || r.d >= date || daysBetween(r.d, date) > WEAK.days) return;
+    if (r.p !== prof.id || r.pool !== pool || r.d >= date || daysBetween(r.d, date) > WEAK.days) return;
     const q = QIDX[r.q], t = q && q.topic;
     if (!q || !studied(prof, q)) return;
-    if (r.f && mates.has(r.p)) off.add(t);
-    if (r.p !== prof.id) return;
     score[t] = (score[t] || 0) + (r.ok ? -WEAK.right : 1);
     if (!r.ok && !(missed[t] >= r.d)) missed[t] = r.d;
   });
-  return Object.keys(missed).filter(t => score[t] > 0 && !off.has(t))
+  return Object.keys(missed).filter(t => score[t] > 0)
     .sort((a, b) => score[b] - score[a] || (missed[a] < missed[b] ? 1 : missed[a] > missed[b] ? -1 : (a < b ? -1 : 1)))[0] || null;
 }
 /* Difficulty that follows her (2026-11-26): since her questions were limited to what her class has reached, the
@@ -542,7 +548,8 @@ function knowLast(prof) {
 const fadedIn = (know, last, k) => (know[k] || 0) >= KNOW && !(last[k] && daysBetween(last[k], TODAY) <= FADE.days);
 function topicsOf(prof, pool) {
   const all = [...new Set((BANKS[pool] || []).map(q => q.topic))], lim = (STUDYING[prof.track] || {})[pool];
-  return lim ? lim.filter(t => all.includes(t)) : all;
+  const off = new Set(blocks().filter(b => !b.q && b.s === scopeOf(prof) && b.pool === pool).map(b => b.t));
+  return (lim ? lim.filter(t => all.includes(t)) : all).filter(t => !off.has(t));
 }
 /* Her pools, the one with an exam this week first, each with its topics and how many are known. */
 function knowMap(prof) {
@@ -616,28 +623,23 @@ function practiceSet(prof) {
  * topics so far), an example worked through, then three questions, the easier first and the one she last missed
  * to close. It is a round like any other (a miss comes back until it is right) and its rows are kind 3: they count
  * for the map and the family goal, and three of them in a day earn `lesson` points. The count reads the days before
- * today, so the offer does not change through the day. A topic she herself marked "not learned yet" is left out.
- * Her twin's mark does not count here, as it does for the weakest topic: on 2026-11-26 the art twin marked one hard
- * question on the power of a negative number, and from the next day that would have kept her sister's lesson on
- * signed numbers away, the topic the sister had got wrong 7 times of 12 without marking anything. A lesson is
- * offered, not dealt, and it teaches. (stuck_ in Code.gs, for the email, still counts the twin's mark: bring it
- * in step at the next change to the script.) Needs the script that knows kind 3 (api 6). */
+ * today, so the offer does not change through the day. A "not learned yet" mark changes nothing here; what Dad
+ * stopped is left out, as everywhere (studied). Needs the script that knows kind 3 (api 6). */
 const FIX = { min: 3, days: 28, right: 0.5, n: 3 };
 const canFix = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 6;
 function stuckOf(prof, date) {
   date = date || TODAY;
-  const by = {}, off = new Set();
+  const by = {};
   rows().forEach(r => {
     if (r.p !== prof.id || r.d >= date || daysBetween(r.d, date) > FIX.days) return;
     const q = QIDX[r.q];
     if (!q || !studied(prof, q)) return;
     const k = q.pool + "|" + q.topic;
-    if (r.f) off.add(k);
     const e = by[k] || (by[k] = { pool: q.pool, topic: q.topic, n: 0, miss: 0, score: 0, last: "" });
     e.n++; e.score += r.ok ? -FIX.right : 1;
     if (!r.ok) { e.miss++; if (r.d > e.last) e.last = r.d; }
   });
-  return Object.keys(by).filter(k => by[k].score >= FIX.min && !off.has(k)).map(k => by[k])
+  return Object.keys(by).filter(k => by[k].score >= FIX.min).map(k => by[k])
     .sort((a, b) => b.score - a.score || (a.last < b.last ? 1 : a.last > b.last ? -1 : (a.topic < b.topic ? -1 : 1)))[0] || null;
 }
 const fixToday = pid => rows().filter(r => r.p === pid && r.d === TODAY && r.r === 3).length;
@@ -1934,20 +1936,96 @@ function missedRow(r) {
   return `<div class="rv mq"><span class="mk no">✗</span><span class="t"><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(q ? q.topic : r.t)}${r.r === 1 ? " · נקמה" : ""}</b>${+r.s > 0 ? ` <span class="small faint">${secText(+r.s)}</span>` : ""}
     ${q ? `<br><span class="muted" ${q.ltr ? 'dir="ltr"' : ""}>${fmt(q.q)}</span><br><span class="good-t">✓ <span dir="${optDir(q.options[0])}">${fmt(q.options[0])}</span></span>` : ""}</span></div>`;
 }
-/* What the girls marked "not learned yet" in the last two weeks, the newest first: who, the question, how she did.
- * A mark put by mistake keeps its topic out of the weakest-topic question and the fix-it lesson, hers and her
- * twin's, so Dad can take one off here (the script's `unflag`, api 7). */
+/* The "not learned yet" marks that wait for Dad's word, the newest first: who, the question whole with its right
+ * answer, how she did, and his three ways out. A mark is there until he takes one (the last month's, at most). */
 const canUnflag = () => !LIVE || (FAM.api | 0) >= 7;
-function flagsCard() {
-  const fl = rows().filter(r => r.f && profile(r.p) && daysBetween(r.d, TODAY) <= FLAG.days).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0);
-  const list = fl.slice(0, 20).map(r => { const q = QIDX[r.q], p = profile(r.p), text = fmt(q ? q.q : r.f);
-    return `<div class="rv mq"><span class="mk flagmk">${ICON.flag}</span><span class="t"><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span> <span class="small faint">${+r.d.slice(8)}.${+r.d.slice(5, 7)} · ${r.ok ? "ענתה נכון" : "טעתה"}</span>
-      <br><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(q ? q.topic : r.t)}</b><br><span class="muted" dir="${optDir(q ? q.q : r.f)}">${text}</span>
-      ${canUnflag() ? `<br><button type="button" class="link" style="min-height:0;font-size:13px" data-act="unflag" data-p="${esc(r.p)}" data-d="${esc(r.d)}" data-q="${esc(r.q)}">זה נלמד: להסיר את הסימון</button>` : ""}</span></div>`; }).join("");
-  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Not learned yet</span><span class="small muted">עוד לא למדנו</span></div>
-    ${list || `<p class="small muted">כשאחת הבנות מסמנת בשאלה ״עוד לא למדנו את זה״, השאלה מופיעה כאן ובמייל של הערב.</p>`}
-    ${list ? `<p class="small faint">הן עונות על השאלה בכל מקרה. נושא מסומן לא מקבל שאלות נוספות ולא חיזוק, אז סימון בטעות שווה להסיר. נושא שבאמת עוד לא נלמד אפשר לכבות עד שהכיתה תגיע אליו.</p>` : ""}</section>`;
+const canDecide = () => !LIVE || (FAM.api | 0) >= 8;
+const marksWaiting = () => rows().filter(r => r.f && profile(r.p) && daysBetween(r.d, TODAY) <= FLAG.days)
+  .sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : (a.q < b.q ? -1 : 1));
+function markRow(r) {
+  const q = QIDX[r.q], p = profile(r.p), topic = q ? q.topic : r.t, n = q ? (BANKS[q.pool] || []).filter(x => x.topic === topic).length : 0;
+  const data = `data-p="${esc(r.p)}" data-d="${esc(r.d)}" data-q="${esc(r.q)}" data-pool="${esc(r.pool)}" data-t="${esc(topic)}"`;
+  const both = p.pair && FAM.profiles.filter(x => x.pair === p.pair).length > 1;
+  return `<div class="markrow"><div class="rv mq"><span class="mk flagmk">${ICON.flag}</span><span class="t"><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span> <span class="small faint">${+r.d.slice(8)}.${+r.d.slice(5, 7)} · ${r.ok ? "ענתה נכון" : "טעתה"}</span>
+      <br><b>${SUBJ[subjOf(r.pool)] || ""} · ${esc(topic)}</b>${q ? ` <span class="small faint">רמה ${q.level} מתוך 3</span>` : ""}<br><span class="muted" dir="${optDir(q ? q.q : r.f)}">${fmt(q ? q.q : r.f)}</span>
+      ${q ? `<br><span class="good-t">✓ <span dir="${optDir(q.options[0])}">${fmt(q.options[0])}</span></span>` : ""}</span></div>
+    <div class="markacts">${canUnflag() ? `<button type="button" class="btn btn-ghost btn-sm" data-act="unflag" ${data}>זה נלמד: להסיר</button>` : ""}
+      ${canDecide() ? `<button type="button" class="btn btn-ghost btn-sm" data-act="block" data-kind="q" ${data}>לעצור רק את השאלה</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="block" data-kind="t" ${data}>לעצור את כל הנושא${n ? ` (${n} שאלות)` : ""}</button>` : ""}</div>
+    ${canDecide() ? `<p class="small faint">״לעצור״: ${both ? "אצל שתי התאומות, " : ""}עד שתפתח מחדש. סימון לא משנה כלום עד שתחליט.</p>` : ""}</div>`;
 }
+function flagsCard() {
+  const list = marksWaiting().slice(0, 20).map(markRow).join("");
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Your call</span><span class="small muted">סומן ״עוד לא למדנו״</span></div>
+    ${list || `<p class="small muted">כשאחת הבנות מסמנת בשאלה ״עוד לא למדנו את זה״, השאלה מחכה כאן להחלטה שלך: להסיר את הסימון, או לעצור את השאלה או את הנושא.</p>`}</section>
+  ${stoppedCard()}`;
+}
+/* What is stopped now, and the way to open it again when the class gets there. */
+function stoppedCard() {
+  const list = blocks();
+  if (!list.length) return "";
+  const who = b => FAM.profiles.filter(p => scopeOf(p) === b.s);
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Stopped</span><span class="small muted">עד שהכיתה תגיע לזה</span></div>
+    ${list.map(b => { const q = b.q && QIDX[b.q], ps = who(b);
+      return `<div class="rv mq"><span class="t"><span class="nm">${ps.map(p => dot(p) + esc(p.name)).join(" ")}</span> <span class="small faint">${b.d ? `${+b.d.slice(8)}.${+b.d.slice(5, 7)}` : ""}</span>
+        <br><b>${SUBJ[subjOf(b.pool)] || ""} · ${esc(b.t)}</b> <span class="small faint">${b.q ? "שאלה אחת" : "כל הנושא"}</span>
+        ${b.q ? `<br><span class="muted" dir="${optDir(q ? q.q : b.text || "")}">${fmt(q ? q.q : b.text || "")}</span>` : ""}
+        <br><button type="button" class="link" style="min-height:0;font-size:13px" data-act="unblock" data-s="${esc(b.s)}" data-pool="${esc(b.pool)}" data-t="${esc(b.t)}" data-q="${esc(b.q || "")}">הכיתה הגיעה לזה: לפתוח</button></span></div>`; }).join("")}</section>`;
+}
+/* ---------- what waits for Dad, once, when he opens the app (Avsha, 2026-11-26) ----------
+ * "I'd like any other changes that require my attention to appear as a popup once when opening the app (along with
+ * the current), like when a new test is added or notebook images." After the month's popup and the good-luck one,
+ * a sheet lists what is new since his phone last showed it: the marks that wait for his word (with their buttons,
+ * and they stay on his Today tab until he decides), a token she redeemed, a topic she is newly stuck in, notebook
+ * pages that wait, exams added, grades entered. Each thing is shown once (L.dadSeen, on his phone). The first time,
+ * what is already there is taken as seen, but for the marks. */
+let NEWS = null;
+function newsItems() {
+  const out = [], nm = p => `<b>${esc(p.name)}</b>`;
+  marksWaiting().forEach(r => out.push({ k: `flag|${r.p}|${r.d}|${r.q}`, mark: r }));
+  const nth = {};
+  tokenLog().filter(t => t.change < 0 && profile(t.p)).forEach(t => { const k = `${t.p}|${t.d}`; nth[k] = (nth[k] || 0) + 1;
+    out.push({ k: `redeem|${k}|${nth[k]}`, chip: "לשלם", html: `${nm(profile(t.p))} פדתה אסימון: <b>${(/\d+/.exec(t.reason) || [FAM.settings.tokenValue || 100])[0]} ₪</b> <span class="faint">(${+t.d.slice(8)}.${+t.d.slice(5, 7)})</span>` }); });
+  FAM.profiles.forEach(p => { const st = stuckOf(p, addDays(TODAY, 1));
+    if (st) out.push({ k: `stuck|${p.id}|${st.pool}|${st.topic}|${THIS_MONTH}`, chip: "תקוע", html: `${nm(p)} תקועה ב<b>${esc(st.topic)}</b> (${SUBJ[subjOf(st.pool)]}): ${st.miss} טעויות מתוך ${st.n} שאלות. שווה עשר דקות יחד.` }); });
+  const pg = {};
+  pages().filter(x => !x.st && profile(x.p)).forEach(x => { const k = x.p + "|" + x.subj; (pg[k] = pg[k] || []).push(x); });
+  Object.keys(pg).forEach(k => { const [pid, subj] = k.split("|"), list = pg[k];
+    out.push({ k: `page|${pid}|${subj}|${list.map(x => x.d + "." + x.i).join(",")}`, chip: "דפים", html: `${nm(profile(pid))} צילמה ${list.length === 1 ? "דף" : `${list.length} דפים`} ב${esc(SUBJ[subj] || subj)}. כדי שיהפכו לשאלות, אומרים ל־Claude: ״יש דפים חדשים מהמחברות״.` }); });
+  const ex = {};
+  tests().filter(t => t.date >= TODAY && profile(t.p)).forEach(t => { const k = t.date + "|" + t.subj; (ex[k] = ex[k] || []).push(t); });
+  Object.keys(ex).sort().forEach(k => { const list = ex[k], t = list[0], notes = [...new Set(list.map(x => x.note).filter(Boolean))];
+    out.push({ k: `test|${k}|${list.map(x => x.p).sort().join(",")}`, chip: "מבחן", html: `${joinHe(list.map(x => nm(profile(x.p))))}: מבחן ב${esc(SUBJ[t.subj] || t.subj)}, ${dateHe(t.date)} <span class="faint">(${inDays(daysBetween(TODAY, t.date))})</span>${notes.length ? `<br><span class="small faint">${notes.map(esc).join(" · ")}</span>` : ""}` }); });
+  pastExams().filter(e => hasGrade(e) && profile(e.p)).slice(0, 10).forEach(e => out.push({ k: `grade|${e.p}|${e.date}|${e.subj}|${e.grade}`, chip: "ציון",
+    html: `${nm(profile(e.p))}: <b>${+e.grade}</b> במבחן ב${esc(SUBJ[e.subj] || e.subj)} <span class="faint">(${+e.date.slice(8)}.${+e.date.slice(5, 7)})</span>` }));
+  return out;
+}
+const dadSaw = keys => { L.dadSeen = L.dadSeen || {}; keys.forEach(k => { L.dadSeen[k] = TODAY; }); save(); };
+function newsCheck() {
+  if (SANDBOX || !parentOK || view !== "parent" || layer.innerHTML || !FAM || !FAM.profiles.length) return false;
+  const all = newsItems();
+  if (!L.dadSeen) dadSaw(all.filter(x => !x.mark).map(x => x.k));   // the first time: only the marks are news
+  // forget what is long gone, so the list does not grow for ever
+  Object.keys(L.dadSeen).forEach(k => { if (daysBetween(L.dadSeen[k], TODAY) > 120) delete L.dadSeen[k]; });
+  const fresh = all.filter(x => !L.dadSeen[x.k]);
+  if (!fresh.length) return false;
+  NEWS = { keys: fresh.map(x => x.k) };
+  dadSaw(NEWS.keys);
+  renderNews();
+  return true;
+}
+function renderNews() {
+  const items = newsItems().filter(x => NEWS.keys.includes(x.k)), marks = items.filter(x => x.mark), rest = items.filter(x => !x.mark);
+  if (!items.length) { NEWS = null; layer.innerHTML = ""; return; }
+  layer.innerHTML = `<div class="sheet-bg" data-act="closeNews"><div class="sheet news" role="dialog" aria-modal="true" aria-label="מחכה לך">
+    <h3>מחכה לך</h3>
+    ${marks.length ? `<span class="eyebrow">Your call · סומן ״עוד לא למדנו״</span>${marks.map(x => markRow(x.mark)).join("")}` : ""}
+    ${rest.length ? `${marks.length ? `<span class="eyebrow">New</span>` : ""}${rest.map(x => `<div class="newsrow"><span class="chip ${x.chip === "לשלם" || x.chip === "תקוע" ? "warn" : ""}">${x.chip}</span><span>${x.html}</span></div>`).join("")}` : ""}
+    <button type="button" class="btn btn-primary wide" data-act="closeNews">${marks.length ? "אחר כך" : "ראיתי"}</button>
+    <p class="small faint">${marks.length ? "הסימונים נשארים בלשונית ״היום״ עד שתחליט. " : ""}כל דבר מופיע כאן פעם אחת.</p></div></div>`;
+}
+/* The popups of his screen, one after the other: the month's winner, an exam tomorrow, what waits for him. */
+const dadPopups = () => monthCheck(null) || luckCheck(null) || newsCheck();
 /* Upcoming exams, every girl's, soonest first, as in the evening email; the week of focus is lit. */
 function examsCard() {
   const up = tests().filter(t => t.date >= TODAY && profile(t.p)).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
@@ -2035,9 +2113,10 @@ function parentLife() {
  * only when Avsha pastes it, and nothing told him (or Claude: the Sheet shows no trace until a girl plays) whether a
  * paste had taken. SCRIPT_API is the `API` of backend/Code.gs: raise both together, and say here what an older
  * script leaves out. */
-const SCRIPT_API = 7;
+const SCRIPT_API = 8;
 const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש",
-  6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות", 7: "צילום דפים מהמחברת, והסרת סימון ״עוד לא למדנו״ (אחרי ההדבקה מריצים setup פעם אחת ומאשרים גישה ל־Drive)" };
+  6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות", 7: "צילום דפים מהמחברת, והסרת סימון ״עוד לא למדנו״ (אחרי ההדבקה מריצים setup פעם אחת ומאשרים גישה ל־Drive)",
+  8: "ההחלטה על סימון ״עוד לא למדנו״: לעצור שאלה או נושא, ורשימת הסימונים שמחכים במייל של הערב" };
 function scriptCard(brief) {
   if (!LIVE) return "";
   const have = FAM.api | 0;
@@ -2211,7 +2290,7 @@ function claimTok(pid, reason) {
 function closePops(then) {
   const P = POP;
   POP = null; layer.innerHTML = "";
-  if (P.preview || !P.viewer) { applyAura("chrome"); show("parent"); if (!P.preview) luckCheck(null); return; }
+  if (P.preview || !P.viewer) { applyAura("chrome"); show("parent"); if (!P.preview && !luckCheck(null)) newsCheck(); return; }
   applyAura(auraOf(P.viewer)); show("home");
   if (then === "recap") openRecap(P.viewer.id); else luckCheck(P.viewer);
 }
@@ -2294,7 +2373,7 @@ function closeLuck() {
   const X = LUCK;
   LUCK = null; layer.innerHTML = "";
   if (!X) return;
-  if (X.preview || !X.viewer) { applyAura("chrome"); show("parent"); return; }
+  if (X.preview || !X.viewer) { applyAura("chrome"); show("parent"); if (!X.preview) newsCheck(); return; }
   applyAura(auraOf(X.viewer)); show(X.back === "parent" ? "home" : X.back);
 }
 /* The wreath: two branches of leaves that grow from the foot up each side of her photo, a light running along them
@@ -2458,7 +2537,7 @@ function keepProgress() {
  * answering. She answers it all the same and it counts as any other. The mark goes to the Sheet with her answer
  * (the question's text, so the evening email can quote it), and Dad's Today lists the last two weeks' marks. The
  * script keeps it from version 4 on, so the button waits for that. */
-const FLAG = { days: 14 };
+const FLAG = { days: 30 };
 const canFlag = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 4;
 const flagText = on => on ? "סימנת שעוד לא למדתן את זה. אבא יראה, ועדיין צריך לענות." : "עוד לא למדנו את זה";
 /* How a question is asked (Avsha, 2026-11-14: four options are only recognised, and a tap at random is right a
@@ -2852,7 +2931,7 @@ document.addEventListener("click", async e => {
         let good = false;
         if (LIVE) { try { await api("pin", { pin }); good = true; } catch (err) { good = false; } }
         else good = pin === String(FAM.settings.parentPin || "1234");
-        if (good) { parentOK = true; parentPin = pin; pin = ""; keepUnlock(); show("parent"); if (!monthCheck(null)) luckCheck(null); return; }
+        if (good) { parentOK = true; parentPin = pin; pin = ""; keepUnlock(); show("parent"); dadPopups(); return; }
         pin = ""; show("parent"); $("#pinDots").classList.add("err"); buzz(80); return;
       }
       show("parent"); break;
@@ -2939,12 +3018,31 @@ document.addEventListener("click", async e => {
       show(view); toast("המבחן נמחק"); break;
     }
     case "pickSub": $$("#tsub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
-    case "unflag": {
-      const d = b.dataset;
-      if (LIVE) { try { await api("unflag", { pin: parentPin, p: d.p, d: d.d, q: d.q }); await refresh(); } catch (err) { toast("לא הוסר. נסה שוב."); break; } }
-      else { [L.rows, EXAMPLE].forEach(list => list.forEach(r => { if (r.p === d.p && r.d === d.d && r.q === d.q) r.f = ""; })); save(); }
-      show("parent"); toast("הסימון הוסר. הנושא חוזר לשאלות ולחיזוק."); break;
+    case "unflag": case "block": case "unblock": {
+      // a decision on a mark, from his Today tab or from the sheet of what waits (which is then drawn again)
+      const d = b.dataset, inNews = !!NEWS && !!b.closest(".news"), topic = d.kind === "t";
+      const q = QIDX[d.q], text = q ? q.q.slice(0, 300) : "";
+      const gone = r => r.f && (act === "unflag" ? r.p === d.p && r.d === d.d && r.q === d.q
+        : profile(r.p) && profile(d.p) && scopeOf(profile(r.p)) === scopeOf(profile(d.p)) && r.pool === d.pool && (topic ? (QIDX[r.q] ? QIDX[r.q].topic : r.t) === d.t : r.q === d.q));
+      if (LIVE) {
+        try {
+          if (act === "unflag") await api("unflag", { pin: parentPin, p: d.p, d: d.d, q: d.q });
+          else if (act === "block") await api("block", Object.assign({ pin: parentPin, p: d.p, pool: d.pool, t: d.t, text }, topic ? {} : { q: d.q }));
+          else await api("unblock", { pin: parentPin, s: d.s, pool: d.pool, t: d.t, q: d.q || "" });
+          await refresh();
+        } catch (err) { toast("לא נשמר. נסה שוב."); break; }
+      } else {
+        let list = (FAM.settings.blocked || []).slice();
+        if (act === "block") list.push(Object.assign({ s: scopeOf(profile(d.p)), pool: d.pool, t: d.t, d: TODAY, by: d.p, text }, topic ? {} : { q: d.q }));
+        if (act === "unblock") list = list.filter(x => !(x.s === d.s && x.pool === d.pool && (x.q || "") === (d.q || "") && (x.q ? true : x.t === d.t)));
+        if (act !== "unblock") [L.rows, EXAMPLE].forEach(rs => rs.forEach(r => { if (gone(r)) r.f = ""; }));
+        L.demoSettings = Object.assign(L.demoSettings || {}, { blocked: list }); FAM.settings.blocked = list; save();
+      }
+      toast(act === "unflag" ? "הסימון הוסר" : act === "unblock" ? "נפתח מחדש" : topic ? "הנושא נעצר" : "השאלה נעצרה");
+      if (inNews) { renderNews(); if (!NEWS) show("parent"); else STALE = true; } else show("parent");
+      break;
     }
+    case "closeNews": NEWS = null; layer.innerHTML = ""; break;
     case "addPage": pageSheet(); break;
     case "pagePickSub": $$("#psub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
     case "pagePick": $("#pageFile").click(); break;
@@ -2958,6 +3056,7 @@ document.addEventListener("click", async e => {
       if (!b.dataset.clear && (raw === "" || isNaN(g) || g < 0 || g > 100)) { toast("ציון בין 0 ל־100"); break; }
       if (LIVE && !SANDBOX) { try { await api("grade", { p: d.p, date: d.date, subj: d.subj, grade: g }); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
       else { const x = (SANDBOX ? L.sand.tests : L.tests).find(z => z.p === d.p && z.date === d.date && z.subj === d.subj); if (x) x.grade = g; save(); }
+      if (view === "parent" && g !== "") dadSaw([`grade|${d.p}|${d.date}|${d.subj}|${g}`]);
       show(view); toast(g === "" ? "הציון נמחק" : "הציון נשמר"); break;
     }
     case "saveTest": {
@@ -2970,6 +3069,7 @@ document.addEventListener("click", async e => {
       if (SANDBOX) { L.sand.tests.push(t); save(); }
       else if (LIVE) { try { for (const x of all) await api("test", x); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
       else { L.tests.push(...all); save(); }
+      if (view === "parent") dadSaw(newsItems().filter(x => x.k.startsWith(`test|${date}|${t.subj}|`)).map(x => x.k));
       show(view === "parent" ? "parent" : "home"); toast(also.length && !SANDBOX ? `המבחן נשמר, גם ל${joinHe(also.map(q => q.name))}` : "המבחן נשמר"); break;
     }
     case "joinCode": {
@@ -3050,7 +3150,7 @@ function greet() {
   if (LIVE) (me() && !L.parent ? sharePhoto() : Promise.resolve()).then(fetchPhotos);
   loadPagesDone().then(syncPages);
   if (layer.innerHTML || SANDBOX) return;
-  if (LIVE && L.parent) { if (parentOK && view === "parent" && !monthCheck(null)) luckCheck(null); return; }
+  if (L.parent || view === "parent") { if (parentOK && view === "parent") dadPopups(); return; }
   const p = me();
   if (!p || !["home", "know", "board", "vault", "me"].includes(view)) return;
   if (monthCheck(p)) { L.seenRecap = THIS_MONTH; save(); return; }   // her recap is the popup's last button
@@ -3096,7 +3196,7 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

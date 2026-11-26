@@ -27,13 +27,14 @@ tests with the girls and gives feedback; Claude writes the code.
   Script URL; empty means demo mode (example history, localStorage only).
 - `backend/Code.gs` runs inside the Sheet. Tabs: Settings, Profiles,
   Answers, Tokens, Tests, Pages. API: GET `state | photos`, POST `submit |
-  profile | test | untest | grade | unflag | page | pagedone | redeem | pin |
-  grant | settings`. Timers: `nightlyDigest`,
+  profile | test | untest | grade | unflag | block | unblock | page |
+  pagedone | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
   `monthlyClose`. `state` sends `api` (2 since 2026-11-14, 3 since
   2026-11-22: photos, 4 the same day: "not learned yet" marks, 5: the gift at
   a month's end, 6 since 2026-11-26: one reading of each tab a request,
   fix-it lessons, a grade after an exam, `exams`, `trend` and `sis`; 7 the
-  same day: notebook pages): the app is live
+  same day: notebook pages; 8 the same day: the parent's word on a mark):
+  the app is live
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
   only when `api` is 2. Test a build against the old script too.
@@ -86,11 +87,9 @@ tests with the girls and gives feedback; Claude writes the code.
   shows up stuck in another subject), a worked example (a question of her
   twin's half of the pool, which she is never asked), then three questions,
   easiest first, the one she last missed to close. Three answers of kind 3
-  in a day earn `lesson` points on a day that counts. Only her own "not
-  learned yet" mark keeps a topic's lesson away, not her twin's (the app;
-  `stuck_` in the script still counts the twin's: align it at the next
-  change to the script). Dad's Today and the evening email name what is
-  stuck. Needs api 6: the older script stores
+  in a day earn `lesson` points on a day that counts. A "not learned yet"
+  mark does not keep a lesson away; what Dad stopped does. Dad's Today and
+  the evening email name what is stuck. Needs api 6: the older script stores
   kind 3 as a revenge round.
 - **Difficulty** (`bandOf`, `LEVEL`): over her last two weeks in a pool, nine
   in ten right and her new questions come hardest first; six in ten or
@@ -158,23 +157,46 @@ tests with the girls and gives feedback; Claude writes the code.
   laurel wreath and "בהצלחה במבחן ב… מחר"; twins sitting the same exam share
   one. Not opened that day: shown on the exam's morning, worded "today".
   Dad's Exams card has a preview link.
-- **"Not learned yet"** (`canFlag`, `flagsCard`; Avsha, 2026-11-22): a girl
-  can mark any question "we have not learned this yet". She answers it all
-  the same and it counts. The mark is the question's text in the Answers
-  tab's `flag` column; Dad's Today lists two weeks of them and the evening
-  email quotes the day's. **At the start of a session, read that column**:
-  it is how the girls say what `STUDYING` has wrong, the twins' math above
-  all (still unlimited). Tell Avsha what you found before switching a topic
-  off. A mark keeps its topic out of the weakest-topic question and the
-  fix-it lesson, hers and her twin's, so one put by mistake matters: Dad
-  takes it off on his Today tab ("זה נלמד", `unflag`, api 7). The first was
-  the art twin's on a rectangle's perimeter (25.11.2026): taught, he said,
-  and a slip of the finger.
+- **"Not learned yet"** (`canFlag`, `marksWaiting`, `markRow`, `flagsCard`,
+  `stoppedCard`; `unflag_`, `block_`, `unblock_`, `marksSection_` in Code.gs).
+  A girl can mark any question "we have not learned this yet" (Avsha,
+  2026-11-22). She answers it all the same and it counts; the mark is the
+  question's text in the Answers tab's `flag` column. **His rule since
+  2026-11-26: a mark changes nothing by itself. He is told and decides.**
+  The evening email lists every waiting mark with its question, a popup
+  shows it once when he opens the app, and it stays on his Today tab ("Your
+  call") until he takes one of three ways: "זה נלמד" removes the mark;
+  "לעצור רק את השאלה" stops that one question; "לעצור את כל הנושא" stops its
+  topic. Stopping is for her and the girl she shares a class with (the
+  pair), is kept in the setting `blocked` (a JSON list: s, pool, t, q, d,
+  by, text), clears the marks it settles, and is undone from the "Stopped"
+  card ("הכיתה הגיעה לזה: לפתוח"). A stopped question is as one her class
+  has not reached (`stopped`, inside `studied()`): out of the five, the
+  revenge rounds, practice, the lesson and the map. Until that day a mark
+  of hers or her twin's left its topic out of the weakest-topic question
+  by itself, and for some hours out of the lesson; two of the first two
+  marks were not that (a slip on a rectangle's perimeter; one hard
+  question, `−3²`, in the twins' main topic). **At the start of a session,
+  read the flag column** and the `blocked` setting's effect in `state`:
+  tell Avsha what waits, and never switch a topic off in `STUDYING` for a
+  mark; that is his word to give in the app. Stopping needs api 8; with
+  api 7 he can only remove.
+- **What waits for Dad** (`newsItems`, `newsCheck`, `renderNews`,
+  `dadPopups`; Avsha, 2026-11-26: "any other changes that require my
+  attention to appear as a popup once when opening the app (along with the
+  current), like when a new test is added or notebook images"). After the
+  month's popup and the good-luck one, a sheet lists what is new since his
+  phone last showed it: the waiting marks with their buttons, a token
+  redeemed (to pay), a topic a girl is newly stuck in, notebook pages that
+  wait, exams added, grades entered. Each is shown once (`L.dadSeen`, on
+  his phone; the first time everything but the marks is taken as seen; what
+  he enters himself on his phone is not news). A new thing that needs him
+  is a new kind in `newsItems`, with a key that names it.
 - **Her weakest topic** (`weakTopic`, `WEAK`): of her two math questions a
   day, the second is from the studied topic with most misses left over the
   last four weeks (a miss one, a right answer half off), a question she has
-  not met or met a week ago or more. A topic marked "not learned yet" by her
-  or her twin is left out.
+  not met or met a week ago or more. A mark no longer leaves a topic out
+  (2026-11-26); a topic Dad stopped is out, as everywhere.
 - **Matching has a fifth meaning** (`pairs.decoy`): in their first eleven
   days all three got every matching right, 20 of 20.
 - **A day is played once.** `flush` keeps a batch in `FAM.rows` when the
@@ -382,18 +404,21 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The evening reminder** (below): which phones, and whether the girls
   use Telegram.
   He is still to confirm, and may replace one twin's phone in a few days.
-- **The script of api 7 is in the Sheet** (pasted 2026-11-26; his Settings
-  tab said so, the Pages tab exists, and the mark on perimeter is gone: he
-  took it off). The art twin marked another that day, the power of a
-  negative number (`g7-math-100`, level 3): was it taught?
+- **The script of api 7 is in the Sheet** (pasted 2026-11-26; the Pages tab
+  exists, the mark on perimeter is gone, the Sheet answers in 4.2 seconds
+  by his Speed line, against about 30 before). **The script of api 8 waits
+  for his paste** (his word on a mark: stopping, and the email's list).
+- **The art twin's mark on `−3²`** (`g7-math-100`, level 3, 2026-11-26): he
+  was shown the question and is to say whether powers of negative numbers
+  were taught. Five of the 39 signed-number questions have a power
+  (007, 008, 099, 100, 101): if they were not taught, offer to give them a
+  topic of their own, so that he can stop just them.
 - **The other twin's major** (exemplary figures): is the pool `g7-midrash`
   that major, and so hers alone, or a class both take? Both tracks draw on
   it. He does not know (the classes are new to him and the notebooks say
   little): the girls can say, or the art twin can mark its questions "not
   learned yet". The pool came from worksheets sent on 2026-11-13 (change,
   Rabbi Akiva, a poem, the role model).
-- **What the Speed line on his Settings tab says** (how long the Sheet
-  takes to answer with the new script): not told yet.
 
 ## Reminders (looked into 2026-11-14, not built)
 

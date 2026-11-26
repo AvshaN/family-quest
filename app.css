@@ -589,3 +589,11 @@ button.chip{min-height:44px;padding:4px 14px}
 .pthumb{position:relative;width:64px;height:84px;border-radius:10px;overflow:hidden;border:1px solid var(--hair-hi)}
 .pthumb img{width:100%;height:100%;object-fit:cover;display:block}
 .pthumb .x{position:absolute;top:2px;inset-inline-end:2px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(9,9,15,.72);color:#fff}
+/* a mark that waits for Dad's word, and the sheet of what waits for him */
+.markrow{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--hair)}
+.markrow:first-of-type{border-top:0;padding-top:0}
+.markacts{display:flex;flex-wrap:wrap;gap:8px}
+.markacts .btn{flex:1 1 auto}
+.sheet.news{gap:12px}
+.newsrow{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.5;padding:10px 0;border-top:1px solid var(--hair)}
+.newsrow .chip{flex:none}

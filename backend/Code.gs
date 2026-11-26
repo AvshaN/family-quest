@@ -48,7 +48,7 @@ var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson:
                  ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, page: 5, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 7;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages, taking a "not learned yet" mark off
+var API = 8;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages, taking a "not learned yet" mark off; 8: the parent decides on a mark (stopping a question or a topic), pending marks in the email
 // (the parent's Settings tab compares this with SCRIPT_API in app.js and says when the script here is behind: raise both together)
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
@@ -134,6 +134,8 @@ function doPost(e) {
         case "untest": return delTest_(b);
         case "grade": return setGrade_(b);
         case "unflag": return unflag_(b);
+        case "block": return block_(b);
+        case "unblock": return unblock_(b);
         case "page": return addPage_(b);
         case "pagedone": return pageDone_(b);
         case "redeem": return redeem_(b);
@@ -166,7 +168,8 @@ function state_() {
     settings: {
       goal: Number(setting_("goal")) || 250, goalReward: setting_("goal_reward"), prize5: setting_("prize_5"),
       prize10: setting_("prize_10"), tokenValue: Number(setting_("token_value")) || 100,
-      improvedReward: setting_("improved_reward"), digestHour: Number(setting_("digest_hour")) || 21, bonus: bonus_()
+      improvedReward: setting_("improved_reward"), digestHour: Number(setting_("digest_hour")) || 21, bonus: bonus_(),
+      blocked: blocked_()
     },
     tokens: tokens_(),
     lifetime: lifetimeAll_(),
@@ -236,6 +239,48 @@ function unflag_(b) {
   }
   if (n) wrote_();
   return { ok: true, removed: n };
+}
+
+/* ---------- what the parent stopped (Avsha, 2026-11-26) ----------
+ * "If a flag is clicked, notify me ... and I'll decide if to block or remove the flag." A mark now does nothing by
+ * itself. The parent removes it (unflag_), or stops what it is about until the class gets there: the one question,
+ * or its whole topic. What is stopped is kept in the setting `blocked`, a JSON list of
+ * { s: whom (the pair's name, as "twins", or a profile's id), pool, t: topic, q: the question's id when only it is
+ * stopped, d: the day, by: who marked it, text: the question }. The app leaves stopped questions out of
+ * everything (studied() in app.js), for her and for the girl she shares a class with. */
+function blocked_() {
+  var raw = String(setting_("blocked") || "");
+  if (!raw) return [];
+  try { var v = JSON.parse(raw); return Array.isArray(v) ? v : []; } catch (err) { return []; }
+}
+function scope_(prof) { return prof.pair || prof.id; }
+function sameBlock_(a, b) { return a.s === b.s && a.pool === b.pool && String(a.q || "") === String(b.q || "") && (a.q ? true : a.t === b.t); }
+function block_(b) {
+  checkPin_(b.pin);
+  var prof = needProfile_(b.p), profs = profiles_(), s = scope_(prof);
+  var e = { s: s, pool: String(b.pool || ""), t: String(b.t || "").slice(0, 80), d: ymd_(new Date()), by: prof.id, text: String(b.text || "").slice(0, 300) };
+  if (b.q) e.q = String(b.q);
+  if (!e.pool || !e.t) throw new Error("bad block");
+  var list = blocked_();
+  if (!list.some(function (x) { return sameBlock_(x, e); })) list.push(e);
+  setSetting_("blocked", JSON.stringify(list.slice(-200)));
+  // the marks this settles are taken off: the one on that question, or every waiting mark of the class in the topic
+  var mates = {}, sh = sheet_("Answers"), v = values_("Answers"), n = 0;
+  profs.forEach(function (x) { if (scope_(x) === s) mates[x.id] = true; });
+  for (var i = 1; i < v.length; i++) {
+    if (!mates[String(v[i][2])] || String(v[i][10] || "") === "" || String(v[i][4]) !== e.pool) continue;
+    if (e.q ? String(v[i][3]) !== e.q : String(v[i][5]) !== e.t) continue;
+    sh.getRange(i + 1, 11).setValue(""); n++;
+  }
+  wrote_();
+  return { ok: true, cleared: n };
+}
+function unblock_(b) {
+  checkPin_(b.pin);
+  var e = { s: String(b.s || ""), pool: String(b.pool || ""), t: String(b.t || ""), q: b.q ? String(b.q) : "" };
+  var list = blocked_(), left = list.filter(function (x) { return !sameBlock_(x, e); });
+  setSetting_("blocked", left.length ? JSON.stringify(left) : "");
+  return { ok: true, removed: list.length - left.length };
 }
 
 var PIC_OK = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;
@@ -543,7 +588,7 @@ function nightlyDigest() {
   var headline = n === r.girls.length ? "כולן שיחקו היום" : n + " מתוך " + r.girls.length + " שיחקו היום" + (missing.length ? " · חסרה: " + joinHe_(missing.map(nm_)) : "");
   var sub = "יום " + dow + ", " + Number(today.slice(8)) + " ב" + MONTHS[m - 1] + " · נשארו " + r.daysLeft + " ימים לחודש";
   mail_(appName_() + " · " + dow + " " + Number(today.slice(8)) + "." + m + " · " + (n === r.girls.length ? "כולן שיחקו" : n + " מתוך " + r.girls.length + " שיחקו"),
-    shell_(headline, sub, [todaySection_(r), examsSection_(r), pagesSection_(r), monthSection_(r, "החודש · " + MONTHS[m - 1]), focusSection_(r), lifetimeSection_(r)], footer_(r)));
+    shell_(headline, sub, [todaySection_(r), marksSection_(r), examsSection_(r), pagesSection_(r), monthSection_(r, "החודש · " + MONTHS[m - 1]), focusSection_(r), lifetimeSection_(r)], footer_(r)));
 }
 
 function monthlyClose() {
@@ -608,7 +653,8 @@ function report_(today, y, m) {
   var exams = tests_().filter(function (t) { return t.date >= today; })
     .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
   var waiting = pages_().filter(function (x) { return x.st === ""; });
-  return { today: today, y: y, m: m, elapsed: elapsed, daysLeft: inMonth ? dim - elapsed : 0, girls: girls, waiting: waiting,
+  var marks = rows.filter(function (x) { return x.f && daysTo_(x.d, today) <= 30 && daysTo_(x.d, today) >= 0; });
+  return { today: today, y: y, m: m, elapsed: elapsed, daysLeft: inMonth ? dim - elapsed : 0, girls: girls, waiting: waiting, marks: marks,
            goal: Number(setting_("goal")) || 250, goalReward: String(setting_("goal_reward") || ""),
            family: girls.reduce(function (t, g) { return t + g.month.right; }, 0), exams: exams };
 }
@@ -631,17 +677,16 @@ function lifetimeAll_() {
   return out;
 }
 /* The topic she is most stuck in (stuckOf in app.js): over four weeks her misses less half her right answers come to
- * three or more. A topic she or a girl of her pair marked "not learned yet" is left out. The app also leaves out
- * topics her class has not reached (STUDYING, which only the app knows): one switched off since then may show here
- * until its rows are four weeks old. */
+ * three or more. What the parent stopped for her class is left out; a "not learned yet" mark alone changes
+ * nothing. The app also leaves out topics her class has not reached (STUDYING, which only the app knows): one
+ * switched off since then may show here until its rows are four weeks old. */
 function stuck_(rows, profs, prof, today) {
-  var by = {}, off = {}, mates = {};
-  profs.forEach(function (x) { if (x.id === prof.id || (prof.pair && x.pair === prof.pair)) mates[x.id] = true; });
+  var by = {}, off = {}, stopped = blocked_().filter(function (x) { return x.s === scope_(prof); });
+  stopped.forEach(function (x) { if (!x.q) off[x.pool + "|" + x.t] = true; });
   rows.forEach(function (r) {
-    if (r.d > today || daysTo_(r.d, today) > FIX.days) return;
+    if (r.p !== prof.id || r.d > today || daysTo_(r.d, today) > FIX.days) return;
+    if (stopped.some(function (x) { return x.q && x.q === r.q; })) return;
     var k = r.pool + "|" + r.t;
-    if (r.f && mates[r.p]) off[k] = true;
-    if (r.p !== prof.id) return;
     var e = by[k] || (by[k] = { pool: r.pool, topic: r.t, n: 0, miss: 0, score: 0, last: "" });
     e.n++; e.score += r.ok ? -FIX.right : 1;
     if (!r.ok) { e.miss++; if (r.d > e.last) e.last = r.d; }
@@ -726,11 +771,6 @@ function focusSection_(r) {
     var bits = [];
     if (g.today.rushed) bits.push("<span style='color:" + C.bad + "'>ענתה מהר מדי: " + g.today.fast + " מחמש התשובות בפחות מ־" + RUSH.secs + " שניות</span>");
     if (g.today.missed.length) bits.push("פספסה היום: " + g.today.missed.map(esc_).join(" · "));
-    // what she marked "we have not learned this yet" today, quoted, for a parent to judge
-    g.today.flags.forEach(function (x) {
-      bits.push("<b>סימנה ״עוד לא למדנו״</b> (" + esc_(x.t) + ", " + (x.ok ? "ענתה נכון" : "טעתה") + "):<br><span dir='" + (/[\u0590-\u05FF]/.test(x.q) ? "rtl" : "ltr") +
-        "' style='display:block;color:" + C.soft + "'>" + esc_(x.q).replace(/\{([^}]*)\}/g, "<span dir='ltr' style='unicode-bidi:isolate;display:inline-block'>$1</span>") + "</span>");
-    });
     if (g.today.prac) bits.push("תרגלה עוד, בלי נקודות: " + g.today.pracOk + " נכונות מתוך " + g.today.prac);
     if (g.today.fix) bits.push("עשתה חיזוק ב" + esc_(g.today.fixTopic) + ": " + g.today.fixOk + " נכונות מתוך " + g.today.fix);
     if (g.stuck) bits.push("<b>תקוע אצלה: " + esc_(g.stuck.topic) + "</b> (" + esc_(SUBJ[String(g.stuck.pool).split("-")[1]] || "") + "): " + g.stuck.miss + " טעויות מתוך " + g.stuck.n +
@@ -757,6 +797,21 @@ function examsSection_(r) {
   if (!rows.length) return "";
   return section_("Exams", "מבחנים קרובים", table_(["תאריך", "", "מקצוע", ""], rows) +
     "<p style='margin:8px 0 0;font-size:12px;color:" + C.soft + "'>שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו.</p>");
+}
+/* Every "not learned yet" mark that waits for the parent's word, the newest first, each with its question quoted:
+ * a mark does nothing until he removes it or stops the question or its topic, in the app. */
+function marksSection_(r) {
+  if (!r.marks || !r.marks.length) return "";
+  var lines = r.marks.slice().sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; }).slice(0, 12).map(function (x) {
+    var g = r.girls.filter(function (y) { return y.id === x.p; })[0];
+    if (!g) return "";
+    return "<p style='margin:0 0 12px;font-size:14px;line-height:1.6'>" + who_(g) + " · " + esc_(SUBJ[String(x.pool).split("-")[1]] || "") + " · " + esc_(x.t) +
+      " <span style='color:" + C.soft + "'>(" + ltr_(Number(x.d.slice(8)) + "." + Number(x.d.slice(5, 7))) + ", " + (x.ok ? "ענתה נכון" : "טעתה") + ")</span><br>" +
+      "<span dir='" + (/[\u0590-\u05FF]/.test(x.f) ? "rtl" : "ltr") + "' style='display:block;color:" + C.soft + "'>" +
+      esc_(x.f).replace(/\{([^}]*)\}/g, "<span dir='ltr' style='unicode-bidi:isolate;display:inline-block'>$1</span>") + "</span></p>";
+  }).join("");
+  return section_("Your call", "סומן ״עוד לא למדנו״ ומחכה להחלטה שלך", lines +
+    "<p style='margin:0;font-size:12px;color:" + C.soft + "'>סימון לא משנה כלום עד שתחליט. באפליקציה, במסך שלך: להסיר אותו אם זה נלמד, או לעצור את השאלה או את כל הנושא עד שהכיתה תגיע אליו.</p>");
 }
 /* Notebook pages the girls photographed that have not become questions yet, by girl and subject. */
 function pagesSection_(r) {

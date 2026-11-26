@@ -18,7 +18,8 @@ No accounts, no server, no cost.
 |---|---|
 | The daily five | 2 math, 2 English, 1 from her other subjects (biology for the eldest, art for one twin). The twins never get the same question. |
 | The round | Only her first answer counts, and it is timed (no clock on her screen). A question she misses comes back at the end of the round until she gets it right. Math with a number for an answer is typed on a number pad; vocabulary is four words to match with their meanings. |
-| "Not learned yet" | A mark she can put on any question. She still answers it; Dad sees the question on his screen and in the evening email. |
+| "Not learned yet" | A mark she can put on any question. She still answers it, and the mark changes nothing by itself: Dad is told (the evening email, a popup once) and decides to remove it or to stop the question or its topic until the class gets there. |
+| What waits for Dad | When he opens the app, one sheet of what is new and needs him: marks to decide, a token to pay, a topic a girl is stuck in, notebook pages, exams added, grades. Each once. |
 | Weakest topic | One of her two math questions a day comes from the topic she misses most. |
 | Revenge round | A question she missed comes back two days later for points. |
 | The map | "What I know": every topic her class has reached, filling up with right answers on three different days. |
