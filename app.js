@@ -278,6 +278,17 @@ function weakTopic(prof, pool, date, src) {
   return Object.keys(missed).filter(t => score[t] > 0 && !off.has(t))
     .sort((a, b) => score[b] - score[a] || (missed[a] < missed[b] ? 1 : missed[a] > missed[b] ? -1 : (a < b ? -1 : 1)))[0] || null;
 }
+/* Difficulty that follows her (2026-11-26): since her questions were limited to what her class has reached, the
+ * eldest got 43 of her 45 daily questions right, and the twins sat near three in four. Over her last two weeks in a
+ * pool (the daily five only, eight answers at least): nine in ten right or more and her new questions come hardest
+ * first; six in ten or fewer and they come easiest first; between the two, in the pool's own order. It moves by
+ * itself: harder questions bring her accuracy down into the middle band, and easier ones bring it up. */
+const LEVEL = { days: 14, min: 8, up: 0.9, down: 0.6 };
+function bandOf(prof, pool, date, src) {
+  let n = 0, ok = 0;
+  (src || rows()).forEach(r => { if (r.p !== prof.id || r.pool !== pool || r.r || r.d >= date || daysBetween(r.d, date) > LEVEL.days) return; n++; if (r.ok) ok++; });
+  return n < LEVEL.min ? 0 : ok / n >= LEVEL.up ? 1 : ok / n <= LEVEL.down ? -1 : 0;
+}
 function take(prof, pool, n, date, src, focus, weak) {
   const share = shareOf(prof, pool), now = share.filter(q => studied(prof, q)), mine = now.length ? now : share;
   const last = {}, theirs = new Set(), others = new Set(sharers(prof, pool).map(p => p.id).filter(id => id !== prof.id));
@@ -285,7 +296,10 @@ function take(prof, pool, n, date, src, focus, weak) {
     if (r.pool !== pool || r.d >= date) return;
     if (r.p === prof.id) { if (!(last[r.q] >= r.d)) last[r.q] = r.d; } else if (others.has(r.p)) theirs.add(r.q);
   });
-  const fresh = mine.filter(q => !last[q.id] && !theirs.has(q.id));
+  const band = bandOf(prof, pool, date, src);
+  let fresh = mine.filter(q => !last[q.id] && !theirs.has(q.id));
+  // by level, and within a level the pool's own order (the place is the tie-break, so every phone sorts alike)
+  if (band) fresh = fresh.map((q, i) => [q, i]).sort((a, b) => band * (b[0].level - a[0].level) || a[1] - b[1]).map(x => x[0]);
   const seen = mine.filter(q => last[q.id]).sort((a, b) => last[a.id] < last[b.id] ? -1 : last[a.id] > last[b.id] ? 1 : 0);
   let order = fresh.concat(seen);
   // a question of the topic she has not met; failing that one she met a week ago or more, so that a small topic
@@ -461,7 +475,9 @@ function knowMap(prof) {
  * No points for the board. First what she last got wrong, then what she has seen in topics not yet known (the
  * longest ago first), then new questions of her own share in those topics, then anything seen. Mostly a review, so
  * the pools the daily five draw on last as long; the subject of an exam this week comes first. Two rounds a day. */
-const PRACTICE = { n: 5, rounds: 2, examRounds: 4, perTopic: 2 };   // in the week of an exam, up to four rounds a day
+// In the week of an exam, up to eight rounds a day: the eldest used all four she was allowed on the day of her
+// English exam (24.11.2026: 20 questions, 15 the day before), and the limit exists only to make the pools last.
+const PRACTICE = { n: 5, rounds: 2, examRounds: 8, perTopic: 2 };
 const canPractice = () => !LIVE || !!SANDBOX || (FAM.api | 0) >= 2;   // an older script would score a practice row as a revenge round
 function practiceLeft(pid) {
   const done = rows().filter(r => r.p === pid && r.d === TODAY && r.r === 2).length;
@@ -1474,6 +1490,14 @@ function renderVault() {
   <p class="small muted" style="text-align:center">אלופת החודש מקבלת אסימון ב־1 לחודש הבא, וכל אחת מקבלת אחד על כל ${PATH.every} שבועות מלאים.</p>`;
 }
 
+/* Which way her new questions lean in math and English, in words, or "" when they come in the pool's own order. */
+function levelLine(p, her) {
+  const t = TRACKS[p.track] || TRACKS.g7, bits = [];
+  [t.math, t.eng].forEach(pool => { const b = bandOf(p, pool, TODAY); if (b) bits.push(`${SUBJ[subjOf(pool)]}: ${b > 0 ? "קשות יותר" : "קלות יותר"}`); });
+  if (!bits.length) return "";
+  return her ? `<p class="small"><span class="muted">רמת השאלות החדשות שלך:</span> ${bits.join(" · ")}. <span class="faint">היא עולה כשאת עונה נכון על תשע מכל עשר בשבועיים האחרונים, ויורדת כשזה שש מכל עשר או פחות.</span></p>`
+    : `<p class="small"><span class="muted">רמת השאלות החדשות:</span> ${bits.join(" · ")} <span class="faint">(לפי הדיוק שלה בשבועיים האחרונים)</span></p>`;
+}
 function subjectBars(st) {
   return Object.entries(st.bySubj).sort((a, b) => b[1][1] - a[1][1]).map(([s, [ok, t]]) => {
     const v = Math.round(ok / t * 100);
@@ -1500,6 +1524,7 @@ function renderMe() {
   <section class="glass pad stack"><div class="row"><span class="eyebrow">What Dad sees</span><span class="small muted">${st.played} ימים · ${st.acc}% דיוק</span></div>
     ${subjectBars(st)}
     ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(", ")}</p>` : ""}
+    ${levelLine(p, true)}
     <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, וכמה זמן לקח לך לענות. לא יותר.</p></section>
   <button type="button" class="glass pad row" data-act="recap" style="text-align:start"><span>הסיכום של ${MONTHS[prevMonth(Y, M)[1] - 1]}</span>${ICON.back.replace("<svg", '<svg width="18" height="18" style="transform:scaleX(-1)"')}</button>
   <section class="glass pad">
@@ -1626,6 +1651,7 @@ function parentMonth() {
     return `<details class="glass pad pgirl" style="--a1:${a.c[0]};--a2:${a.c[1]}"><summary><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span><span class="small muted">${st.played} ימים · ${st.acc}% · ${st.points} נק׳</span></summary>
       <div class="stack" style="margin-top:12px"><span class="eyebrow">Last 14 days</span><div class="spark">${spark}</div>${subjectBars(st)}
       ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(" · ")}</p>` : ""}
+      ${levelLine(p, false)}
       ${up.length ? `<p class="small"><span class="muted">מבחנים:</span> ${up.map(t => `${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` (${esc(t.note)})` : ""} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}`).join(", ")}</p>` : ""}</div></details>`;
   }).join("");
   return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Standings</span><span class="small muted">עוד ${daysIn(Y, M) - D} ימים</span></div>
@@ -2692,7 +2718,7 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
