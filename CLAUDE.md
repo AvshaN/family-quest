@@ -539,6 +539,40 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   learned yet". The pool came from worksheets sent on 2026-11-13 (change,
   Rabbi Akiva, a poem, the role model).
 
+## Meshy, for the app's art (tested 2026-11-26, nothing built into the app yet)
+
+Avsha has a Meshy subscription and added its skill ("meshy-3d-agent"), as in
+his football project, and asked to "test for ideas to elevate the app's
+design, added animations, appealing graphics". What was found:
+- **Access**: the CLI runs with `npm exec --yes --package=meshy-cli@0.4.0 --
+  meshy`. A new machine is signed out: `auth login --device` prints a link
+  and a code for him to approve in his browser (he did, in a minute); keep
+  the turn alive until it exits. 4,500 credits then; the test used 75.
+- **Prices** (Meshy's list, read that day): an image 9 credits
+  (`text-to-image`, model `nano-banana-pro`), a textured 3D model from an
+  image 30 (`image-to-3d --should-texture true`).
+- **Made**: five images in the app's look, each asked for "on pure solid
+  black, no text" (a gold token coin with a star, a gold laurel wreath with
+  an empty middle, a slender crown with amethysts, eight glass-and-gold
+  subject emblems on one sheet, a black card with an aurora), and the crown
+  as a 3D model. Text-to-image tasks 01a2193b-d57b…, -d9bc…, -de30…, -e2ab…,
+  -e73c…; the model is image-to-3d 01a2193d-7e6c-7207-8e4a-99cdc148bf28.
+  They can be downloaded again from his account at no cost.
+- **How they become app art**: a solid object is cut off the black by a
+  flood from the frame's edges; a glowing or thin one by brightness as
+  opacity; the emblem sheet is cut in eight. As WebP they weigh 9 to 110
+  KB. A 3D model is never shipped (the GLB is 16 MB): it is drawn as a
+  turntable by three.js in headless Chromium (a room environment turned
+  down, a warm key, the aura's two colours as rim lights) and the 32 frames
+  go in one strip stepped through with CSS `steps(32)`: 234 KB for the
+  crown. So no 3D engine runs in the app, which matters for the old Xiaomi.
+- **Shown to him** as a mock page (not the app): the token coin flipping in
+  under rays with a sheen, the winner's photo in the gold wreath with the 3D
+  crown dropping on and turning, the emblems on the day's chips and the map,
+  the black card tilting. He is to say which of it to build in. Keep the
+  rule for the facts: no AI picture standing for a real animal or planet;
+  these are objects and emblems. No text inside a picture: the app is Hebrew.
+
 ## Reminders (looked into 2026-11-14, not built)
 
 Avsha asked whether a girl who hasn't played can get an evening reminder on
