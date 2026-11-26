@@ -315,12 +315,42 @@ function take(prof, pool, n, date, src, focus, weak) {
   if (w) { const rest = order.filter(q => q !== w); order = rest.slice(0, 1).concat(w, rest.slice(1)); }   // the second of the two
   return (focus ? order.filter(q => focus.includes(q.topic)).concat(order.filter(q => !focus.includes(q.topic))) : order).slice(0, n);
 }
-function otherPool(prof, date) {
-  const opts = (TRACKS[prof.track] || TRACKS.g7).other.filter(([p]) => (BANKS[p] || []).length);
+/* The day's "other" subject. Until 2026-11-26 it was drawn at random by weight, each day by itself. After sixteen days
+ * the art twin had met eight art questions and not one of science or Bible (her one science day fell in the week of
+ * her Hebrew exam, when the exam's subject takes the place; her one Bible day she did not play), and Avsha asked why
+ * she had no accuracy in them beside her twin of the same class; the next thirty days held two science days for her.
+ * From OTHER_FAIR it is the subject she is most owed: the one that her daily questions of the last OTHER_DAYS days
+ * (before the day, so the day's five stay put) held on the fewest days for its weight. A day she skips and an exam
+ * week are made up for, and every subject of her class comes round, in the proportion of the weights. Earlier dates
+ * keep the old draw. */
+const OTHER_FAIR = "2026-11-27", OTHER_DAYS = 21;
+function otherPool(prof, date, src) {
+  const all = (TRACKS[prof.track] || TRACKS.g7).other, r = rng(hash("other|" + prof.id + "|" + date));
+  if (date < OTHER_FAIR) {
+    const opts = all.filter(([p]) => (BANKS[p] || []).length);
+    if (!opts.length) return null;
+    let x = r() * opts.reduce((s, o) => s + o[1], 0);
+    for (const [p, w] of opts) { x -= w; if (x < 0) return p; }
+    return opts[opts.length - 1][0];
+  }
+  const opts = all.filter(([p]) => (BANKS[p] || []).some(q => studied(prof, q)));   // a subject with nothing to ask is not owed
   if (!opts.length) return null;
-  let x = rng(hash("other|" + prof.id + "|" + date))() * opts.reduce((s, o) => s + o[1], 0);
-  for (const [p, w] of opts) { x -= w; if (x < 0) return p; }
-  return opts[opts.length - 1][0];
+  // days, not questions, and only the last OTHER_DAYS: an exam week is three questions a day of one subject, and by
+  // questions and for ever a week of Hebrew kept Hebrew away for months
+  const had = {}, from = addDays(date, -OTHER_DAYS), on = {}, mine = new Set(opts.map(o => o[0]));
+  let lastDay = "";
+  (src || rows()).forEach(x => {
+    if (x.p !== prof.id || x.r || x.d >= date || x.d < from || !mine.has(x.pool)) return;
+    if (!on[x.pool + x.d]) { on[x.pool + x.d] = 1; had[x.pool] = (had[x.pool] || 0) + 1; }
+    if (x.d > lastDay) lastDay = x.d;
+  });
+  // not the subject of the last day she played, when there is another: catching up on a subject she never met
+  // would otherwise deal it three days out of five
+  const fresh = opts.filter(([p]) => !on[p + lastDay]);
+  let best = [], low = Infinity;
+  (fresh.length ? fresh : opts).forEach(([p, w]) => { const v = ((had[p] || 0) + 1) / w;
+    if (v < low - 1e-9) { low = v; best = [p]; } else if (Math.abs(v - low) <= 1e-9) best.push(p); });
+  return best[Math.floor(r() * best.length)];   // subjects equally owed: one of them, the same one all that day
 }
 function subjectsOf(prof) { return [...new Set(trackPools(prof.track).map(subjOf))]; }
 function poolFor(prof, subj) { return trackPools(prof.track).find(p => subjOf(p) === subj) || null; }
@@ -334,7 +364,7 @@ function activeTest(prof, date) {
 }
 function dailySet(prof, date, src) {
   src = src || rows();
-  const t = TRACKS[prof.track] || TRACKS.g7, other = otherPool(prof, date);
+  const t = TRACKS[prof.track] || TRACKS.g7, other = otherPool(prof, date, src);
   let slots = [t.math, t.eng, other, t.math, t.eng];
   const test = activeTest(prof, date), tp = test && poolFor(prof, test.subj);
   if (tp === t.math) slots = [t.math, t.eng, t.math, other, t.math];
@@ -1884,11 +1914,15 @@ function levelLine(p, her) {
   return her ? `<p class="small"><span class="muted">רמת השאלות החדשות שלך:</span> ${bits.join(" · ")}. <span class="faint">היא עולה כשאת עונה נכון על תשע מכל עשר בשבועיים האחרונים, ויורדת כשזה שש מכל עשר או פחות.</span></p>`
     : `<p class="small"><span class="muted">רמת השאלות החדשות:</span> ${bits.join(" · ")} <span class="faint">(לפי הדיוק שלה בשבועיים האחרונים)</span></p>`;
 }
-function subjectBars(st) {
-  return Object.entries(st.bySubj).sort((a, b) => b[1][1] - a[1][1]).map(([s, [ok, t]]) => {
+/* Her accuracy by subject this month. With her profile (Dad's view), the subjects of her class that have no answer
+ * yet are named under the bars: a subject with no bar looked as if it were missing from her list (Avsha, 2026-11-26). */
+function subjectBars(st, prof) {
+  const bars = Object.entries(st.bySubj).sort((a, b) => b[1][1] - a[1][1]).map(([s, [ok, t]]) => {
     const v = Math.round(ok / t * 100);
     return `<div class="sbar"><span>${SUBJ[s] || s}</span><span class="bar"><i style="width:${v}%"></i></span><span class="num muted">${v}%</span></div>`;
   }).join("") || `<p class="small muted">עוד אין תשובות החודש.</p>`;
+  const none = prof && Object.keys(st.bySubj).length ? subjectsOf(prof).filter(s => !st.bySubj[s]).map(s => SUBJ[s] || s) : [];
+  return bars + (none.length ? `<p class="small faint">עוד בלי שאלות החודש: ${none.join(", ")}. מקצוע אחד ביום מתחלף ביניהם.</p>` : "");
 }
 function renderMe() {
   const p = me(), st = stats(p.id, Y, M), cur = auraOf(p);
@@ -2125,7 +2159,7 @@ function parentMonth() {
       const ok = x.filter(r => r.ok).length; return `<i class="${x.length >= 5 ? "on" : ""}" style="height:${x.length >= 5 ? 20 + ok * 16 : 8}%" title="${d}"></i>`; }).join("");
     const a = AURAS[auraOf(p)];
     return `<details class="glass pad pgirl" style="--a1:${a.c[0]};--a2:${a.c[1]}"><summary><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span><span class="small muted">${st.played} ימים · ${st.acc}% · ${st.points} נק׳</span></summary>
-      <div class="stack" style="margin-top:12px"><span class="eyebrow">Last 14 days</span><div class="spark">${spark}</div>${subjectBars(st)}
+      <div class="stack" style="margin-top:12px"><span class="eyebrow">Last 14 days</span><div class="spark">${spark}</div>${subjectBars(st, p)}
       ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(" · ")}</p>` : ""}
       ${levelLine(p, false)}
       ${up.length ? `<p class="small"><span class="muted">מבחנים:</span> ${up.map(t => `${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` (${esc(t.note)})` : ""} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}`).join(", ")}</p>` : ""}</div></details>`;
@@ -3506,7 +3540,7 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, factOf, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, factOf, otherPool, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

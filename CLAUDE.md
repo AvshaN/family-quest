@@ -257,6 +257,25 @@ tests with the girls and gives feedback; Claude writes the code.
   2026-11-13: the twins' math runs out on 28-29 Nov; the eldest's none in 30
   days; from 2026-11-22, with 36 more grade-7 questions on signed numbers and
   on perimeter and area, the twins' math first repeats on 4-5 Dec).
+- **The day's "other" subject** (`otherPool`, `OTHER_FAIR`, `OTHER_DAYS`):
+  two math, two English and one question from her other subjects, by the
+  weights in `TRACKS`. Until 2026-11-26 the subject was drawn at random
+  each day. After sixteen days the art twin had met art eight times and
+  science and Bible never (her one science day fell in her Hebrew exam's
+  week, when the exam's subject takes the place; her one Bible day she did
+  not play), and Avsha asked why she had no accuracy in them beside her
+  twin of the same class. From 2026-11-27 it is the subject she is most
+  owed: the one her daily questions of the last 21 days held on the fewest
+  days for its weight, never the subject of the last day she played when
+  there is another, a tie settled by the date's seeded draw. It reads only
+  rows before the day, so the day's five stay put, and Dad's phone works
+  out the same five. Dates before `OTHER_FAIR` keep the old draw. Played
+  from their real history, the art twin gets science the first day and
+  Bible the second, and over thirty days science 8, art 8, geography 4,
+  Bible 3. Geography had come up for neither twin by chance and now will:
+  its pool and the Bible's are not limited in `STUDYING` (no notebook of
+  either came), so expect "not learned yet" marks there. Dad's month tab
+  names under each girl's accuracy bars the subjects with no answer yet.
 - **What each class has reached** (`STUDYING` in `app.js`, by track and
   pool): a listed pool gives only those topics, in the five and in revenge
   rounds. The eldest complained on 2026-11-13 of probability and modals she
