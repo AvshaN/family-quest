@@ -57,7 +57,7 @@ function shuffle(arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = 
 const TRACKS = {
   "g10-bio": { grade: "כיתה י׳", math: "g10-math", eng: "g10-eng", other: [["g10-bio", 3], ["g10-bible", 1], ["g10-hist", 1], ["g10-civ", 1], ["g10-lit", 1], ["g10-heb", 1]] },
   "g7":      { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-midrash", 1], ["g7-bible", 1], ["g7-geo", 1]] },
-  "g7-art":  { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-art", 3], ["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-midrash", 1], ["g7-bible", 1], ["g7-geo", 1]] }
+  "g7-art":  { grade: "כיתה ז׳", math: "g7-math", eng: "g7-eng", other: [["g7-art", 2], ["g7-sci", 2], ["g7-heb", 1], ["g7-hist", 1], ["g7-midrash", 1], ["g7-bible", 1], ["g7-geo", 1]] }
 };
 const trackPools = tr => { const t = TRACKS[tr] || TRACKS.g7; return [t.math, t.eng, ...t.other.map(o => o[0])]; };
 /* What each track's class has reached (Avsha's rule, 2026-11-13: a topic the curriculum states beside one in her
@@ -324,10 +324,11 @@ function take(prof, pool, n, date, src, focus, weak) {
  * week are made up for, and every subject of her class comes round, in the proportion of the weights. Earlier dates
  * keep the old draw. */
 const OTHER_FAIR = "2026-11-27", OTHER_DAYS = 21;
+const OTHER_OLD = { "g7-art": 3 };   // art's weight until Avsha dialled it back to 2 (2026-11-26): the old draw of past days keeps it
 function otherPool(prof, date, src) {
   const all = (TRACKS[prof.track] || TRACKS.g7).other, r = rng(hash("other|" + prof.id + "|" + date));
   if (date < OTHER_FAIR) {
-    const opts = all.filter(([p]) => (BANKS[p] || []).length);
+    const opts = all.filter(([p]) => (BANKS[p] || []).length).map(([p, w]) => [p, OTHER_OLD[p] || w]);
     if (!opts.length) return null;
     let x = r() * opts.reduce((s, o) => s + o[1], 0);
     for (const [p, w] of opts) { x -= w; if (x < 0) return p; }

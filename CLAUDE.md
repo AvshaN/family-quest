@@ -271,8 +271,9 @@ tests with the girls and gives feedback; Claude writes the code.
   rows before the day, so the day's five stay put, and Dad's phone works
   out the same five. Dates before `OTHER_FAIR` keep the old draw. Played
   from their real history, the art twin gets science the first day and
-  Bible the second, and over thirty days science 8, art 8, geography 4,
-  Bible 3. Geography had come up for neither twin by chance and now will:
+  Bible the second. The same day he asked to "dial back a bit the art
+  questions": art's weight went from 3 to 2, the same as science (the old
+  draw keeps 3 for past days, `OTHER_OLD`). Geography had come up for neither twin by chance and now will:
   its pool and the Bible's are not limited in `STUDYING` (no notebook of
   either came), so expect "not learned yet" marks there. Dad's month tab
   names under each girl's accuracy bars the subjects with no answer yet.
