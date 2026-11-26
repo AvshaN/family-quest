@@ -30,7 +30,8 @@ tests with the girls and gives feedback; Claude writes the code.
   test | untest | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
   `monthlyClose`. `state` sends `api` (2 since 2026-11-14, 3 since
   2026-11-22: photos, 4 the same day: "not learned yet" marks, 5: the gift at
-  a month's end): the app is live
+  a month's end, 6 since 2026-11-26: one reading of each tab a request,
+  fix-it lessons, a grade after an exam, `exams`, `trend` and `sis`): the app is live
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
   only when `api` is 2. Test a build against the old script too.
@@ -40,6 +41,25 @@ tests with the girls and gives feedback; Claude writes the code.
   line to `SCRIPT_ADDS`. The Sheet shows no trace of a paste until a girl
   plays, and the web app tells nothing without the family code, so this card
   is how to know; ask him what it says.
+- **Opening** (`boot`, `sync`, `repaint`, `greet`; Avsha, 2026-11-26: "the
+  purple screen and about 30 seconds later the app loads"). A phone that has
+  opened the app before opens it from its last copy of the Sheet (`L.cache`)
+  and its own copies of the banks (the cache `fq-banks`, which `sw.js` keeps
+  over a version), and asks the Sheet and the site meanwhile. Until they
+  answer `waiting()` is true: a round cannot start (`waitAttr`, the guards
+  in `startQuest`, `startPractice`, `startFix`) and the popups wait, because
+  the day's five read her sisters' rows and the exams. A new button that
+  starts a round needs the same two things. `repaint` draws the screen again
+  quietly when the answer changed anything, and waits while a sheet or a
+  round is open or Dad is typing his settings. The script reads each tab
+  once a request (`values_`, dropped by `wrote_()` after every write and at
+  each entry point: add `wrote_()` after any new write) and formats a row's
+  hour only for yesterday's and today's rows. Before: 20 readings and 1,261
+  date formats for 315 rows; after, 5 and 22. `sw.js` serves its copy of a
+  file when the site has not answered in 2.5 s, so `index.html` and `app.js`
+  can be of two versions for one opening: keep a change to one harmless to
+  the other. Dad's Settings tab says how long the Sheet took (`loadCard`):
+  ask him what it says. `tools/sheet_sim.js` has `/__lag?ms=` and `/__reads`.
 - **Scoring lives in two places** and must stay identical: `stats()` in
   `app.js` and `scoreMonth_()` in `Code.gs` (`POINTS_BY` in both, by month:
   to change a rule, add a line with the month it starts; never edit a past
@@ -47,10 +67,32 @@ tests with the girls and gives feedback; Claude writes the code.
   answer 4, a revenge round 8; from December 5, 5, 5 more for a perfect day,
   and a revenge round 5 (at double, missing on purpose and winning it back
   paid more than knowing). `tools/sheet_sim.js` has `/__score` to compare.
-- **An Answers row**: `revenge` is 0 (one of the five), 1 (a revenge round)
-  or 2 (practice: no points, counts for the map and the family goal); `secs`
-  is how long her first answer took. `r.r` is truthy for both 1 and 2: write
-  `r.r === 1` when you mean a revenge round.
+  From 2026-11-26 `lesson` (5) is in both lines of both lists, for a day
+  with three fix-it answers; no row of that kind is older, so no closed
+  month changed.
+- **An Answers row**: `revenge` is 0 (one of the five), 1 (a revenge round),
+  2 (practice: no points, counts for the map and the family goal) or 3 (a
+  fix-it lesson's question); `secs` is how long her first answer took. `r.r`
+  is truthy for 1, 2 and 3: write `r.r === 1` when you mean a revenge round.
+- **The fix-it lesson** (`stuckOf`, `fixOffer`, `startFix`, `LESSONS`; from
+  their first fifteen days, 2026-11-26: one twin had signed numbers wrong 7
+  of 12 times, the other perimeter and area 6 of 10). A topic is stuck when,
+  over four weeks, her misses less half her right answers come to three or
+  more (`FIX`; `stuck_` in Code.gs for the email). The most stuck is offered
+  on her home screen from the next day, once a day: the idea (`LESSONS`, by
+  pool and topic, written for 22 math topics; add a topic's lines when it
+  shows up stuck in another subject), a worked example (a question of her
+  twin's half of the pool, which she is never asked), then three questions,
+  easiest first, the one she last missed to close. Three answers of kind 3
+  in a day earn `lesson` points on a day that counts. Dad's Today and the
+  evening email name what is stuck. Needs api 6: the older script stores
+  kind 3 as a revenge round.
+- **Difficulty** (`bandOf`, `LEVEL`): over her last two weeks in a pool, nine
+  in ten right and her new questions come hardest first; six in ten or
+  fewer, easiest first. The eldest got 43 of 45 right once her questions
+  were limited to her class's topics; 28 level-3 questions were added for
+  her math (g10-math-156 to 183). Write more level 3 when a girl stays in
+  the upper band: count them with the loop in the commit of that date.
 - **The round** (`newRound`, `settle`, `finishQuest`; Avsha, 2026-11-14, after
   a review found a day of random taps took seconds and paid half a perfect
   day): only the first answer is recorded; a miss rejoins the end of the
@@ -69,8 +111,22 @@ tests with the girls and gives feedback; Claude writes the code.
 - **The map** (`knowOf`, `knowMap`, the `know` tab): a topic is known after
   right answers on three different days (`KNOW`). **Practice**
   (`practiceSet`): after the five, two optional rounds a day, mostly what she
-  has seen (missed first), so the pools last. The Sheet sends `path` and
+  has seen (missed first), so the pools last (eight rounds in an exam week). The Sheet sends `path` and
   `know` for what is older than the two months of rows the phones hold.
+- **Stars that fade** (`FADE`, `knowLast`, `fadedIn`): a known topic with no
+  right answer in four weeks dims on the map and is not counted as known
+  until one right answer lights it again; practice brings faded topics
+  right after what she missed. The first can fade about 2026-12-09.
+- **The sisters' streak** (`sisOf`, `sisCard`; `sisters_` in Code.gs): weeks
+  in which every sister had a full week, in a row. Weeks and not days, so a
+  rest day breaks nothing. **Against yourself** (`versusSelf`, `selfCard`):
+  her points this week so far against the same weekday last week. Both are
+  on the board, and one line of each under her week on the home screen.
+- **Good luck** (`luckCheck`, `renderLuck`, `liveLuck`; Avsha, 2026-11-26):
+  the day before an exam each sister and Dad see, once, her photo in a
+  laurel wreath and "בהצלחה במבחן ב… מחר"; twins sitting the same exam share
+  one. Not opened that day: shown on the exam's morning, worded "today".
+  Dad's Exams card has a preview link.
 - **"Not learned yet"** (`canFlag`, `flagsCard`; Avsha, 2026-11-22): a girl
   can mark any question "we have not learned this yet". She answers it all
   the same and it counts. The mark is the question's text in the Answers
@@ -200,6 +256,14 @@ tests with the girls and gives feedback; Claude writes the code.
   her five come from its subject (`activeTest`, `dailySet`), her home screen
   chip says how long is left, and Dad's Today tab (`examsCard`) and the
   evening and monthly emails (`examsSection_`) list every upcoming exam.
+  From 2026-11-26: an exam a twin enters is saved for her sister too (a
+  switch on the sheet, `#tmates`; ask whether the twins are in the same
+  group for English and math before relying on it); an exam that has passed
+  asks for its grade on her home screen (`gradeDue`, `gradeSheet`, the
+  script's `grade` action, column F of Tests), and Dad's all-time tab shows
+  each girl's weeks as a chart and each exam with the week before it and
+  the grade (`trendChart`, `overTime`; the script's `trend_`, `examsPast_`).
+  Her Me screen shows her own, and says Dad sees them: keep that true.
 - **The emails** (`report_` builds what they show; `shell_`, `todaySection_`, `monthSection_`,
   `focusSection_`, `lifetimeSection_`): tables in inline styles. Never put a name next to a
   score like "3/5": Gmail read a girl's name followed by ": 3/5" as a street address (her name as the street, 3 the number, 5 the flat) and linked it to Maps
@@ -246,6 +310,12 @@ tests with the girls and gives feedback; Claude writes the code.
 - `python3 tools/check_bank.py`
 - `python3 tools/build_preview.py /tmp/x.html --names "A,B,C"` and open it
   (or walk it with Playwright) for a demo-mode look at every screen.
+- The walks of 2026-11-26 are the pattern for a new feature: stage rows with
+  `/__load`, open a phone with Playwright, answer through real taps (the
+  round's form is `FQ_TEST.api.round().form`), then compare `stats()` with
+  `/__score`. Run a build against the script of `origin/main` too (a copy of
+  the repo with that `Code.gs`, on another port), and Dad's test profile
+  with the POSTs counted.
 - `node tools/sheet_sim.js 8765` runs `Code.gs` on an in-memory Sheet and
   serves the app live against it (`/?k=TEST42`; `/__run?fn=...&now=...`
   runs a timer, `/__sheet?tab=...` shows a tab, `/__now?t=...` sets the
@@ -268,6 +338,18 @@ tests with the girls and gives feedback; Claude writes the code.
   (2026-11-11) two runs ended in "startup failure" and a re-run sat queued
   for over an hour and could not be cancelled, so the site kept the old
   version. A new push starts a new run.
+
+## Asked, waiting on Avsha (2026-11-26)
+
+From the research of that day (what brings learners back; rivals) he liked
+seven ideas. Five are built. Two wait on his answers:
+- **The evening reminder** (below): which phones, and whether the girls
+  use Telegram.
+- **Notebook photos from her phone**: she photographs a page and questions
+  follow. Needs a place for the photos (a Drive folder the script writes
+  to means the script asks him for a new permission) and someone to turn
+  them into questions (Claude in a session, as now, or a paid AI service
+  the script calls). Ask before building.
 
 ## Reminders (looked into 2026-11-14, not built)
 

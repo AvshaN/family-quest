@@ -33,6 +33,14 @@ No accounts, no server, no cost.
 | Motion | Her colours are a living background that brightens with a streak of right answers, greys at a miss and turns gold on a perfect day. Her result piece moves: the artwork assembles, the gymnast's apparatus of the day performs, the stage plays. The map has a sky of stars, one per topic, and a new token arrives with a ceremony. |
 | The month's winner | On the first opening of a new month, a popup congratulates last month's winner in her own colours, and she taps for her token. Dad can add a gift token for everyone who kept playing, with his own words. |
 | Monthly recap | Her last month, as a story. |
+| Opening | The app opens at once from what the phone holds and asks the Sheet meanwhile; the start button waits for its answer. |
+| Fix-it lesson | A topic she keeps missing is offered as a lesson: the idea, a worked example, three questions. Five points for doing it. |
+| Difficulty | Nine in ten right over two weeks, and her new questions come hardest first; six in ten or fewer, easiest first. |
+| Stars that fade | A topic she knows dims on the map after four weeks without a right answer, until she answers it again. |
+| Sisters' streak | Weeks in which all three had a full week, in a row: the one count they raise only together. |
+| Against yourself | Her points this week against the same day last week, on the board and on her home screen. |
+| Good luck | The day before an exam, each of us sees once her photo in a wreath and a wish. |
+| After an exam | An exam a twin enters is her sister's too. Once it has passed she can enter its grade, and Dad sees each girl's weeks and each exam beside the week before it. |
 | Dad's test profile | From his Settings tab: a profile like the girls', on his phone only, to try right and wrong answers, practice and every screen. Nothing of it reaches the Sheet or the girls' board. |
 | Dad's screen | Behind a PIN: each girl's month, weak topics, today's questions, what she got wrong with the right answers, how long she took (a rushed day is marked), exams he can add or take off, and the evening email. |
 
