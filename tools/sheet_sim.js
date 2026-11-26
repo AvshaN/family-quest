@@ -12,6 +12,8 @@
  *   /__mails                                                          the emails sent since last asked
  *   /__lag?ms=4000[&get=1]                                            the Sheet answers that much later, as Google does (get=1: only its readings, so an old answer can arrive after a write)
  *   /__reads                                                          tab readings in the last /exec request, and date formats so far
+ *   /__files                                                          the Drive folders and files the script made (notebook pages)
+ *   /__pages  (POST the JSON)                                         what /data/pages.json answers from now on, as if Claude had published it
  * The stand-ins below cover only what Code.gs calls. */
 const fs = require("fs"), path = require("path"), http = require("http"), vm = require("vm"), url = require("url");
 const ROOT = path.join(__dirname, "..");
@@ -55,6 +57,13 @@ class FakeDate extends RealDate {
   static now() { return FIXED ? new RealDate(FIXED).getTime() : RealDate.now(); }
 }
 const mails = [];
+// Drive: folders and the files made in them, kept here (GET /__files lists them)
+const drive = { folders: [], files: [] };
+const folderOf = id => { const f = drive.folders.find(x => x.id === id); if (!f) throw new Error("no such folder"); return f; };
+const newFolder = name => { const f = { id: "folder" + (drive.folders.length + 1), name, getId() { return this.id; },
+  createFile(blob) { const file = { id: "file" + (drive.files.length + 1), folder: this.id, name: blob.name, type: blob.type, bytes: blob.bytes.length, getId() { return this.id; } }; drive.files.push(file); return file; } };
+  drive.folders.push(f); return f; };
+let PAGES_JSON = null;   // what /data/pages.json answers, when a test sets it (POST /__pages)
 const chain = () => new Proxy({}, { get: () => () => chain() });
 const ctx = vm.createContext({
   Date: FakeDate, JSON, Math, Number, String, Object, Array, Error, console,
@@ -62,10 +71,12 @@ const ctx = vm.createContext({
   ScriptApp: { getProjectTriggers: () => [], deleteTrigger() {}, newTrigger: () => chain() },
   LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
   MailApp: { sendEmail: m => mails.push(m) },
+  DriveApp: { createFolder: newFolder, getFolderById: folderOf, getRootFolder: () => ({}) },
   Session: { getEffectiveUser: () => ({ getEmail: () => "parent@example.com" }) },
   Logger: { log: s => console.log("[script]", s) },
   ContentService: { createTextOutput: s => ({ s, setMimeType() { return this; } }), MimeType: { JSON: "json" } },
-  Utilities: { formatDate: (d, tz, f) => (FORMATS++, f === "HH:mm")
+  Utilities: { base64Decode: t => Buffer.from(t, "base64"), newBlob: (bytes, type, name) => ({ bytes, type, name }),
+    formatDate: (d, tz, f) => (FORMATS++, f === "HH:mm")
     ? new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).format(d)
     : new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d) }
 });
@@ -91,6 +102,9 @@ http.createServer((req, res) => {
     return req.on("end", () => { const out = ctx.doPost({ postData: { contents: body } }).s; LAST_READS = READS; later(200, "application/json", out); });
   }
   if (u.pathname === "/__lag") { LAG = +u.query.ms || 0; LAG_GET = !!u.query.get; return send(200, "application/json", JSON.stringify({ lag: LAG, get: LAG_GET })); }
+  if (u.pathname === "/__files") return send(200, "application/json", JSON.stringify(drive));
+  if (u.pathname === "/__pages") { let body = ""; req.on("data", c => body += c); return req.on("end", () => { PAGES_JSON = body || null; send(200, "application/json", JSON.stringify({ set: !!PAGES_JSON })); }); }
+  if (u.pathname === "/data/pages.json" && PAGES_JSON) return send(200, "application/json", PAGES_JSON);
   if (u.pathname === "/__reads") return send(200, "application/json", JSON.stringify({ reads: LAST_READS, formats: FORMATS }));
   if (u.pathname === "/__run") {
     const was = FIXED;

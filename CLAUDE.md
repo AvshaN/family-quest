@@ -26,12 +26,14 @@ tests with the girls and gives feedback; Claude writes the code.
 - `app.js` is the whole app, no build step. `config.js` holds the Apps
   Script URL; empty means demo mode (example history, localStorage only).
 - `backend/Code.gs` runs inside the Sheet. Tabs: Settings, Profiles,
-  Answers, Tokens, Tests. API: GET `state | photos`, POST `submit | profile |
-  test | untest | redeem | pin | grant | settings`. Timers: `nightlyDigest`,
+  Answers, Tokens, Tests, Pages. API: GET `state | photos`, POST `submit |
+  profile | test | untest | grade | page | pagedone | redeem | pin | grant |
+  settings`. Timers: `nightlyDigest`,
   `monthlyClose`. `state` sends `api` (2 since 2026-11-14, 3 since
   2026-11-22: photos, 4 the same day: "not learned yet" marks, 5: the gift at
   a month's end, 6 since 2026-11-26: one reading of each tab a request,
-  fix-it lessons, a grade after an exam, `exams`, `trend` and `sis`): the app is live
+  fix-it lessons, a grade after an exam, `exams`, `trend` and `sis`; 7 the
+  same day: notebook pages): the app is live
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
   only when `api` is 2. Test a build against the old script too.
@@ -113,6 +115,32 @@ tests with the girls and gives feedback; Claude writes the code.
   (`practiceSet`): after the five, two optional rounds a day, mostly what she
   has seen (missed first), so the pools last (eight rounds in an exam week). The Sheet sends `path` and
   `know` for what is older than the two months of rows the phones hold.
+- **A page from her notebook** (`pageSheet`, `pageSend`, `fitPage`,
+  `pagesCard`, `syncPages`; `addPage_`, `pageDone_`, `pagesCounted_` in
+  Code.gs; Avsha, 2026-11-26, his option A). She photographs a notebook page
+  or a worksheet from her home screen ("דף"): the app shrinks it (1800 px,
+  JPEG) and the script saves it in a folder of his Drive ("Aura · מחברות",
+  its id in the setting `pages_folder`) with a row in the Pages tab (when,
+  date, profile, subject, note, file id, status, questions, done). Dad's
+  Today and the evening email list what waits.
+  **When he says there are new notebook pages:** read `Pages!A1:I` with the
+  Sheets connector and take the rows with an empty status; open each photo
+  with the Drive connector's `download_file_content` on its file id (it
+  arrives as a picture; tested 2026-11-26); write the questions by his rule
+  for every round (what the curriculum states beside what is on the page
+  counts, the next topic does not) and open the topic in `STUDYING`; then
+  add each page to `data/pages.json`, `"<file id>": { "n": 12 }` for the
+  questions it gave or `{ "skip": "why, in Hebrew" }` for one that cannot be
+  read; run the checks; publish. The first phone that opens the app marks
+  the rows through the script (`pagedone`) and she sees "12 שאלות · +5".
+  **Do not write the Sheet yourself**: a write of Claude's to the Sheet was
+  refused on that day, and this way the questions and the mark arrive
+  together. A photo may show the school's name, the family name or an exam
+  date: none of it goes into the repo, and an exam date is told to Avsha.
+  A page that became questions earns `page` (5) in the month it was marked,
+  the first two of each calendar week (`pagesCounted`, in both places).
+  The script needs Drive permission: after pasting, he runs `setup` once
+  and allows it (SETUP.md), or every request and timer fails.
 - **Stars that fade** (`FADE`, `knowLast`, `fadedIn`): a known topic with no
   right answer in four weeks dims on the map and is not counted as known
   until one right answer lights it again; practice brings faded topics
@@ -257,8 +285,9 @@ tests with the girls and gives feedback; Claude writes the code.
   chip says how long is left, and Dad's Today tab (`examsCard`) and the
   evening and monthly emails (`examsSection_`) list every upcoming exam.
   From 2026-11-26: an exam a twin enters is saved for her sister too (a
-  switch on the sheet, `#tmates`; ask whether the twins are in the same
-  group for English and math before relying on it); an exam that has passed
+  switch on the sheet, `#tmates`; Avsha, the same day: the twins share every
+  class, English and math too, but their major: art for one, "role models",
+  דמויות מופת, for the other); an exam that has passed
   asks for its grade on her home screen (`gradeDue`, `gradeSheet`, the
   script's `grade` action, column F of Tests), and Dad's all-time tab shows
   each girl's weeks as a chart and each exam with the week before it and
@@ -342,14 +371,17 @@ tests with the girls and gives feedback; Claude writes the code.
 ## Asked, waiting on Avsha (2026-11-26)
 
 From the research of that day (what brings learners back; rivals) he liked
-seven ideas. Five are built. Two wait on his answers:
+seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The evening reminder** (below): which phones, and whether the girls
   use Telegram.
-- **Notebook photos from her phone**: she photographs a page and questions
-  follow. Needs a place for the photos (a Drive folder the script writes
-  to means the script asks him for a new permission) and someone to turn
-  them into questions (Claude in a session, as now, or a paid AI service
-  the script calls). Ask before building.
+- **Was perimeter taught to the twins?** The art twin marked a rectangle's
+  perimeter "not learned yet" on 2026-11-25, which keeps her fix-it lesson
+  on perimeter and area from being offered.
+- **The other twin's major** (role models): is the pool `g7-midrash` that
+  major, and so hers alone, or a class both take? Both tracks draw on it.
+- **The English exam of 2026-12-06** is entered for the art twin only; her
+  sister sits it too. He can add it from his Exams card (Claude's write to
+  the Tests tab was refused).
 
 ## Reminders (looked into 2026-11-14, not built)
 

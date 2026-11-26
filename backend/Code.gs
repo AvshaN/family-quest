@@ -25,7 +25,10 @@ var TABS = {
   Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge", "secs", "flag"],
   Tokens: ["when", "profile", "change", "reason"],
   // grade: hers in the exam, 0-100, entered after it (empty until then)
-  Tests: ["when", "profile", "date", "subject", "note", "grade"]
+  Tests: ["when", "profile", "date", "subject", "note", "grade"],
+  // A photo of a notebook page she sent: `file` is its id in the Drive folder; status is empty until its questions
+  // are in the app ("done", with how many, or "skip", with why in `questions`), and `done` is the day a phone said so.
+  Pages: ["when", "date", "profile", "subject", "note", "file", "status", "questions", "done"]
 };
 var DEFAULTS = [
   ["app_name", "Aura", "the app's name, at the start of every email"],
@@ -41,11 +44,11 @@ var DEFAULTS = [
   ["improved_reward", "פרס קטן מאבא", "what the most improved girl of the month gets (given by hand)"]
 ];
 /* Points by month, as POINTS_BY in app.js: the new rule from December 2026 (Avsha, 2026-11-14). */
-var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson: 5, week: 15, weekDays: 5 }],
-                 ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, week: 15, weekDays: 5 }]];
+var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson: 5, page: 5, week: 15, weekDays: 5 }],
+                 ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, page: 5, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 6;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak
+var API = 7;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages
 // (the parent's Settings tab compares this with SCRIPT_API in app.js and says when the script here is behind: raise both together)
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
@@ -72,6 +75,8 @@ function setup() {
   // Dates stay text ("2026-11-11"): a Sheet turns them into dates otherwise, in its own time zone.
   ss.getSheetByName("Answers").getRange("B:B").setNumberFormat("@");
   ss.getSheetByName("Tests").getRange("C:C").setNumberFormat("@");
+  ss.getSheetByName("Pages").getRange("B:B").setNumberFormat("@");
+  ss.getSheetByName("Pages").getRange("I:I").setNumberFormat("@");
   var st = ss.getSheetByName("Settings");
   var have = st.getDataRange().getValues().map(function (r) { return r[0]; });
   DEFAULTS.forEach(function (d) { if (have.indexOf(d[0]) < 0) st.appendRow(d); });
@@ -91,6 +96,9 @@ function setup() {
       ["c", "השם של התאומה השנייה", "g7-art", "twins", 1, "stage", "lagoon"]
     ]);
   }
+  // The notebook pages are saved in Drive, and only a run from the editor can show Google's question about that
+  // (a request from a phone cannot): touching Drive here, without changing anything, makes it ask now.
+  DriveApp.getRootFolder();
   ScriptApp.getProjectTriggers().forEach(function (t) { ScriptApp.deleteTrigger(t); });
   var hour = Math.max(0, Math.min(23, Number(setting_("digest_hour")) || 21));
   // nearMinute(0): within about 15 minutes of the hour; without it Google picks any minute in it (21:33 on the first night).
@@ -125,6 +133,8 @@ function doPost(e) {
         case "test": return addTest_(b);
         case "untest": return delTest_(b);
         case "grade": return setGrade_(b);
+        case "page": return addPage_(b);
+        case "pagedone": return pageDone_(b);
         case "redeem": return redeem_(b);
         case "pin": checkPin_(b.pin); return { ok: true };
         case "grant": checkPin_(b.pin); needProfile_(b.p); addToken_(b.p, 1, "gift from parent"); return { ok: true };
@@ -169,7 +179,9 @@ function state_() {
     // the weeks all of them filled
     exams: examsPast_(today),
     trend: trend_(),
-    sis: sisters_(today)
+    sis: sisters_(today),
+    pages: pagesRecent_(from, today),
+    pagesUrl: pagesUrl_()
   };
 }
 
@@ -327,6 +339,88 @@ function sisters_(today) {
   return { full: full, streak: streak };
 }
 
+/* ---------- a page from her notebook (Avsha, 2026-11-26) ----------
+ * She photographs a notebook page or a worksheet in the app; the photo is saved in a folder of the parent's Drive
+ * (made on the first photo; its id is the setting pages_folder) and a row is added to the Pages tab. Claude reads
+ * the waiting rows and their photos when Avsha asks, writes questions into the banks, and lists each page's file in
+ * the app's data/pages.json with how many questions it gave; the first phone to see that tells the script
+ * (pagedone), which marks the row. A page that became questions earns `page` points in the month it was marked,
+ * the first two of each calendar week (pagesCounted in app.js: keep the two in step). */
+var PAGE = { max: 1500000, day: 10, week: 2 };
+function pagesSheet_() {
+  var sh = sheet_("Pages");
+  if (!sh) {   // a Sheet set up before the pages
+    sh = SS_.insertSheet("Pages");
+    sh.appendRow(TABS.Pages); sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, TABS.Pages.length).setFontWeight("bold");
+    sh.getRange("B:B").setNumberFormat("@"); sh.getRange("I:I").setNumberFormat("@");
+    wrote_();
+  }
+  return sh;
+}
+function pages_() {
+  if (!sheet_("Pages")) return [];
+  return values_("Pages").slice(1).map(function (r, i) {
+    var st = String(r[6] || "").trim();
+    return { i: i, d: dateText_(r[1]), p: String(r[2]), subj: String(r[3]), note: String(r[4] || ""), f: String(r[5] || ""), st: st,
+             n: st === "done" ? Number(r[7]) || 0 : 0, why: st === "skip" ? String(r[7] || "") : "", done: r[8] === "" || r[8] === null || r[8] === undefined ? "" : dateText_(r[8]) };
+  }).filter(function (x) { return x.p !== ""; });
+}
+function pagesFolder_() {
+  var id = String(setting_("pages_folder") || ""), f = null;
+  if (id) { try { f = DriveApp.getFolderById(id); } catch (err) { f = null; } }
+  if (!f) { f = DriveApp.createFolder(appName_() + " · מחברות"); setSetting_("pages_folder", f.getId()); }
+  return f;
+}
+function pagesUrl_() { var id = String(setting_("pages_folder") || ""); return id ? "https://drive.google.com/drive/folders/" + id : ""; }
+function addPage_(b) {
+  needProfile_(b.p);
+  if (!SUBJ[b.subj]) throw new Error("bad subject");
+  var data = String(b.data || ""), head = "data:image/jpeg;base64,";
+  if (data.length > PAGE.max || data.slice(0, head.length) !== head || !/^[A-Za-z0-9+\/=]+$/.test(data.slice(head.length))) throw new Error("bad photo");
+  var today = ymd_(new Date()), sh = pagesSheet_();
+  var mine = pages_().filter(function (x) { return x.p === b.p && x.d === today; }).length;
+  if (mine >= PAGE.day) throw new Error("too many pages today");
+  var name = today + " " + b.p + " " + b.subj + " " + (mine + 1) + ".jpg";
+  var file = pagesFolder_().createFile(Utilities.newBlob(Utilities.base64Decode(data.slice(head.length)), "image/jpeg", name));
+  sh.appendRow([new Date(), today, b.p, b.subj, String(b.note || "").slice(0, 60), file.getId(), "", "", ""]);
+  wrote_();
+  return { ok: true, n: mine + 1 };
+}
+/* A phone has seen in the app's data/pages.json what became of a page: n questions, or skipped (and why). Marked
+ * once; the day is the script's own, so the points fall in the month that is open. */
+function pageDone_(b) {
+  var f = String(b.f || ""), skip = String(b.skip || "").slice(0, 80), n = Math.max(0, Math.min(80, Math.round(Number(b.n) || 0)));
+  if (!f || !sheet_("Pages")) return { ok: true, saved: 0 };
+  var sh = sheet_("Pages"), v = values_("Pages");
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][5]) !== f) continue;
+    if (String(v[i][6] || "").trim() !== "") return { ok: true, saved: 0 };
+    sh.getRange(i + 1, 7, 1, 3).setValues([[skip ? "skip" : "done", skip ? skip : n, ymd_(new Date())]]);
+    wrote_();
+    return { ok: true, saved: 1 };
+  }
+  return { ok: true, saved: 0 };
+}
+/* Her pages that earn points: those that became questions, the first two of each calendar week by the day they
+ * were marked (and by their row within a day). */
+function pagesCounted_(pid) {
+  var per = {};
+  return pages_().filter(function (x) { return x.p === pid && x.st === "done" && x.done; })
+    .sort(function (a, b) { return a.done < b.done ? -1 : a.done > b.done ? 1 : a.i - b.i; })
+    .filter(function (x) {
+      var w = addDays_(x.done, -new Date(Number(x.done.slice(0, 4)), Number(x.done.slice(5, 7)) - 1, Number(x.done.slice(8))).getDay());
+      per[w] = (per[w] || 0) + 1;
+      return per[w] <= PAGE.week;
+    });
+}
+/* For the phones: the pages still waiting (two months back), and those marked since the Sunday on or before the
+ * first row they hold, so that a phone counts whole weeks as the script does. */
+function pagesRecent_(from, today) {
+  var lo = addDays_(from, -new Date(Number(from.slice(0, 4)), Number(from.slice(5, 7)) - 1, Number(from.slice(8))).getDay()), old = addDays_(today, -60);
+  return pages_().filter(function (x) { return x.st === "" ? x.d >= old : (x.done >= lo || x.d >= lo); });
+}
+
 /* ---------- full weeks: the streak and the four-week path (weeksOf in app.js) ---------- */
 function weeks_(rows, pid, today) {
   var n = {}, played = {};
@@ -434,7 +528,7 @@ function nightlyDigest() {
   var headline = n === r.girls.length ? "כולן שיחקו היום" : n + " מתוך " + r.girls.length + " שיחקו היום" + (missing.length ? " · חסרה: " + joinHe_(missing.map(nm_)) : "");
   var sub = "יום " + dow + ", " + Number(today.slice(8)) + " ב" + MONTHS[m - 1] + " · נשארו " + r.daysLeft + " ימים לחודש";
   mail_(appName_() + " · " + dow + " " + Number(today.slice(8)) + "." + m + " · " + (n === r.girls.length ? "כולן שיחקו" : n + " מתוך " + r.girls.length + " שיחקו"),
-    shell_(headline, sub, [todaySection_(r), examsSection_(r), monthSection_(r, "החודש · " + MONTHS[m - 1]), focusSection_(r), lifetimeSection_(r)], footer_(r)));
+    shell_(headline, sub, [todaySection_(r), examsSection_(r), pagesSection_(r), monthSection_(r, "החודש · " + MONTHS[m - 1]), focusSection_(r), lifetimeSection_(r)], footer_(r)));
 }
 
 function monthlyClose() {
@@ -498,7 +592,8 @@ function report_(today, y, m) {
   });
   var exams = tests_().filter(function (t) { return t.date >= today; })
     .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
-  return { today: today, y: y, m: m, elapsed: elapsed, daysLeft: inMonth ? dim - elapsed : 0, girls: girls,
+  var waiting = pages_().filter(function (x) { return x.st === ""; });
+  return { today: today, y: y, m: m, elapsed: elapsed, daysLeft: inMonth ? dim - elapsed : 0, girls: girls, waiting: waiting,
            goal: Number(setting_("goal")) || 250, goalReward: String(setting_("goal_reward") || ""),
            family: girls.reduce(function (t, g) { return t + g.month.right; }, 0), exams: exams };
 }
@@ -648,6 +743,20 @@ function examsSection_(r) {
   return section_("Exams", "מבחנים קרובים", table_(["תאריך", "", "מקצוע", ""], rows) +
     "<p style='margin:8px 0 0;font-size:12px;color:" + C.soft + "'>שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו.</p>");
 }
+/* Notebook pages the girls photographed that have not become questions yet, by girl and subject. */
+function pagesSection_(r) {
+  if (!r.waiting || !r.waiting.length) return "";
+  var lines = r.girls.map(function (g) {
+    var mine = r.waiting.filter(function (x) { return x.p === g.id; }), by = {};
+    if (!mine.length) return "";
+    mine.forEach(function (x) { var k = SUBJ[x.subj] || x.subj; by[k] = (by[k] || 0) + 1; });
+    return "<p style='margin:0 0 8px;font-size:14px;line-height:1.6'>" + who_(g) + ": " + Object.keys(by).map(function (k) { return esc_(k) + " (" + by[k] + ")"; }).join(" · ") + "</p>";
+  }).join("");
+  var url = pagesUrl_();
+  return section_("Notebook", "דפים מהמחברת שמחכים", lines +
+    "<p style='margin:6px 0 0;font-size:12px;color:" + C.soft + "'>כדי שיהפכו לשאלות, אומרים ל־Claude: ״יש דפים חדשים מהמחברות״." +
+    (url ? " <a href='" + url + "' style='color:" + C.soft + "'>התיקייה ב־Drive</a>" : "") + "</p>");
+}
 function daysTo_(a, b) {
   var x = Date.UTC(Number(a.slice(0, 4)), Number(a.slice(5, 7)) - 1, Number(a.slice(8)));
   var y = Date.UTC(Number(b.slice(0, 4)), Number(b.slice(5, 7)) - 1, Number(b.slice(8)));
@@ -693,9 +802,10 @@ function scoreMonth_(rows, pid, y, m) {
     reg += byDay[d].reg; ok += byDay[d].ok; revOk += byDay[d].revOk;
   });
   var full = Object.keys(weeks).filter(function (w) { return weeks[w] >= P.weekDays; }).length;
+  var pages = pagesCounted_(pid).filter(function (x) { return x.done.slice(0, 7) === mk; }).length;   // notebook pages that became questions
   return { id: pid, played: days.length, acc: reg ? Math.round(ok / reg * 100) : 0, ok: ok, revOk: revOk, full: full,
-           pracOk: pracOk, fixOk: fixOk, perfect: perfect, lessons: lessons, right: ok + revOk + pracOk + fixOk,
-           points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + lessons * P.lesson + full * P.week };
+           pracOk: pracOk, fixOk: fixOk, perfect: perfect, lessons: lessons, pages: pages, right: ok + revOk + pracOk + fixOk,
+           points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + lessons * P.lesson + pages * P.page + full * P.week };
 }
 function ranking_(rows, profs, y, m) {
   return profs.map(function (p) { return scoreMonth_(rows, p.id, y, m); }).sort(function (a, b) {

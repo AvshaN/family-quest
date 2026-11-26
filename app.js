@@ -361,9 +361,11 @@ function revengeFor(prof, date, todays) {
  * Practice rounds (r = 2) earn no points: they count for the map and the family goal only.
  * A fix-it lesson (r = 3, from 2026-11-26) earns `lesson` once its three questions are answered, on a day that
  * counts, whatever she got right: it pays for the work. No row of that kind exists before that date, so adding it
- * to both lines changes no closed month. */
-const POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson: 5, week: 15, weekDays: 5 }],
-                   ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, week: 15, weekDays: 5 }]];
+ * to both lines changes no closed month.
+ * A notebook page she photographed that became questions earns `page` in the month it was marked, the first two
+ * of each calendar week (pagesCounted; pagesCounted_ in Code.gs). None existed before 2026-11-26 either. */
+const POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson: 5, page: 5, week: 15, weekDays: 5 }],
+                   ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, page: 5, week: 15, weekDays: 5 }]];
 const pointsOf = mk => POINTS_BY.find(x => mk >= x[0])[1];
 const POINTS = pointsOf(THIS_MONTH);
 const dayPoints = (e, P) => P.day + e.ok * P.right + (e.ok >= 5 ? P.perfect : 0) + e.revOk * P.revenge + ((e.fix | 0) >= FIX.n ? P.lesson : 0);
@@ -386,10 +388,11 @@ function stats(pid, y, m) {
   const fullWeeks = Object.values(weeks).filter(n => n >= P.weekDays).length;
   const reg = days.reduce((s, e) => s + e.reg, 0), ok = days.reduce((s, e) => s + e.ok, 0), revOk = days.reduce((s, e) => s + e.revOk, 0);
   const perfect = days.filter(e => e.ok >= 5).length, lessons = days.filter(e => e.fix >= FIX.n).length;
+  const pgs = pagesCounted(pid).filter(x => x.done.slice(0, 7) === mk).length;
   const elapsed = mk === THIS_MONTH ? D : daysIn(y, m);
   return {
-    days, byDay, played: days.length, reg, ok, revOk, pracOk, fixOk, perfect, lessons, fullWeeks, bySubj, right: ok + revOk + pracOk + fixOk,
-    points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + lessons * P.lesson + fullWeeks * P.week,
+    days, byDay, played: days.length, reg, ok, revOk, pracOk, fixOk, perfect, lessons, pages: pgs, fullWeeks, bySubj, right: ok + revOk + pracOk + fixOk,
+    points: days.length * P.day + ok * P.right + perfect * P.perfect + revOk * P.revenge + lessons * P.lesson + pgs * P.page + fullWeeks * P.week,
     part: elapsed ? Math.round(days.length / elapsed * 100) : 0,
     acc: reg ? Math.round(ok / reg * 100) : 0,
     weak: Object.entries(miss).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 3).map(x => x[0])
@@ -845,6 +848,123 @@ function overTime(p, dad) {
     ${er.length ? `<span class="eyebrow" style="margin-top:6px">Exams</span>${table(["מבחן", "בשבוע שלפניו", "ציון"], er)}` : dad ? `<p class="small faint">כשמבחן שברשימה עובר, הוא מופיע כאן עם מה שהיא עשתה בשבוע שלפניו ועם הציון.</p>` : ""}`;
 }
 
+/* ---------- a page from her notebook (Avsha, 2026-11-26) ----------
+ * The questions follow what her class has reached only as fast as someone sends Claude the notebooks. Now she
+ * photographs a page or a worksheet herself: the app shrinks the photo and the script saves it in a folder of Dad's
+ * Drive, with a row in the Pages tab. When Avsha says "there are new notebook pages", Claude reads the waiting rows
+ * and photos, writes the questions, and lists each page's file in data/pages.json ({ "<file id>": { "n": 12 } }, or
+ * { "skip": "why" }). The first phone to see a waiting page listed there tells the script (syncPages), which marks
+ * the row: the questions and the mark arrive together, and Claude writes nothing into the Sheet.
+ * A page that became questions earns `page` points, the first two of each calendar week. Needs api 7. */
+const PAGE = { max: 1500000, side: 1800, send: 5, week: 2 };
+let PAGES_DONE = {};
+const canPage = () => !SANDBOX && (!LIVE || (FAM.api | 0) >= 7);
+const pages = () => !FAM ? [] : LIVE ? (FAM.pages || []) : (L.pages || []);
+function pagesCounted(pid) {
+  const per = {};
+  return pages().filter(x => x.p === pid && x.st === "done" && x.done)
+    .sort((a, b) => a.done < b.done ? -1 : a.done > b.done ? 1 : a.i - b.i)
+    .filter(x => { const w = weekStart(x.done); per[w] = (per[w] || 0) + 1; return per[w] <= PAGE.week; });
+}
+/* A photo as it is sent: its longer side 1800 px at most, a JPEG, small enough for one request. */
+function fitPage(file) {
+  return new Promise((done, fail) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let side = PAGE.side, q = 0.8, out = "";
+      for (let k = 0; k < 6; k++) {
+        const z = Math.min(1, side / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+        cv.width = Math.max(1, Math.round(img.width * z)); cv.height = Math.max(1, Math.round(img.height * z));
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        out = cv.toDataURL("image/jpeg", q);
+        if (out.length <= PAGE.max) break;
+        side *= 0.82; q = Math.max(0.6, q - 0.05);
+      }
+      if (out.length <= PAGE.max && /^data:image\/jpeg;base64,/.test(out)) done(out); else fail(new Error("too big"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); fail(new Error("unreadable")); };
+    img.src = url;
+  });
+}
+let PG = null;
+function pageSheet() {
+  const p = me(), subs = subjectsOf(p);
+  PG = { files: [], busy: false };
+  sheet(`<h3>דף מהמחברת</h3><p class="small muted">צלמי דף שלמדתן או דף עבודה. בתוך יום־יומיים יהיו ממנו שאלות, ודף שנכנס שווה ${POINTS.page} נקודות (עד ${PAGE.week} בשבוע).</p>
+    <div class="field"><label>מקצוע</label><div class="seg-pick" id="psub">${subs.map((x, i) => `<button type="button" data-act="pagePickSub" data-k="${x}" aria-pressed="${i === 0}">${SUBJ[x]}</button>`).join("")}</div></div>
+    <div class="field"><label for="pnote">על מה הדף? (לא חובה)</label><input id="pnote" maxlength="60" placeholder="למשל: שיעור על אחוזים"></div>
+    <input type="file" id="pageFile" accept="image/*" multiple hidden>
+    <button type="button" class="btn btn-ghost wide" data-act="pagePick">${ICON.cam.replace("<svg", '<svg width="18" height="18"')} לצלם או לבחור תמונות</button>
+    <div class="pthumbs" id="pthumbs"></div>
+    <button type="button" class="btn btn-primary wide" data-act="pageSend" id="pageSend" disabled>שליחה</button>
+    <p class="small faint">התמונות נשמרות אצל אבא. רואים אותן רק הוא ומי שכותב איתו את השאלות. עד ${PAGE.send} תמונות בפעם, כתב ברור ואור טוב.</p>`);
+}
+function pageThumbs() {
+  const box = $("#pthumbs"), go = $("#pageSend");
+  if (!box || !PG) return;
+  box.innerHTML = PG.files.map((f, i) => `<span class="pthumb"><img src="${f.url}" alt=""><button type="button" class="x" data-act="pageDrop" data-i="${i}" aria-label="הסרה">${ICON.close.replace("<svg", '<svg width="14" height="14"')}</button></span>`).join("");
+  go.disabled = !PG.files.length; go.textContent = PG.files.length > 1 ? `שליחה של ${PG.files.length} דפים` : "שליחה";
+}
+async function pageSend() {
+  if (!PG || PG.busy || !PG.files.length) return;
+  const p = me(), subj = ($("#psub [aria-pressed=true]") || {}).dataset.k, note = $("#pnote").value.trim(), go = $("#pageSend"), n = PG.files.length;
+  PG.busy = true; go.disabled = true;
+  let sent = 0;
+  for (const f of PG.files) {
+    go.textContent = `שולחת ${sent + 1} מתוך ${n}…`;
+    try {
+      const data = await fitPage(f.file);
+      if (LIVE) await api("page", { p: p.id, subj, note, data }, 90000);
+      else { L.pages = (L.pages || []).concat({ i: (L.pages || []).length, p: p.id, d: TODAY, subj, note, f: "", st: "", n: 0, why: "", done: "" }); save(); }
+      sent++;
+    } catch (err) { break; }
+  }
+  PG.busy = false;
+  if (sent < n) { PG.files = PG.files.slice(sent); if ($("#pthumbs")) pageThumbs(); toast(sent ? `נשלחו ${sent}. השאר לא עברו: נסי שוב.` : "לא נשלח. נסי שוב כשיש אינטרנט טוב."); if (sent && LIVE) refresh().catch(() => {}); return; }
+  PG.files.forEach(f => URL.revokeObjectURL(f.url)); PG = null;
+  if (LIVE) { try { await refresh(); } catch (err) { /* the next opening shows them */ } }
+  show("home"); toast(n > 1 ? `${n} דפים נשלחו. תודה!` : "הדף נשלח. תודה!");
+}
+/* What became of the pages (data/pages.json on the site), and telling the script of any that waits in the Sheet. */
+async function loadPagesDone() {
+  if (!LIVE) return;   // the demo marks nothing, and a preview opened as a file cannot fetch
+  try { const r = await fetch(new URL("data/pages.json", location.href).href, { cache: "no-cache" }); if (r.ok) PAGES_DONE = (await r.json()) || {}; } catch (e) { /* the next opening */ }
+}
+async function syncPages() {
+  if (!LIVE || SANDBOX || (FAM.api | 0) < 7) return;
+  const due = pages().filter(x => !x.st && x.f && PAGES_DONE[x.f]);
+  if (!due.length) return;
+  for (const x of due) {
+    const e = PAGES_DONE[x.f];
+    try { await api("pagedone", e.skip ? { f: x.f, skip: String(e.skip) } : { f: x.f, n: +e.n || 0 }); } catch (err) { return; }
+  }
+  try { await refresh(); repaint(); } catch (err) { /* the next opening */ }
+}
+const pageChip = (x, counted) => x.st === "done" ? `<span class="chip good">${x.n} שאלות${counted ? ` · <bdi dir="ltr">+${POINTS.page}</bdi>` : ""}</span>`
+  : x.st === "skip" ? `<span class="chip warn">לא נקרא טוב${x.why ? `: ${esc(x.why)}` : ""}</span>` : `<span class="chip">התקבל</span>`;
+function pagesCard(p) {
+  if (!canPage()) return "";
+  const mine = pages().filter(x => x.p === p.id).sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : b.i - a.i).slice(0, 4), counted = new Set(pagesCounted(p.id).map(x => x.i));
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Notebook</span>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="addPage">${ICON.cam.replace("<svg", '<svg width="16" height="16"')} דף</button></div>
+    ${mine.length ? mine.map(x => `<div class="trow"><span>${esc(SUBJ[x.subj] || x.subj)}${x.note ? ` · ${esc(x.note)}` : ""}</span><span class="muted">${+x.d.slice(8)}.${+x.d.slice(5, 7)}</span>${pageChip(x, counted.has(x.i))}</div>`).join("")
+        + `<p class="small faint">דף שנהפך לשאלות שווה ${POINTS.page} נקודות, עד ${PAGE.week} בשבוע.</p>`
+      : `<p class="small muted">צלמי דף מהמחברת או דף עבודה, ובתוך יום־יומיים יהיו ממנו שאלות. דף שנכנס שווה ${POINTS.page} נקודות, עד ${PAGE.week} בשבוע.</p>`}</section>`;
+}
+/* Dad's Today: the pages that wait, by girl, and how to turn them into questions. */
+function pagesWaitCard() {
+  if (!canPage()) return "";
+  const wait = pages().filter(x => !x.st && profile(x.p)), done = pages().filter(x => x.st === "done" && profile(x.p)).sort((a, b) => a.done < b.done ? 1 : -1).slice(0, 3);
+  const by = {};
+  wait.forEach(x => { const k = x.p + "|" + x.subj; by[k] = (by[k] || 0) + 1; });
+  const rowsHTML = Object.keys(by).map(k => { const [pid, subj] = k.split("|"); return `<tr><td>${nameCell(profile(pid))}</td><td>${esc(SUBJ[subj] || subj)}</td><td class="num">${by[k]}</td></tr>`; });
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Notebook pages</span><span class="small muted">${wait.length ? `${wait.length} מחכים` : "אין דפים שמחכים"}</span></div>
+    ${wait.length ? table(["", "מקצוע", "דפים"], rowsHTML) + `<p class="small">כדי שיהפכו לשאלות, אומרים ל־Claude: <b>״יש דפים חדשים מהמחברות״</b>.</p>` : `<p class="small muted">כשאחת הבנות מצלמת דף מהמחברת (״דף״ במסך הבית שלה), הוא מופיע כאן ונשמר ב־Drive שלך.</p>`}
+    ${done.length ? `<p class="small faint">נכנסו לאחרונה: ${done.map(x => `${esc(profile(x.p).name)}, ${esc(SUBJ[x.subj] || x.subj)} (${x.n} שאלות)`).join(" · ")}</p>` : ""}
+    ${FAM.pagesUrl ? `<a class="link" style="align-self:flex-start" href="${esc(FAM.pagesUrl)}" target="_blank" rel="noopener">לתיקייה ב־Drive</a>` : ""}</section>`;
+}
+
 /* ---------- how fast she answers (Avsha, 2026-11-14) ----------
  * Each first answer is timed, and nothing on her screen shows a clock. A day with three of the five answered in
  * under three seconds each is marked as rushed for Dad: a question and four options are not read in that time. */
@@ -869,9 +989,9 @@ function makeExample() {
 
 /* ---------- the Sheet (live mode) ---------- */
 const API_WAIT = 40000;   // a request with no answer by then has failed: on a weak signal a fetch can hang for minutes
-async function api(action, body) {
+async function api(action, body, wait) {
   const url = String(CFG.apiUrl).trim(), ac = window.AbortController ? new AbortController() : null;
-  const timer = ac ? setTimeout(() => ac.abort(), API_WAIT) : 0, sig = ac ? { signal: ac.signal } : {};
+  const timer = ac ? setTimeout(() => ac.abort(), wait || API_WAIT) : 0, sig = ac ? { signal: ac.signal } : {};
   let r;
   try {
     if (action === "state" || action === "photos") r = await fetch(`${url}?action=${action}&code=${encodeURIComponent(L.code)}`, Object.assign({ redirect: "follow" }, sig));
@@ -893,7 +1013,7 @@ async function refresh() {
   L.sent = (L.sent || []).filter(b => b.at > asked);
   FAM = { profiles: s.profiles || [], settings: s.settings || {}, tokens: s.tokens || {}, rows: s.rows || [], tests: s.tests || [],
           lifetime: s.lifetime || null, tokenLog: s.tokenLog || [], api: s.api | 0, path: s.path || null, know: s.know || null,
-          exams: s.exams || null, trend: s.trend || null, sis: s.sis || null };
+          exams: s.exams || null, trend: s.trend || null, sis: s.sis || null, pages: s.pages || [], pagesUrl: s.pagesUrl || "" };
   L.cache = FAM; save();
 }
 async function flush() {
@@ -1403,6 +1523,7 @@ const ICON = {
   half: I('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/>'),
   plus: I('<path d="M12 5v14M5 12h14"/>'),
   cal: I('<rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/>'),
+  cam: I('<path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3v10.5H4z"/><circle cx="12" cy="13.3" r="3.4"/>'),
   flame: I('<path d="M12 3c.8 3.8 5 5.6 5 10.4A5 5 0 0 1 7 13.4c0-2.3 1.3-3.8 2.2-4.6 0 1.6.8 2.7 1.8 2.7C11 8.2 10.6 5.6 12 3z"/>'),
   lock: I('<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
   image: I('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 16l-5-5-8 8"/>'),
@@ -1588,6 +1709,7 @@ function renderHome() {
       <button type="button" class="btn btn-ghost btn-sm" data-act="addTest">${ICON.plus.replace("<svg", '<svg width="16" height="16"')} מבחן</button></div>
     ${upcoming.length ? upcoming.map(t => `<div class="trow"><span>${esc(SUBJ[t.subj] || t.subj)}${t.note ? ` · ${esc(t.note)}` : ""}</span><span class="muted">${DAYS_FULL[parseYmd(t.date).getDay()]} ${+t.date.slice(8)}.${+t.date.slice(5, 7)}</span>${delTest(t)}</div>`).join("")
       : `<p class="small muted">יש מבחן בקרוב? שבוע לפניו, רוב השאלות יהיו מהמקצוע שלו.</p>`}</section>
+  ${pagesCard(p)}
   ${LIVE ? "" : `<p class="demo">תצוגה לדוגמה: ההיסטוריה עד היום היא נתוני דוגמה.</p>`}`;
 }
 
@@ -1656,7 +1778,7 @@ function renderBoard() {
   ${champs.length ? `<section class="glass pad stack"><span class="eyebrow">${MONTHS[pm - 1]}</span>
     <div class="row"><span>${champs.length > 1 ? "האלופות" : "האלופה"}: <b>${champs.map(c => esc(c.name)).join(" ו")}</b></span>${imp ? `<span>השתפרה הכי הרבה: <b>${esc(profile(imp.id).name)}</b> <span class="muted">(+${imp.gain}% דיוק)</span></span>` : ""}</div></section>` : ""}
   <details class="glass pad how"><summary>איך סופרים נקודות <span class="muted">+</span></summary>
-    <ul><li>${POINTS.day} על כל יום עם משימה</li><li>${POINTS.right} על כל תשובה נכונה</li>${POINTS.perfect ? `<li>${POINTS.perfect} על יום מושלם, חמש מחמש</li>` : ""}<li>${POINTS.revenge} על סיבוב נקמה מוצלח</li>${canFix() ? `<li>${POINTS.lesson} על חיזוק שהושלם (דוגמה פתורה ושלוש שאלות בנושא שעוד לא יושב)</li>` : ""}<li>${POINTS.week} על שבוע עם ${POINTS.weekDays} ימי משימה</li>
+    <ul><li>${POINTS.day} על כל יום עם משימה</li><li>${POINTS.right} על כל תשובה נכונה</li>${POINTS.perfect ? `<li>${POINTS.perfect} על יום מושלם, חמש מחמש</li>` : ""}<li>${POINTS.revenge} על סיבוב נקמה מוצלח</li>${canFix() ? `<li>${POINTS.lesson} על חיזוק שהושלם (דוגמה פתורה ושלוש שאלות בנושא שעוד לא יושב)</li>` : ""}${canPage() ? `<li>${POINTS.page} על דף מהמחברת שצילמת ונהפך לשאלות, עד ${PAGE.week} בשבוע</li>` : ""}<li>${POINTS.week} על שבוע עם ${POINTS.weekDays} ימי משימה</li>
     <li>רק התשובה הראשונה נספרת. מה שפספסת חוזר בסוף הסבב עד שהוא נכון, בלי נקודות.</li>
     <li>כל אחת עונה ברמה של הכיתה שלה, אז הניקוד הוגן בין ז׳ לי׳.</li>${s.improvedReward ? `<li>מי שמשתפרת הכי הרבה בדיוק לעומת החודש הקודם: ${esc(s.improvedReward)}.</li>` : ""}</ul></details>`;
 }
@@ -1716,7 +1838,7 @@ function renderMe() {
     ${subjectBars(st)}
     ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(", ")}</p>` : ""}
     ${levelLine(p, true)}
-    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, כמה זמן לקח לך לענות, את השבועות שלמטה ואת הציונים שהזנת. לא יותר.</p></section>
+    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, כמה זמן לקח לך לענות, את השבועות שלמטה, את הציונים שהזנת ואת דפי המחברת שצילמת. לא יותר.</p></section>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Over time</span><span class="small muted">הדיוק שלך לפי שבוע</span></div>
     ${trendChart([p])}${overTime(p, false)}</section>
   <button type="button" class="glass pad row" data-act="recap" style="text-align:start"><span>הסיכום של ${MONTHS[prevMonth(Y, M)[1] - 1]}</span>${ICON.back.replace("<svg", '<svg width="18" height="18" style="transform:scaleX(-1)"')}</button>
@@ -1797,6 +1919,7 @@ function parentToday() {
   return `${scriptCard(true)}<section class="glass pad stack"><div class="row"><span class="eyebrow">Today</span><span class="small muted">${n === ts.length ? "כולן שיחקו" : `${n} מתוך ${ts.length} שיחקו${missing.length ? ` · חסרה: ${joinHe(missing)}` : ""}`}</span></div>
     ${table(["", "ציון", "נקמה", "נקודות", "השבוע", "שעה"], rowsHTML)}</section>
   ${examsCard()}
+  ${pagesWaitCard()}
   ${canFlag() ? flagsCard() : ""}
   <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>`;
 }
@@ -1905,9 +2028,9 @@ function parentLife() {
  * only when Avsha pastes it, and nothing told him (or Claude: the Sheet shows no trace until a girl plays) whether a
  * paste had taken. SCRIPT_API is the `API` of backend/Code.gs: raise both together, and say here what an older
  * script leaves out. */
-const SCRIPT_API = 6;
+const SCRIPT_API = 7;
 const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש",
-  6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות" };
+  6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות", 7: "צילום דפים מהמחברת (אחרי ההדבקה מריצים setup פעם אחת ומאשרים גישה ל־Drive)" };
 function scriptCard(brief) {
   if (!LIVE) return "";
   const have = FAM.api | 0;
@@ -2809,6 +2932,11 @@ document.addEventListener("click", async e => {
       show(view); toast("המבחן נמחק"); break;
     }
     case "pickSub": $$("#tsub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
+    case "addPage": pageSheet(); break;
+    case "pagePickSub": $$("#psub button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
+    case "pagePick": $("#pageFile").click(); break;
+    case "pageDrop": if (PG && !PG.busy) { const f = PG.files.splice(+b.dataset.i, 1)[0]; if (f) URL.revokeObjectURL(f.url); pageThumbs(); } break;
+    case "pageSend": pageSend(); break;
     case "pickMate": b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); break;
     case "gradeOpen": gradeSheet(b.dataset.p, b.dataset.date, b.dataset.subj); break;
     case "gradeLater": L.gradeLater = L.gradeLater || {}; L.gradeLater[b.dataset.k] = addDays(TODAY, GRADE.later); save(); show("home"); break;
@@ -2849,7 +2977,13 @@ document.addEventListener("click", async e => {
     case "resetCode": L.code = ""; save(); show("code"); break;
   }
 });
-document.addEventListener("change", e => { if (e.target.id === "photoFile" && e.target.files[0]) readPhoto(e.target.files[0]); });
+document.addEventListener("change", e => {
+  if (e.target.id === "photoFile" && e.target.files[0]) readPhoto(e.target.files[0]);
+  if (e.target.id === "pageFile" && PG && !PG.busy) {
+    [...e.target.files].forEach(file => { if (PG.files.length < PAGE.send && (!file.type || /^image\//.test(file.type))) PG.files.push({ file, url: URL.createObjectURL(file) }); });
+    e.target.value = ""; pageThumbs();
+  }
+});
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; });
 window.addEventListener("online", () => { if (LIVE) flush(); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden && ymd(new Date()) !== TODAY && !$(".quiz", layer)) location.reload(); });
@@ -2901,6 +3035,7 @@ function firstScreen() {
 /* After the first screen, once the Sheet has answered (or cannot): the photos, and whatever popup is due. */
 function greet() {
   if (LIVE) (me() && !L.parent ? sharePhoto() : Promise.resolve()).then(fetchPhotos);
+  loadPagesDone().then(syncPages);
   if (layer.innerHTML || SANDBOX) return;
   if (LIVE && L.parent) { if (parentOK && view === "parent" && !monthCheck(null)) luckCheck(null); return; }
   const p = me();
@@ -2948,7 +3083,7 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

@@ -41,6 +41,7 @@ No accounts, no server, no cost.
 | Against yourself | Her points this week against the same day last week, on the board and on her home screen. |
 | Good luck | The day before an exam, each of us sees once her photo in a wreath and a wish. |
 | After an exam | An exam a twin enters is her sister's too. Once it has passed she can enter its grade, and Dad sees each girl's weeks and each exam beside the week before it. |
+| A page from her notebook | She photographs a notebook page or a worksheet; it is saved in Dad's Drive, questions are written from it, and a page that became questions earns 5 points (two a week). |
 | Dad's test profile | From his Settings tab: a profile like the girls', on his phone only, to try right and wrong answers, practice and every screen. Nothing of it reaches the Sheet or the girls' board. |
 | Dad's screen | Behind a PIN: each girl's month, weak topics, today's questions, what she got wrong with the right answers, how long she took (a rushed day is marked), exams he can add or take off, and the evening email. |
 

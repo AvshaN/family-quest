@@ -583,3 +583,9 @@ button.chip{min-height:44px;padding:4px 14px}
 .selfbar i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:99px;background:linear-gradient(90deg,var(--a1),var(--a2))}
 .selfbar u{position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:2px;background:#fff;text-decoration:none;transform:translateX(50%)}
 @media (prefers-reduced-motion: reduce){.kt.fade .pips i.on{animation:none}}
+/* a page from her notebook */
+.pthumbs{display:flex;flex-wrap:wrap;gap:10px}
+.pthumbs:empty{display:none}
+.pthumb{position:relative;width:64px;height:84px;border-radius:10px;overflow:hidden;border:1px solid var(--hair-hi)}
+.pthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pthumb .x{position:absolute;top:2px;inset-inline-end:2px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(9,9,15,.72);color:#fff}

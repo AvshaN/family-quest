@@ -26,14 +26,18 @@ There are three parts:
    - Google warns "Google hasn't verified this app". That's normal for a
      script you wrote yourself. Click **Advanced**, then **Go to … (unsafe)**
      (the dots are your script's name), then **Allow**.
-   - The script asks for three things: to edit this Sheet, to send email
-     as you (only to you), and to run on a timer.
+   - The script asks for four things: to edit this Sheet, to send email
+     as you (only to you), to run on a timer, and to use your Google Drive.
+     Google words the last one broadly ("see, edit, create and delete all
+     of your Google Drive files"); the script only makes one folder,
+     "Aura · מחברות", and saves in it the notebook pages the girls
+     photograph.
 6. When it finishes, the log at the bottom says
    `Ready. Family code: XXXXXX`. Write the code down.
 
 ## 2. Fill in the family
 
-Back in the Sheet there are now five tabs.
+Back in the Sheet there are now six tabs.
 
 - **Profiles**: type the girls' names in the `name` column, in place of
   the placeholders. Leave the other columns as they are:
@@ -51,8 +55,8 @@ Back in the Sheet there are now five tabs.
   - `digest_hour` is when the evening email comes (21 = 9 pm). If you
     change it, run `setup` again (step 1.4) to move the timer.
 
-Don't type in the **Answers**, **Tokens** and **Tests** tabs; the app
-fills them in. To hand out a token yourself, use **+1 אסימון** on the parent
+Don't type in the **Answers**, **Tokens**, **Tests** and **Pages** tabs; the
+app fills them in. To hand out a token yourself, use **+1 אסימון** on the parent
 screen, or add a row to **Tokens**: the time, the letter (`a`/`b`/`c`), `1`,
 and a reason.
 
@@ -67,8 +71,18 @@ and a reason.
 5. Send that URL to Claude, or paste it yourself into
    [`config.js`](config.js) between the quotes of `apiUrl`.
 
-If you change `Code.gs` later: **Deploy → Manage deployments → ✏️ → Version:
-New version → Deploy**. The URL stays the same.
+If you change `Code.gs` later, in this order:
+
+1. Paste the new code over the old and click **Save**.
+2. Choose `setup` next to **Run** and click **Run**. If the new code needs a
+   permission the old one did not have (the version of 26.11.2026 added
+   Google Drive, for the notebook pages), Google asks now: allow it, as in
+   step 1.5. Running `setup` again changes nothing else: the family code,
+   the names and the answers stay. Skipping this step leaves the script
+   without its permission, and the app and the evening email stop working
+   until it is done.
+3. **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**.
+   The URL stays the same.
 
 ## 4. Put the app on the web
 
