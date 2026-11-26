@@ -849,6 +849,7 @@ function paintArt(root) {
   $$("canvas.appar", root).forEach(liveAppar);
   $$("canvas.stagecv", root).forEach(liveStage);
   $$("canvas.sky", root).forEach(liveSky);
+  $$("canvas.luckcv", root).forEach(liveLuck);
   $$("[data-count]", root).forEach((el, i) => countUp(el, +el.dataset.count, el.dataset.dec == null ? 2 : +el.dataset.dec, 500 + i * 450));
 }
 function countUp(el, to, dec, delay) {
@@ -1432,7 +1433,7 @@ function examsCard() {
       <td>${nameCell(p)}</td><td style="white-space:normal">${esc(SUBJ[t.subj] || t.subj)}${t.note ? `<br><span class="small faint">${esc(t.note)}</span>` : ""}</td>${canEdit() ? `<td style="padding:0">${delTest(t)}</td>` : ""}</tr>`; });
   return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Exams</span>
       <button type="button" class="btn btn-ghost btn-sm" data-act="addTest">${ICON.plus.replace("<svg", '<svg width="16" height="16"')} מבחן</button></div>
-    ${up.length ? table(["מתי", "", "מקצוע"].concat(canEdit() ? [""] : []), rowsHTML) + `<p class="small faint">שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו.</p>`
+    ${up.length ? table(["מתי", "", "מקצוע"].concat(canEdit() ? [""] : []), rowsHTML) + `<p class="small faint">שבוע לפני מבחן, שלוש מחמש השאלות היומיות שלה מהמקצוע שלו. יום לפני המבחן, כל אחת מכם רואה פעם אחת ״בהצלחה״ עם התמונה שלה. <button type="button" class="link" style="min-height:0;font-size:13px" data-act="luckPreview">לראות איך זה נראה</button></p>`
       : `<p class="small muted">אין מבחנים ברשימה. אפשר להוסיף כאן, והבנות מוסיפות במסך הבית שלהן (״+ מבחן״).</p>`}</section>`;
 }
 function parentMonth() {
@@ -1675,9 +1676,9 @@ function claimTok(pid, reason) {
 function closePops(then) {
   const P = POP;
   POP = null; layer.innerHTML = "";
-  if (P.preview || !P.viewer) { applyAura("chrome"); show("parent"); return; }
+  if (P.preview || !P.viewer) { applyAura("chrome"); show("parent"); if (!P.preview) luckCheck(null); return; }
   applyAura(auraOf(P.viewer)); show("home");
-  if (then === "recap") openRecap(P.viewer.id);
+  if (then === "recap") openRecap(P.viewer.id); else luckCheck(P.viewer);
 }
 /* Dad's card for the gift: who, how many days of the month's last full week it takes, and his line. */
 function bonusCard() {
@@ -1696,7 +1697,117 @@ function bonusCard() {
     ${on ? `<p class="small faint">${due.length ? `לפי הימים עד עכשיו, יקבלו: ${joinHe(due.map(p => esc(p.name)))}.` : "לפי הימים עד עכשיו, אף אחת עוד לא עמדה בתנאי."} אפשר לשנות עד סוף החודש.</p>` : ""}</section>`;
 }
 
-function luckCheck() { return false; }
+/* ---------- good luck (Avsha, 2026-11-26) ----------
+ * "An auto-triggered popup that wishes good luck on a test a day before the test is held and appears once for all
+ * of us, showing the profile pic/s, name/s and בהצלחה במבחן ב(מקצוע) מחר, with a nice animation and graphic."
+ * The day before an exam in the Tests tab, each sister and Dad see it the first time they open the app: her photo
+ * (the twins side by side when they sit the same exam on the same day) inside a laurel wreath that grows leaf by
+ * leaf in her colours, the wish, and the day. Once per person and exam (L.seenLuck); someone who did not open the
+ * app that day sees it on the exam's own morning instead, worded "today". Dad can see one from his Exams card. */
+let LUCK = null;
+const luckId = t => `${t.date}|${t.subj}|${t.p}`;
+function luckDue(who) {
+  const seen = (L.seenLuck || {})[who] || {}, groups = {};
+  tests().filter(t => profile(t.p) && (t.date === TODAY || t.date === addDays(TODAY, 1)) && !seen[luckId(t)]).forEach(t => {
+    const g = groups[t.date + "|" + t.subj] || (groups[t.date + "|" + t.subj] = { date: t.date, subj: t.subj, who: [], notes: [] });
+    if (!g.who.includes(t.p)) g.who.push(t.p);
+    if (t.note && !g.notes.includes(t.note)) g.notes.push(t.note);
+  });
+  const order = FAM.profiles.map(p => p.id);
+  return Object.values(groups).map(g => Object.assign(g, { who: g.who.sort((a, b) => order.indexOf(a) - order.indexOf(b)) }))
+    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.subj < b.subj ? -1 : 1));
+}
+function luckCheck(viewer) {
+  if (SANDBOX || !FAM || !FAM.profiles.length || layer.innerHTML) return false;
+  const who = viewer ? viewer.id : "dad", steps = luckDue(who);
+  // what is past is forgotten, so the list does not grow
+  if (L.seenLuck && L.seenLuck[who]) { Object.keys(L.seenLuck[who]).forEach(k => { if (k.slice(0, 10) < TODAY) delete L.seenLuck[who][k]; }); }
+  if (!steps.length) return false;
+  LUCK = { steps, i: 0, viewer, who, preview: false, back: view };
+  renderLuck();
+  return true;
+}
+function renderLuck() {
+  const X = LUCK, g = X.steps[X.i], v = X.viewer, girls = g.who.map(profile).filter(Boolean), today = g.date === TODAY && !X.preview;
+  const mine = !!v && g.who.includes(v.id), when = today ? "היום" : "מחר", subj = SUBJ[g.subj] || g.subj;
+  if (!X.preview) { L.seenLuck = L.seenLuck || {}; const m = L.seenLuck[X.who] = L.seenLuck[X.who] || {}; g.who.forEach(id => { m[luckId({ date: g.date, subj: g.subj, p: id })] = 1; }); save(); }
+  applyAura(auraOf(girls[0])); auraMood({ calm: 0.1, energy: 0.9, gold: 0.25 });
+  const line = mine ? (girls.length > 1 ? "בהצלחה לשתיכן. כולנו מחזיקים אצבעות." : "כולנו מחזיקים לך אצבעות.")
+    : girls.length > 1 ? `${joinHe(girls.map(p => esc(p.name)))} נבחנות ${when}. שווה לאחל להן בהצלחה.` : `${esc(girls[0].name)} נבחנת ${when}. שווה לאחל לה בהצלחה.`;
+  const last = X.i === X.steps.length - 1;
+  layer.innerHTML = `<div class="ceremony luckpop n${Math.min(3, girls.length)}" role="dialog" aria-modal="true" aria-label="בהצלחה במבחן">
+    ${X.preview ? `<span class="chip warn">תצוגה מקדימה</span>` : ""}
+    <span class="eyebrow">Good luck</span>
+    <div class="luckbox"><canvas class="luckcv" data-n="${girls.length}" aria-hidden="true"></canvas>
+      <div class="luckavs">${girls.map((p, i) => `<span class="luckav" style="animation-delay:${0.25 + i * 0.14}s">${avatar(p, (girls.length > 2 ? "lg" : "xl") + " ring")}<b>${esc(p.name)}</b></span>`).join("")}</div></div>
+    <h2 class="display">בהצלחה במבחן ב${esc(subj)} ${when}!</h2>
+    <p class="muted">${line}</p>
+    <p class="small faint">${dateHe(g.date)}${g.notes.length ? ` · ${g.notes.map(esc).join(" · ")}` : ""}</p>
+    <button type="button" class="btn btn-primary" data-act="luckNext">${!last ? "המשך" : mine ? "תודה" : "בהצלחה!"}</button></div>`;
+  paintArt(layer);
+  const a = AURAS[auraOf(girls[0])].c;
+  SFX.good(); buzz([15, 40, 15]);
+  setTimeout(() => { if (LUCK === X && X.steps[X.i] === g) comet(a); }, 500);
+  setTimeout(() => {
+    const cv = $(".luckcv", layer);
+    if (LUCK !== X || X.steps[X.i] !== g || !cv) return;
+    const r = cv.getBoundingClientRect();
+    sparks(r.left + r.width / 2, r.top + r.height * 0.42, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], 110, 8); SFX.done();
+  }, 1500);
+}
+function closeLuck() {
+  const X = LUCK;
+  LUCK = null; layer.innerHTML = "";
+  if (!X) return;
+  if (X.preview || !X.viewer) { applyAura("chrome"); show("parent"); return; }
+  applyAura(auraOf(X.viewer)); show(X.back === "parent" ? "home" : X.back);
+}
+/* The wreath: two branches of leaves that grow from the foot up each side of her photo, a light running along them
+ * once they are grown, and motes rising behind. Drawn in the colours on screen (hers). */
+function liveLuck(cv) {
+  const { ctx, W, H } = sized(cv), n = Math.max(1, +cv.dataset.n || 1), cx = W / 2, cy = H / 2 - 12;
+  const rx = Math.min(W / 2 - 22, n === 1 ? 92 : n === 2 ? 152 : 164), ry = n === 1 ? 92 : n === 2 ? 92 : 76;
+  const cols = [cssVar("--a1") || "#A855F7", cssVar("--a2") || "#EC4899", cssVar("--a3") || "#6366F1"];
+  const per = n === 1 ? 12 : 16, leaves = [];
+  // A pair of leaves at each node of a branch, one leaning out and one in. A node at angle a on the left branch
+  // (90° is the foot, 270° the top), mirrored for the right one; the leaves get smaller toward the tip.
+  for (const side of [-1, 1]) for (let i = 0; i < per; i++) {
+    const a = (99 + (i + 0.5) / per * 150) * Math.PI / 180, ex = Math.cos(a) * rx, ey = Math.sin(a) * ry, tx = -Math.sin(a) * rx, ty = Math.cos(a) * ry;
+    const along = Math.atan2(ty, side < 0 ? tx : -tx), size = 1 - 0.3 * (i / per);
+    for (const lean of [1, -1]) leaves.push({ i, x: cx + (side < 0 ? ex : -ex), y: cy + ey, dir: along + lean * 0.62 * (side < 0 ? 1 : -1),
+      at: 0.3 + i * 0.065 + (lean < 0 ? 0.05 : 0), len: (lean > 0 ? 23 : 18) * size, c: cols[(i + (lean > 0 ? 0 : 1)) % 3] });
+  }
+  const motes = Array.from({ length: 26 }, (_, i) => { const r = rng(hash("mote" + i)); return { x: r() * W, s: 1 + r() * 2.2, v: 14 + r() * 22, p: r() * 10, c: i % 4 === 3 ? "#ffffff" : cols[i % 3], sw: 6 + r() * 12 }; });
+  const grown = 0.3 + per * 0.065 + 0.55;
+  animate(cv, t => {
+    ctx.clearRect(0, 0, W, H);
+    motes.forEach(m => {
+      const life = ((t * m.v / (H + 20)) + m.p) % 1, y = H + 10 - life * (H + 20);
+      ctx.globalAlpha = Math.sin(life * Math.PI) * 0.5; ctx.fillStyle = m.c;
+      ctx.beginPath(); ctx.arc(m.x + Math.sin(t * 0.8 + m.p * 7) * m.sw, y, m.s, 0, 7); ctx.fill();
+    });
+    // the two stems, as far as the leaves have come
+    const k = Math.max(0, Math.min(1, (t - 0.2) / (per * 0.065 + 0.3)));
+    ctx.lineWidth = 2.4; ctx.lineCap = "round";
+    for (let side = -1; side <= 1; side += 2) {
+      const g = ctx.createLinearGradient(cx, cy + ry, cx, cy - ry); g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
+      ctx.strokeStyle = g; ctx.globalAlpha = 0.8; ctx.beginPath();
+      for (let j = 0; j <= 40 * k; j++) { const a = (93 + j / 40 * 156) * Math.PI / 180, ex = Math.cos(a) * rx, ey = Math.sin(a) * ry; ctx[j ? "lineTo" : "moveTo"](cx + (side < 0 ? ex : -ex), cy + ey); }
+      ctx.stroke();
+    }
+    leaves.forEach(l => {
+      const e = easeOut((t - l.at) / 0.45);
+      if (e <= 0) return;
+      const glow = t > grown ? Math.max(0, Math.sin(t * 2.2 - l.i * 0.42)) : 0;
+      ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.dir); ctx.scale(e, e);
+      ctx.globalAlpha = 0.72 + 0.28 * glow; ctx.fillStyle = l.c;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(l.len * 0.45, -l.len * 0.42, l.len, 0); ctx.quadraticCurveTo(l.len * 0.45, l.len * 0.42, 0, 0); ctx.fill();
+      if (glow > 0.05) { ctx.globalAlpha = glow * 0.55; ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(l.len * 0.15, 0); ctx.quadraticCurveTo(l.len * 0.5, -l.len * 0.16, l.len * 0.85, 0); ctx.quadraticCurveTo(l.len * 0.5, l.len * 0.1, l.len * 0.15, 0); ctx.fill(); }
+      ctx.restore();
+    });
+    ctx.globalAlpha = 1;
+  }, 40);
+}
 
 /* ---------- the formula sheet (the eldest, 2026-11-22) ----------
  * In a math test her class is handed a sheet of formulas, and the app asked the same questions without it: her
@@ -2190,6 +2301,15 @@ document.addEventListener("click", async e => {
     case "popToken": popToken(); break;
     case "popNext": if (POP.i < POP.steps.length - 1) { POP.i++; renderPop(); } else closePops(); break;
     case "popRecap": closePops("recap"); break;
+    case "luckNext": if (LUCK && LUCK.i < LUCK.steps.length - 1) { LUCK.i++; renderLuck(); } else closeLuck(); break;
+    case "luckPreview": {
+      const up = tests().filter(t => t.date >= TODAY && profile(t.p)).sort((a, b) => a.date < b.date ? -1 : 1)[0];
+      const same = up ? tests().filter(t => t.date === up.date && t.subj === up.subj && profile(t.p)) : [];
+      const g = up ? { date: up.date, subj: up.subj, who: [...new Set(same.map(t => t.p))], notes: [...new Set(same.map(t => t.note).filter(Boolean))] }
+        : { date: addDays(TODAY, 1), subj: "math", who: [FAM.profiles[0].id], notes: [] };
+      LUCK = { steps: [g], i: 0, viewer: null, who: "dad", preview: true, back: "parent" };
+      renderLuck(); break;
+    }
     case "savePrizes": {
       const v = { prize5: $("#p5").value.trim(), prize10: $("#p10").value.trim(), goalReward: $("#pg").value.trim() };
       if (LIVE) { try { await api("settings", Object.assign({ pin: parentPin }, v)); await refresh(); } catch (err) { toast("לא נשמר. נסה שוב."); break; } }

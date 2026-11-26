@@ -534,3 +534,20 @@ button.chip{min-height:44px;padding:4px 14px}
 .btn[data-wait]{opacity:.7;animation:waitpulse 1.3s ease-in-out infinite}
 @keyframes waitpulse{50%{opacity:.4}}
 @media (prefers-reduced-motion: reduce){.btn[data-wait]{animation:none}}
+/* good luck, the day before an exam */
+.ceremony.luckpop{gap:10px}
+.ceremony.luckpop>*{animation:rise .55s var(--ease) backwards}
+.ceremony.luckpop>h2{animation-delay:.75s}
+.ceremony.luckpop>p{animation-delay:.95s}
+.ceremony.luckpop .btn{animation:rise .5s var(--ease) 1.25s backwards;margin-top:8px;min-width:200px}
+.ceremony.luckpop .display{font-size:40px;line-height:1.1;max-width:340px;text-wrap:balance}
+.luckbox{position:relative;width:100%;max-width:372px;height:248px;display:grid;place-items:center}
+.luckcv{position:absolute;inset:0;width:100%;height:100%}
+.luckavs{position:relative;display:flex;gap:18px;justify-content:center;align-items:flex-start;margin-top:-4px}
+.luckav{display:flex;flex-direction:column;align-items:center;gap:8px;animation:luckin .7s cubic-bezier(.2,1.5,.4,1) backwards}
+.luckav b{font-size:15px;font-weight:600}
+.luckpop .av.xl,.luckpop .av.lg{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--hair-hi),0 0 60px -6px var(--a1)}
+.luckpop.n2 .av.xl{--s:102px}
+.luckpop.n1 .av.xl{--s:110px}
+@keyframes luckin{from{opacity:0;transform:scale(.55)}}
+@media (max-height:700px){.luckbox{height:200px}.ceremony.luckpop .display{font-size:34px}.luckpop .av.xl{--s:92px}}
