@@ -442,6 +442,75 @@ function weeksOf(pid) {
   return { full, streak, now, left: PATH.every - full % PATH.every };
 }
 
+/* ---------- the sisters' streak (2026-11-26) ----------
+ * The board ranks them, and a ranking lifts whoever leads and discourages whoever is last. This is the one count
+ * they can only raise together: a week in which every sister has a full week (five days played) is a week of
+ * theirs, and the weeks in a row are the streak. Weeks, not days: five days of seven is the app's rule, and a
+ * streak of days would break on a rest day and set them blaming each other. Duolingo found that people who share a
+ * streak with a friend are 22% likelier to do their day's lesson. The Sheet sends the weeks before this one
+ * (state's `sis`); this week is counted here, with each sister's days so far. */
+function sisOf() {
+  const girls = FAM.profiles;
+  if (girls.length < 2) return null;
+  const pl = girls.map(p => playedDays(p.id)), cur = weekStart(TODAY), sv = LIVE && FAM.sis;
+  const inWeek = (i, w) => { let n = 0; for (let d = 0; d < 7; d++) if (pl[i].has(addDays(w, d))) n++; return n; };
+  let full = 0, streak = 0;
+  if (sv) { full = +sv.full || 0; streak = +sv.streak || 0; }
+  else {
+    const first = LIVE ? PATH.start : weekStart(pl.flatMap(x => [...x]).sort()[0] || TODAY);
+    for (let w = first; w < cur; w = addDays(w, 7)) { if (girls.every((_, i) => inWeek(i, w) >= POINTS.weekDays)) { full++; streak++; } else streak = 0; }
+  }
+  const now = girls.map((p, i) => ({ p, n: cur >= PATH.start || !LIVE ? inWeek(i, cur) : 0 })), done = now.every(x => x.n >= POINTS.weekDays);
+  if (done) { full++; streak++; }
+  return { full, streak, now, done };
+}
+const sisDots = n => `<span class="sdots" role="img" aria-label="${Math.min(n, 5)} מתוך 5 ימים">${[0, 1, 2, 3, 4].map(i => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</span>`;
+function sisCard() {
+  const x = sisOf();
+  if (!x) return "";
+  const left = x.now.filter(g => g.n < POINTS.weekDays);
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Sisters' streak</span>
+      <span class="streak" style="gap:6px"><span class="flame ${x.streak ? "on" : ""}">${ICON.flame}</span><b class="n num">${x.streak}</b><span class="small muted">${x.streak === 1 ? "שבוע של שלושתכן" : "שבועות של שלושתכן ברצף"}</span></span></div>
+    ${x.now.map(g => { const a = AURAS[auraOf(g.p)]; return `<div class="sisrow" style="--a1:${a.c[0]};--a2:${a.c[1]}">${avatar(g.p, "sm")}<b>${esc(g.p.name)}</b>${sisDots(g.n)}<span class="small ${g.n >= 5 ? "good-t" : "muted"} num" dir="ltr">${Math.min(g.n, 5)}/5</span></div>`; }).join("")}
+    <p class="small muted">${x.done ? "השבוע הזה כבר של שלושתכן." : `שבוע שבו כל אחת משחקת חמישה ימים מוסיף לרצף. ${left.length === 1 ? `חסרים רק הימים של ${esc(left[0].p.name)}.` : "אף אחת לא יכולה לבד."}`}</p></section>`;
+}
+/* Her own last week, to beat (the board shows who leads; this shows whether she is ahead of herself). The points of
+ * the days played this week so far, against last week up to the same weekday, and against all of last week; the
+ * week's bonus is left out of both. */
+function daysScore(pid, from, to) {
+  const by = {};
+  rows().forEach(r => {
+    if (r.p !== pid || r.d < from || r.d > to || r.r === 2) return;
+    const e = by[r.d] || (by[r.d] = { reg: 0, ok: 0, revOk: 0, fix: 0 });
+    if (r.r === 3) e.fix++; else if (r.r) { if (r.ok) e.revOk++; } else { e.reg++; if (r.ok) e.ok++; }
+  });
+  let pts = 0, days = 0;
+  Object.keys(by).forEach(d => { if (by[d].reg >= 5) { pts += dayPoints(by[d], pointsOf(d.slice(0, 7))); days++; } });
+  return { pts, days };
+}
+function versusSelf(pid) {
+  const cur = weekStart(TODAY), dow = NOW.getDay();
+  return { now: daysScore(pid, cur, TODAY), then: daysScore(pid, addDays(cur, -7), addDays(cur, dow - 7)), last: daysScore(pid, addDays(cur, -7), addDays(cur, -1)) };
+}
+function selfLine(pid) {
+  const v = versusSelf(pid);
+  if (!v.last.days) return "";
+  const d = v.now.pts - v.then.pts;
+  if (v.now.pts > v.last.pts) return `<span class="good-t">כבר עברת את כל השבוע שעבר שלך</span> <span class="muted num" dir="ltr">${v.now.pts} / ${v.last.pts}</span>`;
+  if (d > 0) return `<span class="good-t"><bdi dir="ltr">+${d}</bdi> נקודות מול השבוע שעבר שלך, עד אותו יום</span>`;
+  return `<span class="muted">השבוע שעבר שלך, עד היום ${DAYS_FULL[NOW.getDay()]}: <b class="num">${v.then.pts}</b> נק׳. השבוע: <b class="num">${v.now.pts}</b>.</span>`;
+}
+function selfCard() {
+  const list = FAM.profiles.map(p => [p, versusSelf(p.id)]).filter(([, v]) => v.last.days || v.now.days);
+  if (!list.length) return "";
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Against yourself</span><span class="small muted">השבוע מול השבוע שעבר, עד אותו יום</span></div>
+    ${list.map(([p, v]) => { const d = v.now.pts - v.then.pts, a = AURAS[auraOf(p)], top = Math.max(v.now.pts, v.last.pts, 1);
+      return `<div class="selfrow" style="--a1:${a.c[0]};--a2:${a.c[1]}"><div class="row"><span class="nm">${dot(p)}<b>${esc(p.name)}</b></span>
+          <span class="small num" dir="ltr">${v.now.pts}${d > 0 ? ` <span class="good-t">+${d}</span>` : ""}</span></div>
+        <div class="selfbar"><i style="width:${v.now.pts / top * 100}%"></i><u style="inset-inline-start:${v.then.pts / top * 100}%"></u></div></div>`; }).join("")}
+    <p class="small faint">הפס הוא הנקודות של השבוע עד היום. הקו הוא איפה שהיית באותו יום בשבוע שעבר: לעבור אותו זה להשתפר מול עצמך, בלי קשר למקום בטבלה.</p></section>`;
+}
+
 /* ---------- what she knows: the map (Avsha, 2026-11-14) ----------
  * A topic fills with right answers on three different days, in the five, a revenge round or practice: the goal the
  * app shows beside the points is knowing the material. The Sheet sends the days older than the rows the phone holds. */
@@ -456,18 +525,29 @@ function knowOf(prof) {
   new Set(Object.keys(older).concat(Object.keys(days))).forEach(k => { out[k] = (+older[k] || 0) + (days[k] ? days[k].size : 0); });
   return out;
 }
+/* A topic she knows fades (2026-11-26): four weeks with no right answer in it, and its star dims on the map until
+ * one right answer, anywhere, lights it again. Coming back to a thing after a gap is one of the two best-supported
+ * ways to keep it (the other, being tested on it, is what the app does all day), and the map only ever filled.
+ * The phones hold at least four weeks of rows, so a topic with no right answer among them has faded. */
+const FADE = { days: 28 };
+function knowLast(prof) {
+  const last = {};
+  rows().forEach(r => { if (r.p !== prof.id || !r.ok) return; const k = r.pool + "|" + (QIDX[r.q] ? QIDX[r.q].topic : r.t); if (!(last[k] >= r.d)) last[k] = r.d; });
+  return last;
+}
+const fadedIn = (know, last, k) => (know[k] || 0) >= KNOW && !(last[k] && daysBetween(last[k], TODAY) <= FADE.days);
 function topicsOf(prof, pool) {
   const all = [...new Set((BANKS[pool] || []).map(q => q.topic))], lim = (STUDYING[prof.track] || {})[pool];
   return lim ? lim.filter(t => all.includes(t)) : all;
 }
 /* Her pools, the one with an exam this week first, each with its topics and how many are known. */
 function knowMap(prof) {
-  const know = knowOf(prof), test = activeTest(prof, TODAY), tp = test && poolFor(prof, test.subj);
+  const know = knowOf(prof), last = knowLast(prof), test = activeTest(prof, TODAY), tp = test && poolFor(prof, test.subj);
   const pools = trackPools(prof.track).filter(p => (BANKS[p] || []).length);
   if (tp) pools.sort((a, b) => (b === tp) - (a === tp));
   return pools.map(pool => {
-    const topics = topicsOf(prof, pool).map(t => ({ t, n: Math.min(KNOW, know[pool + "|" + t] || 0) }));
-    return { pool, test: pool === tp ? test : null, topics, known: topics.filter(x => x.n >= KNOW).length };
+    const topics = topicsOf(prof, pool).map(t => ({ t, n: Math.min(KNOW, know[pool + "|" + t] || 0), fade: fadedIn(know, last, pool + "|" + t) }));
+    return { pool, test: pool === tp ? test : null, topics, known: topics.filter(x => x.n >= KNOW && !x.fade).length, fading: topics.filter(x => x.fade).length };
   }).filter(x => x.topics.length);
 }
 
@@ -484,7 +564,8 @@ function practiceLeft(pid) {
   return Math.max(0, (activeTest(profile(pid), TODAY) ? PRACTICE.examRounds : PRACTICE.rounds) - Math.ceil(done / PRACTICE.n));
 }
 function practiceSet(prof) {
-  const all = rows(), today = new Set(), last = {}, theirs = new Set(), know = knowOf(prof);
+  const all = rows(), today = new Set(), last = {}, theirs = new Set(), know = knowOf(prof), lastOk = knowLast(prof);
+  const faded = q => fadedIn(know, lastOk, q.pool + "|" + q.topic);
   const pools = trackPools(prof.track).filter(p => (BANKS[p] || []).length);
   const sis = new Set(pools.flatMap(p => sharers(prof, p).map(x => x.id)).filter(id => id !== prof.id));
   all.forEach(r => {
@@ -497,10 +578,11 @@ function practiceSet(prof) {
   const seen = Object.keys(last).map(id => QIDX[id]).filter(can);
   const missed = seen.filter(q => !last[q.id].ok).sort(old);
   const learning = seen.filter(q => last[q.id].ok && days(q) < KNOW).sort(old);
-  const fresh = shuffle(pools.flatMap(p => shareOf(prof, p)).filter(q => can(q) && !last[q.id] && !theirs.has(q.id) && days(q) < KNOW),
-                        rng(hash("practice|" + prof.id + "|" + TODAY))).sort((a, b) => days(a) - days(b));
-  const known = seen.filter(q => last[q.id].ok && days(q) >= KNOW).sort(old);
-  let list = missed.concat(learning, fresh, known);
+  const fresh = shuffle(pools.flatMap(p => shareOf(prof, p)).filter(q => can(q) && !last[q.id] && !theirs.has(q.id) && (days(q) < KNOW || faded(q))),
+                        rng(hash("practice|" + prof.id + "|" + TODAY))).sort((a, b) => faded(b) - faded(a) || days(a) - days(b));
+  const fading = seen.filter(q => last[q.id].ok && faded(q)).sort(old);
+  const known = seen.filter(q => last[q.id].ok && days(q) >= KNOW && !faded(q)).sort(old);
+  let list = missed.concat(fading, learning, fresh, known);
   const test = activeTest(prof, TODAY), tp = test && poolFor(prof, test.subj);
   if (tp) list = list.filter(q => q.pool === tp).concat(list.filter(q => q.pool !== tp));
   // An exam with known topics: what she missed in them, then what she has not met (a known topic's too: the exam
@@ -1229,13 +1311,13 @@ function liveSky(cv) {
     x.topics.forEach((tp, j) => {
       const a = spin + j * 2.39996, d = 7 + 11.5 * Math.sqrt(j + 0.3), key = x.pool + "|" + tp.t;
       const st = { x: Math.max(8, Math.min(W - 8, cx + Math.cos(a) * d * 1.25)), y: Math.max(8, Math.min(H - 20, cy + Math.sin(a) * d * 0.85)), n: tp.n, ph: r() * 6, i: stars.length, g: i,
-                   nova: tp.n >= KNOW && !seen.has(key) && !first };
-      if (tp.n >= KNOW) nowKnown.push(key);
+                   fade: !!tp.fade, nova: tp.n >= KNOW && !tp.fade && !seen.has(key) && !first };
+      if (tp.n >= KNOW && !tp.fade) nowKnown.push(key);
       stars.push(st);
     });
   });
   L.sky[p.id] = nowKnown; save();
-  const lines = map.map((x, i) => stars.filter(st => st.g === i && st.n >= KNOW).sort((a, b) => Math.atan2(a.y - x.at[1], a.x - x.at[0]) - Math.atan2(b.y - x.at[1], b.x - x.at[0])));
+  const lines = map.map((x, i) => stars.filter(st => st.g === i && st.n >= KNOW && !st.fade).sort((a, b) => Math.atan2(a.y - x.at[1], a.x - x.at[0]) - Math.atan2(b.y - x.at[1], b.x - x.at[0])));
   const novas = stars.filter(st => st.nova);
   if (novas.length && !REDUCED) setTimeout(() => { if (!cv.isConnected) return; const b = cv.getBoundingClientRect(); novas.forEach(st => sparks(b.left + st.x, b.top + st.y, [cols[0], cols[1], "#ffffff", "#F2C56B"], 40, 4)); SFX.good(); }, 1500);
   animate(cv, t => {
@@ -1250,7 +1332,11 @@ function liveSky(cv) {
     for (const st of stars) {
       const born = Math.max(0, Math.min(1, (t - st.i * 0.022) / 0.5)), tw = 0.72 + 0.28 * Math.sin(t * (1.1 + (st.i % 4) * 0.35) + st.ph);
       if (!born) continue;
-      if (st.n >= KNOW) {
+      if (st.fade) {   // a star that has faded: its outline, breathing slowly, waiting to be lit again
+        const R = (5.5 + 1.2 * Math.sin(t * 0.9 + st.ph)) * born;
+        ctx.globalAlpha = born * 0.5; ctx.strokeStyle = cols[st.i % 2]; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(st.x, st.y, R, 0, 7); ctx.stroke();
+        ctx.globalAlpha = born * 0.35; ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(st.x, st.y, 1.4, 0, 7); ctx.fill();
+      } else if (st.n >= KNOW) {
         const fl = st.nova ? Math.max(0, 1 - Math.abs(t - 1.6) / 0.9) : 0, R = (11 + 3 * tw + fl * 26) * born, g = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, R);
         g.addColorStop(0, "rgba(255,255,255,.95)"); g.addColorStop(0.18, cols[st.i % 2] + "cc"); g.addColorStop(1, cols[st.i % 2] + "00");
         ctx.globalAlpha = born * (0.75 + 0.25 * tw); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(st.x, st.y, R, 0, 7); ctx.fill();
@@ -1481,7 +1567,8 @@ function renderHome() {
   <section class="glass pad stack"><div class="row"><span class="eyebrow">This week</span><span class="small muted"><b class="num" style="color:var(--text)">${Math.min(wk.n, 5)}/5</b> ימים · שבוע מלא = 15 נק׳</span></div>${wk.html}
     <div class="streak"><span class="flame ${ws.streak ? "on" : ""}">${ICON.flame}</span><b class="n num">${ws.streak}</b>
       <span class="small muted">${ws.streak === 1 ? "שבוע מלא" : "שבועות מלאים ברצף"}</span>${pathDots(ws)}</div>
-    <p class="small faint">חמישה ימים בשבוע מספיקים. אימון או שבת בלי משימה לא שוברים כלום. כל ${PATH.every} שבועות מלאים שווים אסימון: עוד ${ws.left}.</p></section>
+    <p class="small faint">חמישה ימים בשבוע מספיקים. אימון או שבת בלי משימה לא שוברים כלום. כל ${PATH.every} שבועות מלאים שווים אסימון: עוד ${ws.left}.</p>
+    ${homeExtras(p)}</section>
   <div class="stats">
     <div class="glass stat"><b class="num">${st.points}</b><span>נקודות ב${MONTHS[M - 1]}</span></div>
     <div class="glass stat"><b class="num">#${place}</b><span>בטבלה</span></div>
@@ -1497,6 +1584,16 @@ function renderHome() {
   ${LIVE ? "" : `<p class="demo">תצוגה לדוגמה: ההיסטוריה עד היום היא נתוני דוגמה.</p>`}`;
 }
 
+/* Under her week on the home screen: where she stands against her own last week, the sisters' week, and any stars
+ * that have faded on her map. */
+function homeExtras(p) {
+  if (SANDBOX) return "";
+  const self = selfLine(p.id), sis = sisOf(), fading = knowMap(p).reduce((n, x) => n + x.fading, 0);
+  return `${self ? `<p class="small">${self}</p>` : ""}
+    ${sis ? `<button type="button" class="sismini" data-act="tab" data-to="board"><span class="small muted">רצף האחיות <b class="num" style="color:var(--text)">${sis.streak}</b></span>
+      ${sis.now.map(g => { const a = AURAS[auraOf(g.p)]; return `<span class="sm1" style="--a1:${a.c[0]};--a2:${a.c[1]}">${avatar(g.p, "sm")}<span class="num small" dir="ltr">${Math.min(g.n, 5)}/5</span></span>`; }).join("")}</button>` : ""}
+    ${fading ? `<button type="button" class="link" style="align-self:flex-start;min-height:0" data-act="tab" data-to="know">${fading === 1 ? "כוכב אחד דוהה במפה שלך" : `${fading} כוכבים דוהים במפה שלך`}: תשובה נכונה מדליקה מחדש</button>` : ""}`;
+}
 /* Her four-week path: a dot for each full week since the last token. */
 const pathDots = ws => `<span class="path" role="img" aria-label="${ws.full % PATH.every} מתוך ${PATH.every} שבועות מלאים לאסימון">${Array.from({ length: PATH.every }, (_, i) => `<i class="${i < ws.full % PATH.every ? "on" : ""}"></i>`).join("")}</span>`;
 /* An exam entered wrong can be taken off: hers by her, anyone's by Dad (nobody could, 2026-11-14). The script
@@ -1506,7 +1603,7 @@ const delTest = t => canEdit() ? `<button type="button" class="x" data-act="delT
 /* The map: every topic her class has reached, by subject, and how far each is to known. */
 function renderKnow() {
   const p = me(), map = knowMap(p), all = map.reduce((n, x) => n + x.topics.length, 0), known = map.reduce((n, x) => n + x.known, 0);
-  const left = practiceLeft(p.id);
+  const left = practiceLeft(p.id), fading = map.reduce((n, x) => n + x.fading, 0);
   const cta = !canPractice() ? "" : !playedOn(p.id, TODAY) ? `<p class="small faint">אחרי חמש השאלות של היום אפשר לתרגל כאן עוד, בלי נקודות.</p>`
     : left ? `<button type="button" class="btn btn-aura wide" data-act="practice" ${waitAttr()}>${waiting() ? WAIT_TEXT : "לתרגל עכשיו"}</button>
       <p class="small faint">לא חובה. חמש שאלות ממה שעוד לא מלא, בלי נקודות לטבלה; נספר למפה וליעד המשפחתי.</p>`
@@ -1516,10 +1613,11 @@ function renderKnow() {
   <section class="glass pad stack skybox"><canvas class="sky" role="img" aria-label="${known} נושאים שאת יודעת מתוך ${all}"></canvas>
     <div class="row"><span><b class="display num" style="font-size:34px">${known}</b> <span class="muted">מתוך ${all} נושאים</span></span></div>
     <div class="bar"><i style="width:${all ? known / all * 100 : 0}%"></i></div>
-    <p class="small muted">נושא מתמלא אחרי ${KNOW} תשובות נכונות, בשלושה ימים שונים.</p>${cta}</section>
+    <p class="small muted">נושא מתמלא אחרי ${KNOW} תשובות נכונות, בשלושה ימים שונים.</p>
+    ${fading ? `<p class="small"><span class="chip warn">${fading === 1 ? "כוכב אחד דוהה" : `${fading} כוכבים דוהים`}</span> נושא שלא ענית עליו נכון ארבעה שבועות דוהה. תשובה נכונה אחת מדליקה אותו מחדש, והתרגול מביא אותם קודם.</p>` : ""}${cta}</section>
   ${map.map(x => `<section class="glass pad"><div class="row"><b style="font-size:17px">${SUBJ[subjOf(x.pool)]}</b>
       <span class="small muted">${x.test ? `<span class="chip warn">מבחן ${inDays(daysBetween(TODAY, x.test.date))}</span> ` : ""}<b class="num" style="color:var(--text)" dir="ltr">${x.known}/${x.topics.length}</b></span></div>
-    <div class="kts">${x.topics.map(t => ktRow(t.t, t.n)).join("")}</div></section>`).join("")}`;
+    <div class="kts">${x.topics.map(t => ktRow(t.t, t.n, t.fade)).join("")}</div></section>`).join("")}`;
 }
 
 function renderBoard() {
@@ -1541,6 +1639,8 @@ function renderBoard() {
   <header class="month-head"><div><span class="eyebrow">Standings</span><h1 class="display">${MONTHS[M - 1]}</h1></div>
     <span class="small muted">${left > 0 ? `עוד ${left} ימים. ב־1 לחודש המובילה מקבלת אסימון והכול מתאפס.` : "היום האחרון. מחר מתחילים מאפס."}</span></header>
   <ol class="standings">${rowsHTML}</ol>
+  ${SANDBOX ? "" : sisCard()}
+  ${SANDBOX ? "" : selfCard()}
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Family goal</span><span class="num small" dir="ltr"><b>${fam}</b> / ${goal}</span></div>
     <div class="bar"><i style="width:${Math.min(100, fam / goal * 100)}%"></i></div>
     <p class="small muted">${goal} תשובות נכונות של שלושתכן יחד החודש${canPractice() ? ", גם בתרגול" : ""}: ${esc(s.goalReward || "")}.</p></section>
@@ -1744,6 +1844,7 @@ function parentMonth() {
     ${table(["#", "", "נקודות", "ימים", "דיוק", "שבועות", "פער"], rowsHTML)}
     <div class="row small" style="margin-top:6px"><span class="muted">יעד משפחתי · ${esc(s.goalReward || "")}</span><span class="num" dir="ltr"><b>${fam}</b> / ${goal}</span></div>
     <div class="bar"><i style="width:${Math.min(100, fam / goal * 100)}%"></i></div></section>
+  ${sisCard()}
   ${girls}`;
 }
 /* All time: from the Sheet (state's lifetime) when live; from the rows and tokens the app holds in the demo. */
@@ -2394,6 +2495,7 @@ function useFifty() {
 }
 async function finishQuest() {
   const p = me(), day = Q.kind === "day", before = stats(p.id, Y, M), kb = knowOf(p), wb = weeksOf(p.id), add = [];
+  const fadedOf = () => knowMap(p).flatMap(x => x.topics.filter(t => t.fade).map(t => t.t)), fb = fadedOf(), sb = SANDBOX ? null : sisOf();
   Q.items.forEach((it, k) => {
     if (Q.res[k] != null) add.push({ d: TODAY, p: p.id, q: it.q.id, pool: it.q.pool, t: it.q.topic, l: it.q.level, ok: Q.res[k] ? 1 : 0,
                                     r: day ? (it.rev ? 1 : 0) : Q.kind === "fix" ? 3 : 2, s: Q.secs[k] || 0, f: Q.flags[k] ? it.q.q.slice(0, 300) : "" });
@@ -2404,8 +2506,10 @@ async function finishQuest() {
   save();
   const after = stats(p.id, Y, M), ka = knowOf(p), wa = weeksOf(p.id), lvl = n => Math.min(KNOW, n || 0);
   const grew = Object.keys(ka).filter(k => lvl(ka[k]) > lvl(kb[k])).map(k => ({ t: k.slice(k.indexOf("|") + 1), n: lvl(ka[k]) }));
+  const fa = new Set(fadedOf()), relit = fb.filter(t => !fa.has(t)), sa = SANDBOX ? null : sisOf();
+  relit.forEach(t => { if (!grew.some(g => g.t === t)) grew.push({ t, n: KNOW }); });
   if (day) {
-    const tier = renderResult(p, after.points - before.points, after.fullWeeks > before.fullWeeks, after, { grew, wb, wa }), a = AURAS[auraOf(p)].c;
+    const tier = renderResult(p, after.points - before.points, after.fullWeeks > before.fullWeeks, after, { grew, wb, wa, relit, sis: sb && sa && !sb.done && sa.done ? sa : null }), a = AURAS[auraOf(p)].c;
     if (tier) { SFX.done(); buzz([20, 60, 20]); } else buzz(20);
     auraMood({ calm: 0.35, energy: [0.12, 0.45, 0.75, 1][tier], gold: tier === 3 ? 1.3 : 0 });
     if (tier >= 2) setTimeout(() => sparks(innerWidth / 2, innerHeight * 0.28, [a[0], a[1], a[2], "#F2C56B", "#ffffff"], tier === 3 ? 170 : 80, tier === 3 ? 10 : 7), 250);
@@ -2436,7 +2540,7 @@ function flavorBlock(p, items, res, st) {
   return `<figure class="glass piece" style="margin:0"><canvas width="640" height="800" data-art="${p.id}|${TODAY}~${aura}~${regOk}"></canvas>
     <figcaption><b dir="ltr">${names[mod(dayIndex(TODAY), 5)]} in ${AURAS[aura].name}</b><span class="small muted" dir="ltr">Nº ${st.played} · ${regOk}/${reg}</span></figcaption></figure>`;
 }
-const ktRow = (t, n) => `<div class="kt ${n >= KNOW ? "known" : n ? "" : "new"}"><bdi>${esc(t)}</bdi><span class="pips" role="img" aria-label="${n} מתוך ${KNOW}">${[1, 2, 3].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span></div>`;
+const ktRow = (t, n, fade) => `<div class="kt ${fade ? "fade" : n >= KNOW ? "known" : n ? "" : "new"}"><bdi>${esc(t)}</bdi><span class="ktend">${fade ? `<span class="small faint">דוהה</span>` : ""}<span class="pips" role="img" aria-label="${fade ? "דוהה" : `${n} מתוך ${KNOW}`}">${[1, 2, 3].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span></span></div>`;
 const reviewList = () => Q.items.map((it, k) => Q.res[k] == null ? "" : `<div class="rv"><span class="mk ${Q.res[k] ? "ok" : "no"}">${Q.res[k] ? "✓" : "✗"}</span>
     <span class="t"><b>${SUBJ[subjOf(it.q.pool)]} · ${esc(it.q.topic)}${it.rev ? " · נקמה" : ""}</b>${!Q.res[k] && Q.fixed[k] ? ` <span class="small faint">תיקנת</span>` : ""}<br><span class="muted" ${it.q.ltr ? 'dir="ltr"' : ""}>${fmt(it.q.q)}</span></span></div>`).join("");
 /* The screen after the five follows the score (Avsha, 2026-11-14: one right of six got the same big gradient number
@@ -2449,8 +2553,10 @@ function renderResult(p, gained, weekBonus, st, x) {
   if (tier === 3 && POINTS.perfect) notes.push(`יום מושלם: עוד ${POINTS.perfect} נקודות.`);
   if (tier === 0) notes.push("יום קשה. את מה שפספסת כבר תיקנת, וזה יחזור שוב בסיבוב נקמה.");
   if (x.wa.full > x.wb.full) notes.push(`שבוע מלא${x.wa.streak > 1 ? `, ${x.wa.streak} ברצף` : ""}. ${x.wa.full % PATH.every ? `עוד ${x.wa.left} לאסימון.` : "ארבעה שבועות מלאים: אסימון חדש בכספת."}`);
-  const got = x.grew.filter(g => g.n >= KNOW);
+  if (x.sis) notes.push(`<b>שבוע של שלושתכן.</b> היום שלך השלים אותו${x.sis.streak > 1 ? `: רצף האחיות עומד על ${x.sis.streak} שבועות` : ""}.`);
+  const got = x.grew.filter(g => g.n >= KNOW && !(x.relit || []).includes(g.t));
   if (got.length) notes.push(`במפה שלך, עכשיו את יודעת: ${got.map(g => esc(g.t)).join(", ")}.`);
+  if ((x.relit || []).length) notes.push(`הדלקת מחדש במפה: ${x.relit.map(esc).join(", ")}.`);
   if (fast >= RUSH.n) notes.push(`${fast} תשובות בפחות מ־${RUSH.secs} שניות. שווה לקרוא עד הסוף.`);
   const review = `<section class="glass pad review"><span class="eyebrow">Today</span>${reviewList()}
       ${Q.res.some(r => r === false) ? `<p class="small faint">מה שפספסת חוזר בעוד יומיים, בסיבוב נקמה.</p>` : ""}</section>`;
@@ -2830,7 +2936,7 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, me, family: () => FAM, bank: p => BANKS[p] };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

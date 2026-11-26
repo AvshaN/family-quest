@@ -563,3 +563,23 @@ button.chip{min-height:44px;padding:4px 14px}
 .trend{width:100%;height:auto;display:block}
 .trend .tg{stroke:var(--hair);stroke-width:1}
 .trend .tt{fill:var(--text-3);font-size:9.5px;font-family:inherit}
+/* a star that has faded on the map */
+.ktend{display:inline-flex;align-items:center;gap:8px;flex:none}
+.kt.fade{color:var(--text-2)}
+.kt.fade .pips i.on{background:transparent;box-shadow:inset 0 0 0 1px var(--a1);animation:fadepip 2.6s ease-in-out infinite}
+@keyframes fadepip{50%{opacity:.35}}
+/* the sisters' streak, and each against her own last week */
+.sisrow{display:flex;align-items:center;gap:10px}
+.sisrow b{flex:1;min-width:0;font-weight:600}
+.sdots{display:inline-flex;gap:5px;flex:none}
+.sdots i{width:22px;height:7px;border-radius:99px;background:rgba(255,255,255,.14)}
+.sdots i.on{background:linear-gradient(90deg,var(--a1),var(--a2))}
+.sismini{display:flex;align-items:center;gap:12px;width:100%;padding:10px 0 0;border-top:1px solid var(--hair);text-align:start}
+.sismini>span:first-child{flex:1}
+.sm1{display:inline-flex;align-items:center;gap:5px}
+.sm1 .av.sm{--s:26px;font-size:12px}
+.selfrow{display:flex;flex-direction:column;gap:6px}
+.selfbar{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.1)}
+.selfbar i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:99px;background:linear-gradient(90deg,var(--a1),var(--a2))}
+.selfbar u{position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:2px;background:#fff;text-decoration:none;transform:translateX(50%)}
+@media (prefers-reduced-motion: reduce){.kt.fade .pips i.on{animation:none}}
