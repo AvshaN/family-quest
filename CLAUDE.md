@@ -597,7 +597,14 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   weight every third of a second. Three tries were sent to him to hear
   (`make ... --to=DIR` writes a try outside `audio/`): his recording twice
   as fast; each of his four steps sped up 2.2 times and set three a second
-  from 0.083 s ("small paws"); the same at 3.2 times ("tiny paws"). When he
+  from 0.083 s ("small paws"); the same at 3.2 times ("tiny paws"). He
+  answered with a second recording, `steps.wav` (an upload too: "still too
+  bassy but better than the current, please try to modify it"): the same
+  four thumps 0.8 s apart, strongest at 50 Hz, with more of them between
+  300 and 1000 Hz. Three tries of it went to him, each with what is under
+  250 Hz taken off (`highpass=250` on the piece and `--highpass=250` over
+  it: under 300 Hz falls from about half to 7%): A at its own pace, B its
+  four steps set three a second, C like B at `speed=1.5`. When he
   picks: make `pet_walk` as one 2 s loop (six steps at 0.083 + k/3 in an
   arrangement of 2.06 s with `--loop=0.06`, so the part that repeats is
   the motion's own two seconds), `table`, `check`, the sound walk without
