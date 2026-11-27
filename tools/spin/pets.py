@@ -32,6 +32,11 @@ CLIPS = {
     # passed under it sideways, "crab style" (Avsha, 2026-11-27). ("walk", the front view, is no longer drawn or used.)
     "stroll": ("62", 0, None, ["--turn=-58"]),
     "flip":   ("452", 0, None, ["--rise=0.5", "--eyes=happy"]),
+    # asleep in its bed (Avsha, 2026-11-27: "the creature lays in it comfortably"): the end of Meshy's "stand to side
+    # lying", curled up on its side, turned to face us. Lying, it is long and low and its head is far from its hips,
+    # so it is set back in the middle of its frame with its underside where its feet stand (lying(), kept in
+    # cams.json as bedx, bedy for the outfits' layers).
+    "abed":   ("370", 9.0, 9.05, ["--eyes=closed", "--turn=-90"]),
 }
 cams = {}
 kinds = sys.argv[2].split(",") if len(sys.argv) > 2 and sys.argv[2] != "all" else KINDS
@@ -39,6 +44,18 @@ only = sys.argv[3].split(",") if len(sys.argv) > 3 else None
 counts = {}
 def node(*a): return subprocess.run(["node", os.path.join(HERE, "clip.js"), *a], capture_output=True, text=True)
 def info(glb, *a): return json.loads(node(glb, "--info", *a).stdout.strip().splitlines()[-1])
+def lying(glb, c, t):
+    """How far a creature lying on its side must be moved (right, up) to be in the middle of its frame, on its floor."""
+    import tempfile
+    tmp, far, size = tempfile.mkdtemp(prefix="lie_"), c["d"] * 2.2, 408
+    r = node(glb, tmp, f"--from={t}", f"--to={t + 0.04}", f"--fps={FPS}", f"--d={far}", f"--aim={c['aim']}", f"--size={size}", "--turn=-90")
+    files = sorted(f for f in os.listdir(tmp) if f.endswith(".png"))
+    if r.returncode or not files: sys.exit(f"lying: {r.stdout[-300:]} {r.stderr[-300:]}")
+    x0, y0, x1, y1 = Image.open(os.path.join(tmp, files[0])).convert("RGBA").getchannel("A").point(lambda v: 255 if v > 40 else 0).getbbox()
+    V = far * TAN2; px = V / size; Vc = c["d"] * TAN2
+    low, floor = c["aim"] + V / 2 - y1 * px, c["aim"] - Vc / 2 + 0.07 * Vc
+    return round((size / 2 - (x0 + x1) / 2) * px, 3), round(floor - low, 3)
+beds = {}
 for kind in kinds:
     # The camera: it stands 70% of the frame tall, its feet 8% up from the foot (room above for a jump), and far
     # enough that its dance stays inside the frame's width.
@@ -62,6 +79,8 @@ for kind in kinds:
             for lift in (0.5, 0.45, 0.4, 0.35, 0.3):
                 if max(info(glb, f"--rise={lift}")["tops"]) <= c["top"] - 0.02: break
             opts.append(f"--rise={lift}")
+        if name == "abed":
+            beds[kind] = lying(glb, c, a); opts += [f"--shift={beds[kind][0]}", f"--raise={beds[kind][1]}"]
         frames = os.path.join(ANIM, "_frames", kind, name)
         cmd = [glb, frames, f"--from={a}", f"--fps={FPS}"] + cam + opts + ([f"--to={b}"] if b is not None else [])
         r = node(*cmd)
@@ -77,4 +96,9 @@ for kind in kinds:
         total += os.path.getsize(dest); counts.setdefault(name, set()).add(len(files))
         print(f"{kind}/{name}: {len(files)} frames, {os.path.getsize(dest) // 1024} KB" + (f" (lift {lift})" if lift is not None else ""), flush=True)
     print(f"== {kind}: {total // 1024} KB", flush=True)
+if beds:   # where each lies, for the outfits' layers (wear.py reads cams.json)
+    path = os.path.join(HERE, "cams.json"); cj = json.load(open(path))
+    for kind, (sx, up) in beds.items(): cj[kind]["bedx"], cj[kind]["bedy"] = sx, up
+    open(path, "w").write("{\n" + ",\n".join(f' {json.dumps(k) + ":":<10} ' + json.dumps(v).replace("{", "{ ").replace("}", " }") for k, v in cj.items()) + "\n}\n")
+    print("lying places:", beds)
 print("PET_CLIPS", json.dumps({k: sorted(v) for k, v in counts.items()}), "fps", FPS)

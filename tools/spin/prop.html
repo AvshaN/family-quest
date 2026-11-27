@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
+</head>
+<body>
+<script type="module">
+// A thing a creature sits in or on (a bath, a bed, a seesaw): a Meshy model drawn from the creatures' own camera and
+// light (clip.html), whole and in two halves, so that the creature can be drawn between them and looks as if it is
+// inside. window.shot("full" | "back" | "front" | "above" | "below") returns a PNG: back and front are what lies
+// behind and before the plane z = split (a share of its depth from its middle, -0.5 to 0.5); above and below are the
+// parts over and under the height y = level (a share of its height), for a seesaw's plank and its base.
+// Options: size, yaw, tilt, fill, split, level, exposure.
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+const Q = new URLSearchParams(location.search), num = (k, d) => Q.has(k) ? +Q.get(k) : d;
+const SIZE = num("size", 900);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setSize(SIZE, SIZE); renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = num("exposure", 1.05);
+renderer.setClearColor(0x000000, 0); renderer.localClippingEnabled = false;
+document.body.appendChild(renderer.domElement);
+renderer.domElement.addEventListener("webglcontextlost", () => { window.lost = true; });
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = num("env", 0.75);
+const camera = new THREE.PerspectiveCamera(24, 1, 0.01, 100);
+const light = (c, i, x, y, z) => { const l = new THREE.DirectionalLight(c, i); l.position.set(x, y, z); scene.add(l); };
+light(0xfff4e2, num("key", 1.9), 2, 3, 4);
+light(0xffe0c0, num("warm", 0.9), -2.5, 1.5, 3);
+const rimA = new THREE.PointLight(0xc9d4ff, 26, 20); rimA.position.set(-3, 1.5, -2); scene.add(rimA);
+const rimB = new THREE.PointLight(0xffd9ec, 19.5, 20); rimB.position.set(3, 0.5, -2.5); scene.add(rimB);
+const pivot = new THREE.Group(); scene.add(pivot);
+new GLTFLoader().load("/model.glb", g => {
+  const m = g.scene; pivot.add(m);
+  m.traverse(o => { if (o.isMesh) { o.frustumCulled = false; if (o.material) { o.material.envMapIntensity = 1; o.material.side = THREE.DoubleSide; } } });
+  pivot.rotation.y = num("yaw", 0) * Math.PI / 180; pivot.updateMatrixWorld(true);
+  // stood on the floor, its middle over the origin, one unit wide
+  let b = new THREE.Box3().setFromObject(pivot); const s0 = b.getSize(new THREE.Vector3());
+  m.scale.multiplyScalar(1 / s0.x); pivot.updateMatrixWorld(true);
+  b = new THREE.Box3().setFromObject(pivot); const c = b.getCenter(new THREE.Vector3());
+  m.position.x -= c.x; m.position.z -= c.z; m.position.y -= b.min.y; pivot.updateMatrixWorld(true);
+  b = new THREE.Box3().setFromObject(pivot); const size = b.getSize(new THREE.Vector3());
+  const tilt = num("tilt", 6) * Math.PI / 180, tan = Math.tan(camera.fov / 2 * Math.PI / 180), fill = num("fill", 0.86);
+  const aim = size.y / 2, d = Math.max(size.x, size.y + size.z * Math.sin(tilt)) / 2 / tan / fill;
+  camera.position.set(0, aim + Math.sin(tilt) * d, Math.cos(tilt) * d); camera.lookAt(0, aim, 0); camera.near = d / 50; camera.far = d * 4; camera.updateProjectionMatrix();
+  const split = num("split", 0) * size.z, level = num("level", 0.5) * size.y;
+  const planes = { full: [], back: [new THREE.Plane(new THREE.Vector3(0, 0, -1), split)], front: [new THREE.Plane(new THREE.Vector3(0, 0, 1), -split)],
+    above: [new THREE.Plane(new THREE.Vector3(0, 1, 0), -level)], below: [new THREE.Plane(new THREE.Vector3(0, -1, 0), level)] };
+  window.shot = mode => { renderer.clippingPlanes = planes[mode] || []; renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); };
+  window.info = () => ({ size: [size.x, size.y, size.z], d, aim });
+  window.ready = true;
+}, undefined, e => { window.failed = String(e && e.message || e); });
+</script>
+</body>
+</html>

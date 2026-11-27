@@ -21,6 +21,8 @@ Options of make:
     --highpass=HZ   over the whole sound (none unless said: a sound of his goes in as he made it)
     --gain=DB       louder or softer than the level every sound is brought to
     --out=S         the fade at its end (0.06)
+    --len=S         its whole length: quiet is added after its last piece (breaths further apart in a repeating sound)
+    --bitrate=64k   a smaller file than the 96k of the others (the music, which is two minutes long)
     --loop=S        make it repeat without a seam: its end is faded into its start over S seconds, and the part that
                     repeats is noted for the table (the file carries a little of the sound before and after that part,
                     so the silence an MP3 has at its two ends is never played)
@@ -42,6 +44,7 @@ LEVEL = 0.10        # the loudest 300 ms of every sound, as a phone gives it (RM
 TOP = 0.95          # and no sample over this
 BITRATE = "96k"
 PAD = 0.12          # what a repeating sound carries before and after the part that repeats
+MUSIC = {"pet_theme"}   # long, and so larger than an effect may be
 BANDS = [(0, 150), (150, 300), (300, 1000), (1000, 3000), (3000, 8000), (8000, 22050)]
 
 
@@ -51,9 +54,9 @@ def read(path, rate=RATE):
     return np.frombuffer(raw, dtype=np.float32).astype(np.float64)
 
 
-def write(x, path):
+def write(x, path, bitrate=BITRATE):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ac", "1", "-ar", str(RATE), "-i", "-", "-ac", "1", "-ar", str(RATE), "-c:a", "libmp3lame", "-b:a", BITRATE, path],
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ac", "1", "-ar", str(RATE), "-i", "-", "-ac", "1", "-ar", str(RATE), "-c:a", "libmp3lame", "-b:a", bitrate, path],
                    input=np.clip(x, -1, 1).astype(np.float32).tobytes(), check=True)
 
 
@@ -172,6 +175,7 @@ def make(name, specs, o):
     parts = [piece(s) for s in specs]
     x = np.zeros(max(int(at * RATE) + len(p) for p, at in parts))
     for p, at in parts: x[int(at * RATE):int(at * RATE) + len(p)] += p
+    if "len" in o: x = np.concatenate([x, np.zeros(max(0, int(float(o["len"]) * RATE) - len(x)))])   # quiet after its last piece
     hp = float(o.get("highpass", 0))
     if hp: x = shaped(x, [f"highpass=f={hp}"])
     was = phone(x)
@@ -193,7 +197,7 @@ def make(name, specs, o):
         u = int(float(o.get("out", 0.06)) * RATE)
         if u: x[-u:] *= np.linspace(1, 0, u)
     out = os.path.join(o.get("to") or AUDIO, name + ".mp3")
-    write(x, out)
+    write(x, out, o.get("bitrate", BITRATE))
     if "to" not in o: note(name, o, loop)
     bs, top = bands(x)
     print(f"{name}.mp3: {len(x) / RATE:.2f} s, {os.path.getsize(out) / 1024:.0f} KB, as a phone gives it {phone(x):.3f}{' (held by its peak)' if held else ''}, peak {np.abs(x).max():.2f},"
@@ -230,7 +234,8 @@ def check():
             p = os.path.join(AUDIO, f)
             if not os.path.exists(p): bad.append(f"{f}: named in app.js and not in audio/"); continue
             kb = os.path.getsize(p) / 1024; total += kb
-            if kb > 120: bad.append(f"{f}: {kb:.0f} KB (over 120)")
+            most = 1200 if nm in MUSIC else 120   # an effect is small; the music is a whole song
+            if kb > most: bad.append(f"{f}: {kb:.0f} KB (over {most})")
     m = meta()
     for nm in m:
         if nm not in named: bad.append(f"{nm}: in audio/sounds.json and not in app.js (run: table)")

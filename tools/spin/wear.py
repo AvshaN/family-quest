@@ -58,7 +58,8 @@ KIND = {
 ONE = {("axolotl", "headphones"): dict(w=0.9)}
 # motion: (Meshy's motion, from, to): pets.py's CLIPS without the eyelids, which are the creature's own
 CLIPS = {"rest": ("0", 0, 0.1), "look": ("0", 0, None), "hop": ("466", 0, None), "eat": ("342", 1.0, 5.0), "play": ("22", 0, 5.6),
-         "wash": ("405", 0.2, 4.7), "sit": ("363", 0, None), "asleep": ("363", 2.43, 2.53), "stroll": ("62", 0, None, ["--turn=-58"]), "flip": ("452", 0, None)}
+         "wash": ("405", 0.2, 4.7), "sit": ("363", 0, None), "asleep": ("363", 2.43, 2.53), "stroll": ("62", 0, None, ["--turn=-58"]), "flip": ("452", 0, None),
+         "abed": ("370", 9.0, 9.05, ["--turn=-90"])}   # lying in its bed: moved as pets.py found (bedx, bedy in cams.json)
 cams = json.load(open(os.path.join(HERE, "cams.json")))
 
 def spec(kind, keys):
@@ -146,6 +147,7 @@ elif mode in ("draw", "pack"):
                 if b is not None: cmd.append(f"--to={b}")
                 if name == "hop": cmd.append(f"--lift={c['hop']}")
                 if name == "flip": cmd.append(f"--rise={c['flip']}")
+                if name == "abed": cmd += [f"--shift={c['bedx']}", f"--raise={c['bedy']}"]
                 if more: cmd += more[0]
                 for go in range(3):   # a run whose WebGL context was lost is drawn again
                     r = node(*cmd)

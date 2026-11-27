@@ -10,7 +10,7 @@
 // Plays a rigged, animated Meshy model (a GLB with one motion) and gives its pictures: window.info() says how long
 // the motion is and where the camera must stand to hold it; window.frame(t) draws the moment t and returns a PNG.
 // The same camera is used for every motion of a creature (d, aim in the address), so it does not change size
-// between them. Options: size, d, aim, tilt, fill, inplace (1: its hips stay over one spot), yaw, wear (a second
+// between them. Options: size, d, aim, tilt, fill, inplace (1: its hips stay over one spot), yaw, turn, shift, raise, wear (a second
 // GLB set on its head: /wear.glb, with wearscale, wearup, wearfwd), eyes (closed | happy: lids over its eyes).
 // Outfits (outfit=1: /outfit.json lists them, see outfits() below): things it wears, each carried by one of its bones.
 // With layer=1 the creature itself is drawn into the depth only, and window.layers(t) gives one picture for each
@@ -282,6 +282,9 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
   // turn=DEG: the whole motion drawn from another side (a walk seen from three quarters, so that it walks along its
   // road and not across it). Set here, after everything was measured and hung on it facing the camera.
   const TURN = num("turn", num("yaw", 0)) * Math.PI / 180; pivot.rotation.y = TURN;
+  // shift, raise: the whole of it moved sideways and up (world units), after everything was measured and hung on it:
+  // a creature lying on its side is long, and lower than its feet were, and is set back in the middle of its frame
+  pivot.position.x = num("shift", 0); pivot.position.y = num("raise", 0);
   window.frameYaw = (t, yaw) => { pivot.rotation.y = yaw * Math.PI / 180; const u = window.frame(t); pivot.rotation.y = TURN; return u; };
   window.ready = true;
 })().catch(e => { window.failed = String(e && e.message || e); });

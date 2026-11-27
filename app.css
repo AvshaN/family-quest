@@ -714,6 +714,11 @@ button.chip{min-height:44px;padding:4px 14px}
 .quiz.petscr .quiz-in{gap:12px;overflow-x:hidden}
 .petnamepill{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;background:var(--glass-hi);border:1px solid var(--hair);font-weight:600;min-height:44px}
 .petnamepill svg{width:14px;height:14px;opacity:.7}
+.petbtns{display:inline-flex;gap:8px;align-items:center}
+.petmusic{position:relative;color:var(--text)}
+.petmusic svg{width:20px;height:20px}
+.petmusic.off{color:var(--text-3,var(--text-2));opacity:.6}
+.petmusic.off::after{content:"";position:absolute;left:11px;right:11px;top:50%;height:2px;border-radius:1px;background:currentColor;transform:rotate(-45deg)}
 .petlv b{font-family:var(--f-display);font-weight:400;font-size:40px;line-height:1}
 #petrename input{flex:1;min-width:0;padding:11px 14px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid var(--hair);font-size:16px}
 /* --pw is the size of the creature's own frame; --rise (app.js, petRise) is how high what it wears reaches over the
@@ -730,7 +735,39 @@ button.chip{min-height:44px;padding:4px 14px}
 @keyframes petbreathe{50%{transform:scale(calc(var(--grow,1)*1.012),calc(var(--grow,1)*.984))}}
 .petcv.pop{animation:petpop .42s var(--ease)}
 /* the moment it was chosen: not there while its sound's chord rises, then there with the swoosh */
-.petcv{transition:transform 1.2s var(--ease),opacity .28s ease}
+.petcv{transition:transform 1.2s var(--ease),opacity .28s ease,scale .45s var(--ease)}
+/* A care scene moves the creature by these three, which are its own properties and so leave its transform (its size
+   for the level, its breathing, its squash) as it is: --py lifts it (onto a seat, into the bath), --pr leans it, --sz
+   draws it and its props smaller together where a scene needs the room. Side to side is --walk, as in its walk. */
+.petcv{translate:0 var(--py,0px);rotate:var(--pr,0deg);scale:var(--sz,1)}
+/* The props (app.js, "the care scenes"): two holders at the point on the floor the creature is scaled about, one
+   behind its canvas and one before it. A prop's place and width are shares of the creature's frame. */
+.petprops{position:absolute;left:50%;bottom:calc(var(--pw)*.12);width:0;height:0;pointer-events:none;transform:scale(calc(var(--grow,1)*var(--sz,1)));transition:transform .45s var(--ease)}
+.propset{position:absolute;left:0;bottom:0;width:0;height:0;transform-origin:0 0}
+.propset.drop{animation:propdrop .62s cubic-bezier(.45,0,.75,.6) both}
+.propset.lift{animation:proplift .5s cubic-bezier(.5,0,.9,.45) forwards}
+@keyframes propdrop{0%{transform:translateY(-120vh)}62%{transform:translateY(0) scale(1.05,.93);animation-timing-function:ease-out}80%{transform:translateY(-9px) scale(.985,1.03);animation-timing-function:ease-in}100%{transform:translateY(0)}}
+@keyframes proplift{0%{transform:translateY(0)}20%{transform:translateY(7px) scale(1.03,.96)}100%{transform:translateY(-120vh)}}
+.prop{position:absolute;left:calc(var(--pw)*var(--x));bottom:calc(var(--pw)*var(--y));width:calc(var(--pw)*var(--w));max-width:none;height:auto;transform:translateX(-50%);-webkit-user-drag:none;user-select:none}
+.proprope{position:absolute;width:4px;margin-left:-2px;border-radius:2px;background:linear-gradient(90deg,#B98A4E,#E7C48C 45%,#A8773C);transform-origin:50% 0}
+.petsponge{position:absolute;left:0;top:0;width:calc(var(--pw)*.2);max-width:none;height:auto;margin:calc(var(--pw)*-.12) 0 0 calc(var(--pw)*-.1);pointer-events:none;opacity:0;transition:opacity .25s ease;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35));will-change:transform}
+.petsponge.on{opacity:1}
+/* What she is to touch glows until she does (no words): the sponge, the swing's seat. */
+.petsponge.cue{animation:propcue 1s ease-in-out infinite}
+.prop.cue{animation:propcue 1s ease-in-out infinite}
+@keyframes propcue{0%,100%{filter:drop-shadow(0 0 3px rgba(255,235,160,.55)) drop-shadow(0 4px 6px rgba(0,0,0,.3))}50%{filter:drop-shadow(0 0 7px rgba(255,240,180,1)) drop-shadow(0 0 20px rgba(255,214,110,.95))}}
+/* a name not given yet: its field shakes and glows; a new level: its number pops; a choice reached: its card arrives in a glow */
+#petname.need{animation:shake .4s ease,needglow 1.6s ease-out}
+@keyframes needglow{0%,60%{box-shadow:0 0 0 2px var(--a2),0 0 22px -2px var(--a2)}100%{box-shadow:0 0 0 0 transparent}}
+.petlv.up b{display:inline-block;animation:lvup 1.5s var(--ease)}
+@keyframes lvup{0%{transform:scale(1)}18%{transform:scale(1.7);color:#FFE08A;text-shadow:0 0 22px rgba(255,214,110,.95)}60%{transform:scale(1.15);color:#FFE08A;text-shadow:0 0 14px rgba(255,214,110,.7)}100%{transform:scale(1)}}
+.petgift.fresh{animation:giftin 2.2s ease-out}
+@keyframes giftin{0%{transform:scale(.94);box-shadow:0 0 0 0 rgba(255,214,110,0)}20%{transform:scale(1.03);box-shadow:0 0 0 2px rgba(255,224,138,.9),0 0 34px 2px rgba(255,214,110,.75)}55%{transform:scale(1);box-shadow:0 0 0 2px rgba(255,224,138,.5),0 0 24px 0 rgba(255,214,110,.45)}100%{box-shadow:0 0 0 0 rgba(255,214,110,0)}}
+.petmeter{position:absolute;left:50%;bottom:1px;width:104px;height:6px;margin-left:-52px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden;pointer-events:none}
+.petmeter i{display:block;height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--a2),var(--a1));transition:width .2s ease}
+/* clean after its bath: a second of light round it */
+.petcv.shine{animation:petshine 1.15s ease-out}
+@keyframes petshine{0%{filter:brightness(1) drop-shadow(0 0 0 rgba(255,255,255,0))}22%{filter:brightness(1.3) drop-shadow(0 0 16px rgba(255,255,255,.95))}60%{filter:brightness(1.12) drop-shadow(0 0 10px rgba(200,235,255,.7))}100%{filter:brightness(1) drop-shadow(0 0 0 rgba(255,255,255,0))}}
 .petstage.arriving .petcv{opacity:0;transition:none}
 .petfloor{transition:opacity .5s ease}
 .petstage.arriving .petfloor{opacity:.75}
@@ -802,4 +839,4 @@ button.chip{min-height:44px;padding:4px 14px}
 .petsis .petpic{width:92px;height:92px}
 .petsis.none{justify-content:center;gap:8px;min-height:110px;border-style:dashed}
 @media (max-height:700px){.petstage{--pw:280px;height:max(240px,calc(var(--pw) / 272 * var(--rise,0) + 14px))}.petstage.pick{--pw:204px;height:max(196px,calc(var(--pw) / 272 * var(--rise,0) + 14px))}.petopt .petpic{width:62px;height:62px}.pwi .petpic{width:70px;height:70px}}
-@media (prefers-reduced-motion:reduce){.petcv,.petcv.pop,.petfaces .petpic,.petcard.has .petpic,.petzzz span,.petcv.wig{animation:none}.petzzz span{opacity:.8}}
+@media (prefers-reduced-motion:reduce){.petcv,.petcv.pop,.petfaces .petpic,.petcard.has .petpic,.petzzz span,.petcv.wig,.petcv.shine,.propset.drop,.propset.lift,.petlv.up b,.petgift.fresh{animation:none}.petzzz span{opacity:.8}}

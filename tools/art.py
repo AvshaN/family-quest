@@ -126,7 +126,7 @@ def sheet(frames_dir, name, size=256, quality=80):
 
 def check():
     js = open(os.path.join(ROOT, "app.js"), encoding="utf-8").read()
-    named = set(re.findall(r'["`/]((?:spin/|em/)?[a-z0-9-]+\.webp)', js))
+    named = set(re.findall(r'["`/]((?:spin/|em/|prop/)?[a-z0-9-]+\.webp)', js))
     m = re.search(r"const SUBJ = \{(.*?)\};", js, re.S)
     named |= {f"em/{k}.webp" for k in re.findall(r"(\w+):", m.group(1))}
     m = re.search(r"const SPIN = \{(.*?)\n\};", js, re.S)

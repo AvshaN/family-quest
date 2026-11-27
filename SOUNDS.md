@@ -1,6 +1,7 @@
 # Sounds for the creature
 
-**Where it stands (2026-11-27):** all thirteen are in the app. Avsha made them in Suno and pushed the WAVs on the
+**Where it stands (2026-11-27):** all thirteen are in the app, and since that evening a fourteenth, the music of
+the creature's section (round 3, at the foot). Avsha made them in Suno and pushed the WAVs on the
 branch `sounds` (fifteen of them, in its folder `sounds/`);
 `tools/sounds_round1.sh` cut them into `audio/` (fifteen MP3s, 390 KB, from some 11 MB). Its numbers were read off
 measures, not chosen by ear: he listens in his test profile and says what does not fit. His notes on the downloads,
@@ -13,8 +14,8 @@ the chat, or put in a Drive folder he names. Claude cuts each take, levels it, a
 phones can play (M4A or MP3: an iPhone does not play OGG), in `audio/`, with a line of credit here.
 
 They follow the app's sound switch (Settings, "צלילים"), and on an iPhone the side switch for silence mutes them.
-No background music is asked for: the phones are mostly on silent, a loop is a large file, and an iPhone plays
-nothing until the first tap.
+There was to be no background music (the phones are mostly on silent, a loop is a large file, and an iPhone plays
+nothing until the first tap); then Avsha asked for it in the creature's section and made the song: round 3.
 
 ## Round 1 (asked 2026-11-27)
 
@@ -84,6 +85,36 @@ reaches the phones with the app's next version (`VERSION` in sw.js), under the s
 Until the new cheers come, a stroke plays one of two plain cuts in turn, lower than before: the chirp and the giggle
 that opens the play sound (a third, the small "ah" that closes the waking sound, he heard and did not like). `level_up` is the whole of his sound now
 (cut at 2.7 s it "gets cut off too quickly"). `wear_on` was "too fast": three slower tries went to him to hear.
+
+## Round 3 (2026-11-27): the music, the sleeping sound, and sounds for the care scenes
+
+| File | Where it plays | Length | Prompt |
+|---|---|---|---|
+| `pet_theme` | Under everything, while one of the creature's screens is open | his song, 2:04 | His own: "Quest for the Crown", made in Suno as a song. In as he made it, whole, mono, at a seventh of an effect's level (`v` 0.14). |
+| `scrub` (asked) | The bath, while she scrubs with the sponge | 2 to 3 s, can repeat | A wet sponge scrubbing something soft and squeaky clean: quick little squeaks and foamy fizz, playful and light. No music, no splash, close and dry. |
+| `shine` (asked) | The moment after the bath, when it shines | about 1 s | A bright magical sparkle, a quick rising glitter of tiny bells: something just became sparkling clean. Soft, not sharp. No music bed. |
+| `swing` (asked) | The swing, at each pass | under 1 s each | Three or four different soft playful whooshes with a tiny happy "whee" of a small creature, each under a second, a second of silence between them. No music. |
+| `bump` (asked) | The seesaw, as an end meets the ground | under half a second each | Three or four different soft cartoon boings and wooden bumps, small and cute, each under half a second, a second of silence between them. No music. |
+| `bed` (asked) | The bed landing, the creature settling into it | about 1 s | A soft fluffy "poof" of something small landing in a thick cushion, then a tiny contented sigh of a small creature. Gentle, no bass thump. |
+
+**The music.** Avsha: "we can have soft audio while they're in the creature section? I can have suno generate a
+theme", and then his song with "is this song can be used for the creature section bg music or is it too complex?".
+Measured (it cannot be judged here by ear): 124 s, steady in loudness from end to end (its loudest five seconds are
+1.9 times its quietest), mellow (almost nothing over 2 kHz, so nothing sharp over the creature's sounds), two and a
+half to three notes a second, about 160 beats a minute. Two half-minute demos of it under the creature's sounds went
+to him to hear. In the app (`petTheme`): the whole song, then a second and a half of quiet, and again; it fades in
+and out with the creature's screens, goes on from where it stopped, and a note button in the header turns it off.
+986 KB at 64 kbit (the effects are 96): `tools/sounds.py check` lets the music be that large. **Its original is
+not on the `sounds` branch**: he sent it in the chat. The recipe makes it when `pet_theme.wav` is in the folder, so
+ask him to add it there under that name.
+
+**The sleeping sound.** In the app it was "a bit deep, sounds like a bigger creature". Three higher tries went to him
+(sped up a quarter, sped up a half, seven semitones up at its own pace) and his word was: "let's just leave it as is
+but less frequent". So the same two breaths, as he made them, five seconds apart (they came 2.6 s apart).
+
+**The care scenes** (the bath, the swing, the seesaw, the bed) use what there was: the splash and bubbles as the tub
+lands, the play sound at the first swing or the first flight, the yawn as the bed comes down, and a beep made in
+code as it shines. The five rows marked "asked" would give them sounds of their own.
 
 Later, if the first round sits well: a voice for each of the six creatures (the fox's chirp, the dragon's little
 growl, the axolotl's bubble), and sounds for the tricks.

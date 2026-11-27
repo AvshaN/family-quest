@@ -20,6 +20,26 @@ tests with the girls and gives feedback; Claude writes the code.
 - **Privacy:** the girls' names, answers and the family code live only in
   the family's Google Sheet. Keep names out of this repo (the repo may be
   made public for GitHub Pages). Demo names are placeholders.
+- **Show it, do not say it** (Avsha, 2026-11-27, of the whole app:
+  "whatever can be communicated by visual cues rather than with text,
+  should be implemented in this way. for example, the banners 'push with
+  your finger' and such could be replaced by an animated glow on an object
+  when an action needed. if text can be avoided by clear visual cues,
+  that's the route we should take in all aspects of this project, not only
+  the creature section"). Before a banner, a hint or a label is written,
+  look for the cue that says it: the thing to touch glows or moves, the
+  field that is missing shakes, the number that changed pops, a card
+  arrives in a glow. Words stay where a cue cannot carry it (who sent a
+  gift, why a thing is not hers yet, an error from the Sheet). Done so far,
+  all in the creature's section: the care scenes have no hints (below); a
+  name not given shakes and glows its field; a new level pops its number;
+  a choice reached arrives as its card in a glow. **Not yet looked at: the
+  rest of the app**, which is live for the girls. Candidates, to be shown
+  to him before they change: "רגע, מתעדכן…" while the Sheet answers (the
+  button already waits), "המבחן נשמר" / "הציון נשמר" / "ניתן" (the row or
+  the coin appearing could say it), "צריך מקצוע ותאריך" and "ציון בין 0
+  ל־100" (the field at fault could shake), the wardrobe's banners for a
+  thing taken and a thing not hers.
 
 ## How it fits together
 
@@ -1068,13 +1088,125 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   The walk of these is scratch `t_feedback.js`: it samples the page
   against its own clock from the tap, because a screenshot takes a third
   of a second there and threw a first version's times off.
+- **The care scenes** (2026-11-27, his second notes from his phone; app.js
+  "the care scenes", app.css beside `.petprops`). His words: "bath: we can
+  generate an actual bath via meshy that drops down from the top of the
+  screen to the creature who looks like is in it ... allow the girls to
+  'hold' a sponge and scrub the creature for a couple of seconds before the
+  task is complete, the bath is pulled back up and the creature shines
+  clean for a second"; "play: too simple, we need a few options, maybe a
+  swing drops down and she can push it ... another rotating option is a
+  seesaw drops down where she can use her finger to be on the other side";
+  "sleep: we need a pet's bed to drop down and the creature lays in it
+  comfortably, maybe circular and fluffy, we can add better beds as
+  upgrades later on, especially when we'll get to the 'house' part".
+  - **The props** (`art/prop/`, eight pictures, 130 KB; `PET_PROP`):
+    Meshy models of a tub, a round bed and a seesaw, and pictures of a
+    swing's seat and a sponge. `tools/spin/props.py MODELS IMAGES` makes
+    them all (`prop.html`, `prop.js` draw a model whole or cut by a plane):
+    the tub and the bed in two halves, behind the creature and before it,
+    so it is seen inside (the tub from 12 degrees up, the bed from 18, to
+    show their openings; the creatures are drawn from 6 and it does not
+    jar); the seesaw parted by colour into its plank, which turns about
+    its middle, and its foot. In the page two holders stand at the point
+    on the floor the creature is scaled about, one before its canvas and
+    one after (`#propback`, `#propfront`); every place is a share of
+    `--pw`, so a prop is the creature's size at every level. A prop drops
+    from above the screen (`propMount`, `.propset.drop`, landing at
+    `PROP_LAND` 0.38 s) and `lift()` pulls it up.
+  - **A scene** (`petScene`, `petSceneRun`, `PET_SCENES`) holds the
+    creature (`E.lock`: no other care, no stroke, no cheer begins) and has
+    her finger (`PETUI.scene.down / move / up`, routed in `petStroke`).
+    The care is written at the tap as before, so leaving in the middle
+    loses nothing; what it gave (the +3, the heart spent) is painted when
+    the scene ends. A scene she does not join plays itself after about
+    three seconds; with reduced motion, or pictures that have not come in
+    2.5 s, each is the plain motion it was (`petSuds`, `petDance`). The
+    creature is moved by three CSS properties of its own, which leave its
+    transform (its size, its breathing, its squash) alone: `--py` lifts it
+    (`translate`), `--pr` leans it (`rotate`), `--sz` draws creature and
+    prop smaller together (`scale`); side to side is `--walk`. The engine
+    gained `E.tick`, `E.paint` (the scene's own frame and drawing),
+    `E.tween`, `E.pose(name, frame)`, `E.rest()`, `E.unlock()`, and on an
+    item of a motion `off` (what to undo however it stops: the walk's
+    `--walk`).
+  - **The bath** (`petBath`): the tub lands round it with a splash and
+    the wash sound; the sponge follows her finger over the creature, foam
+    stays where it has been, a meter under the tub fills (about 1,200 px
+    of scrubbing); then the foam runs off, the tub goes up, and it shines
+    for a second (`.petcv.shine`) before its happy hop.
+  - **Play** is the swing and the seesaw in turn, by how many times it has
+    played (`petCount`). **The swing** (`petSwing`): a seat on two ropes;
+    it hops on, seated (the last frame of `sit`); a drag across or a tap
+    pushes it; seen from the front it swings side to side, the seat level
+    on its ropes; less far on a narrow screen; after 3.4 s of real
+    swinging it slows and the creature hops off. **The seesaw**
+    (`petSeesaw`): it sits on the left end; her finger anywhere on the
+    stage is the weight on the other; pressed, the creature goes up and
+    leaves its seat for a moment; four flights and it hops back.
+    A chooser between the two was thought of (he likes choices) and not
+    built: his word was "rotating".
+  - **The bed and the lying pose** (`petBed`, `BED`, `E.sleepPose`): the
+    bed comes down, the creature hops in and lies curled up on its side,
+    and the bed stays while it sleeps (and is there, with no drop, when
+    the screen opens on a sleeper; with reduced motion too). The pose is
+    one new frame a creature, `abed`: the end of Meshy's motion 370,
+    "Stand to Side Lying", turned to face us (`--turn=-90`: as it comes,
+    its head is toward the camera and no face shows) and set back in the
+    middle of its frame with its underside on the floor (`--shift`,
+    `--raise` of clip.html; `lying()` in pets.py measures them and keeps
+    them in cams.json as `bedx`, `bedy` for the outfits' layers). With no
+    bed pictures it sits down and shuts its eyes as before.
+  - **No words in a scene** (the rule at the top of this guide): the
+    sponge glows and bobs until she holds it; the swing's seat glows and
+    arrows run outward at its two sides until she pushes; the seesaw's
+    other end has a glowing spot, a ring and an arrow down onto it. The
+    three banners first written for these are gone.
+  - **Sounds**: what there was (the splash as the tub lands, the play
+    sound at the first swing or flight, the yawn, a beep as it shines);
+    five of their own are asked of him (SOUNDS.md, round 3). **The
+    section's music** (`petTheme`, `THEME`): his song "Quest for the
+    Crown" ("the melody fits well", after two demos of it under the
+    creature's sounds), whole, at `v` 0.14, fading in and out with the
+    creature's screens, going on from where it stopped, switched by a note
+    button in the header (`L.petMusic`). **The sleeping sound**: of three
+    higher tries he said "let's just leave it as is but less frequent":
+    the same two breaths, five seconds apart.
+  - **A fault the sounds' walk found**: the hop after a bath was begun a
+    second after the creature was let go, and cut short a walk begun in
+    that second (which would have left it off the middle). A scene now
+    lets go only as its last hop begins, and a new level's cheer looks
+    again when its moment comes.
+  - **Walks**: scratch `t_scenes.js` (each scene by hand and left alone,
+    leaving in the middle, the bed found asleep, reduced motion, no
+    banners) and `look_scenes.js KIND LEVEL w,p,p2,s [WIDTH HEIGHT]`,
+    which takes pictures at set times: every creature was looked at in
+    each scene, a large axolotl at 360 x 640, a dressed cat lying down.
+  - **Meshy**: 153 credits (five pictures 45, three models 90, the lying
+    motion for six creatures 18); 1,119 for the app in all. Pictures: tub
+    01a21e65-2229-7680-96ee-53fa17e30246, bed
+    01a21e65-2763-7460-a159-8fed0853ebcf, seesaw
+    01a21e65-2b65-7024-899a-f0eaee0d8966, swing seat
+    01a21e65-3029-73d9-9ef9-680371cb9dda, sponge
+    01a21e65-3483-754e-bf8b-2d204ce5ac40; models: tub
+    01a21e6b-0adf-72f8-bb68-46b05e471ff7, bed
+    01a21e6b-11f8-7725-80c9-89c73d58b155, seesaw
+    01a21e6b-1c52-70b8-a251-5889676207d1; the motions are in his account
+    by date (the fox's: 01a21e87-44a7-72c0-8d96-0758611ff8d4).
+  - **Never seen on a real phone**, and to ask: whether the sponge, the
+    push and the press feel right under a finger (they were driven by a
+    mouse here), how the CSS `translate` / `rotate` / `scale` properties
+    behave on the old Xiaomi's browser (they need Chrome 104 or Safari
+    14.1), how loud the music is beside the sounds, and whether a tall hat
+    on a lying creature running off the screen's edge matters.
 - **Next, when he says so**: a second creature and a house, which he said
   can wait, "granted after a certain high threshold/s" (ask what
-  threshold; level 7 is about five weeks of good days); more outfits (39
-  credits and about seven minutes of drawing each); a line of the
-  creatures in the evening email. **Never seen on a real phone**: how the
-  layered creature runs on the old Xiaomi (up to five pictures drawn a
-  frame while it moves).
+  threshold; level 7 is about five weeks of good days), with better beds
+  as upgrades there; more outfits (39 credits and about seven minutes of
+  drawing each); more games to play (a prop is a picture and some eighty
+  lines); a line of the creatures in the evening email. **Never seen on a
+  real phone**: how the layered creature runs on the old Xiaomi (up to
+  five pictures drawn a frame while it moves).
 
 ## Reminders (looked into 2026-11-14, not built)
 

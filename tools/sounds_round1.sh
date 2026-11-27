@@ -48,8 +48,10 @@ $S pet_wash "$R/water_splash.wav,0.36,1.16@0" "$R/bubbles.wav,0.08,0.92@0.55;gai
 $S pet_yawn_1 "$R/pet_yawn.wav,0.30,1.24" --out=0.1 --v=0.6
 $S pet_yawn_2 "$R/pet_yawn.wav,2.58,3.58" --out=0.15 --v=0.6
 # While it sleeps. The download has six breaths: three deep ones (most of them under 300 Hz: "too deep and bassy",
-# he said) and three light whistling ones near 1 kHz. Two of the light ones, with the quiet between them, repeat.
-$S pet_sleep "$R/pet_sleep.wav,3.76,8.92" --loop=0.25 --v=0.3
+# he said) and three light whistling ones near 1 kHz. Two of the light ones repeat. They came 2.6 s apart; in the app
+# that was still "a bit deep, sounds like a bigger creature", and of three higher tries he said: "let's just leave it
+# as is but less frequent". So the same two breaths, as he made them, one every five seconds.
+$S pet_sleep "$R/pet_sleep.wav,3.76,5.20" "$R/pet_sleep.wav,6.34,7.86@5.0" --len=10 --loop=0.25 --v=0.3
 # Waking: a bright squeak, a softer one and a small "ah", as it came. The squeaks are very high (most of the first is
 # over 3 kHz, its strongest note at 6): it is played low, and if it is sharp on a phone, `;lowpass=5000` softens it.
 $S pet_wake "$R/pet_wake.wav,0.10,2.30" --out=0.08 --v=0.45
@@ -78,5 +80,10 @@ if [ -f "$R/steps.wav" ]; then
 else
   echo "steps.wav is not in $R: audio/pet_walk.mp3 is left as it is"
 fi
+
+# The music of the creature's section (round 3, SOUNDS.md): his song "Quest for the Crown", whole, as he made it, with
+# a second and a half of quiet before it starts again. Mono at 64 kbit: two minutes at the effects' 96 would be 1.5 MB.
+# Its original came in the chat and is not on the branch yet: made only when it is in the folder, as pet_theme.wav.
+if [ -f "$R/pet_theme.wav" ]; then $S pet_theme "$R/pet_theme.wav,0,124.4;in=0.02;out=0.4" --len=126 --loop=0.05 --bitrate=64k --v=0.14; fi
 
 python3 tools/sounds.py table && python3 tools/sounds.py check
