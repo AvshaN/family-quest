@@ -553,13 +553,13 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   (`.toast.high`), clear of the care buttons; today's care is said in
   words beside its hearts (`petCareLine`). Light mode, the phone's largest
   text size and a real phone were not looked at.
-- **The creature's sounds are in; nobody has heard them as the app plays
-  them** (SOUNDS.md, 2026-11-27). He made twelve of the thirteen in Suno
-  (all but the steps) and pushed thirteen WAVs, 9.6 MB, on the branch
+- **The creature's sounds are in, all thirteen; nobody has heard them as
+  the app plays them** (SOUNDS.md, 2026-11-27). He made twelve of the
+  thirteen in Suno at first (all but the steps) and pushed thirteen WAVs, 9.6 MB, on the branch
   `sounds`, in a folder "sound effects" (a cloud session cannot reach a
   folder on his computer, and nothing was in his Drive: a push from his
   computer is the way; a Claude session there did it for him). They are
-  cut into fourteen MP3s, 339 KB, in `audio/` by `tools/sounds_round1.sh`,
+  cut into fifteen MP3s, 390 KB, in `audio/` by `tools/sounds_round1.sh`,
   whose every number was read off measures and none chosen by ear: **ask
   him how each sounds on his phone**, in his test profile, and change the
   script's line for what does not fit (louder or softer is `--v`).
@@ -587,54 +587,31 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   `wear_on` thump is sped up five or six times into a small pop near 300
   Hz: he heard both and did not object, and they are the likeliest to be
   wrong still. The waking squeak is very high (its strongest note at 6 kHz): it
-  plays low, and `;lowpass=5000` softens it if he finds it sharp. **The steps wait for his pick.**
-  He sent `pet_walk.wav` as an upload the same evening ("the steps are
-  heavy, sounds like a grown human"; he added it to his `sounds` branch
-  too but had not pushed it: ask him to, so the original is kept with the
-  others; until then it is only in a session's scratchpad). Measured: four
-  thumps 0.8 s apart, a slow adult's pace, strongest at 70 Hz. The
-  creature's waddle is three sways in its 24 frames, so it shifts its
-  weight every third of a second. Three tries were sent to him to hear
-  (`make ... --to=DIR` writes a try outside `audio/`): his recording twice
-  as fast; each of his four steps sped up 2.2 times and set three a second
-  from 0.083 s ("small paws"); the same at 3.2 times ("tiny paws"). He
-  answered with a second recording, `steps.wav` (an upload too: "still too
-  bassy but better than the current, please try to modify it"): the same
-  four thumps 0.8 s apart, strongest at 50 Hz, with more of them between
-  300 and 1000 Hz. Three tries of it went to him, each with what is under
-  250 Hz taken off (`highpass=250` on the piece and `--highpass=250` over
-  it: under 300 Hz falls from about half to 7%): A at its own pace, B its
-  four steps set three a second, C like B at `speed=1.5`. His answer:
-  "the rhythm of the steps should be determined by the animation but I'd
-  like a softer sound, like walking on a carpet and not a wooden floor
-  which is the prompt I gave suno but still it's not there". So the rhythm
-  is settled (the waddle's, three a second), and what is open is the
-  sound. A step on wood starts sharply, knocks brightly and rings; on a
-  carpet it swells in, is dull and is over at once. Three more tries went
-  to him (`tools/sounds_steps_tries.py REPO steps.wav OUT_DIR` makes them):
-  his steps with the bass off, what is over 1200 Hz off and each start
-  eased in over 30 ms; the same at 700 Hz and 50 ms; and pads made here
-  with no recording (a short hush of noise between 260 and 900 Hz that
-  swells in over 22 ms and dies in 40, a faint weight under it, the two
-  feet a little unlike). Of those he took the second and asked to
-  "increase the muffle": two more went to him, the top cut at 500 Hz and
-  at 380 Hz with a sharper edge (`steep=2`). Measured, his steps' own
-  knock is a note near 480 Hz, so the first of them still has it and the
-  second dulls it (and is mostly under 500 Hz: quiet on a phone's speaker,
-  full on earphones). His answer was two words, "more muffled", which is
-  also the name the first of the two was given: it was read as "further",
-  and he was told to say "use 2a" if he meant that one. Two more went to
-  him: the top cut at 300 Hz and at 220 Hz (`steep=3`), with the lower cut
-  brought down to 150 and 110 Hz, since between 250 and 300 nothing is
-  left: low dull thuds near 176 Hz, nearly all under 300 Hz, so **on a
-  phone's speaker they are faint or silent** and he was asked to hear them
-  on the phone itself. When he
-  picks: make `pet_walk` as one 2 s loop (six steps at 0.083 + k/3 in an
-  arrangement of 2.06 s with `--loop=0.06`, so the part that repeats is
-  the motion's own two seconds), `table`, `check`, the sound walk without
-  its stand-in, a new version. If none fits: a patter made in code, or
-  ask Suno again for "tiny quick taps, like fingertips on a wooden table".
-  Until then the walk beeps as before.
+  plays low, and `;lowpass=5000` softens it if he finds it sharp. **The steps took five rounds
+  of tries, and are in** (`pet_walk`, the same evening). Suno gave heavy
+  steps twice ("sounds like a grown human"; `pet_walk.wav`, then
+  `steps.wav`, "still too bassy but better": four thumps 0.8 s apart,
+  strongest at 50 Hz, on what sounds like wood), though his prompt asked
+  for a carpet. What he said, in order: the rhythm "should be determined
+  by the animation" (the waddle is three sways in its 24 frames, so a step
+  every third of a second, from 0.083 s); "a softer sound, like walking on
+  a carpet and not a wooden floor"; of the soft tries, the second, with
+  "increase the muffle"; then "more muffled"; then his pick, the fourth
+  round's `steps_soft_2b_most_muffled`: the four steps of `steps.wav` with
+  what is under 250 Hz and over 380 Hz taken off (`steep=2`), each start
+  eased in over 60 ms. The two tries muffled further (300 and 220 Hz) he
+  passed over. It is in the recipe as a loop of four seconds, twelve
+  steps, exactly the file he chose (checked: correlation 1.000), played
+  twice over the walk's eight seconds, at `v` 0.9 because most of it is
+  under 500 Hz and a phone gives that softly: **ask how loud it is on his
+  phone**. What worked: every try was a file sent with `SendUserFile`
+  (`make ... --to=DIR`), two or three a round, each named for what it is,
+  and he answered in a line. `tools/sounds_steps_tries.py` still makes
+  all the tries. **`steps.wav` and `pet_walk.wav` came as uploads and are
+  not on the `sounds` branch**: he had added the first there and not
+  pushed. Ask him to push that branch with both, or the walk cannot be
+  made again when a session's scratchpad is gone (the recipe then leaves
+  `audio/pet_walk.mp3` as it is).
   **The player** (app.js "recorded sounds": `SOUNDS`, `snd`, `sndWarm`,
   `sndBuf`, `sndWatch`, `acOn`): files of `audio/` decoded into the beeps'
   AudioContext and played from memory, so a sound a second after a tap
@@ -661,8 +638,8 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   `--loop`: its end is faded into its start and the file carries a little
   before and after the repeating part, because an MP3 has silence at both
   ends. The walk of the sounds is scratch `t_snd.js` on `snd_setup.sh` (a
-  copy of the repo with a stand-in for the steps): it checks what plays
-  and when, not how it sounds. No Suno connector was found in the
+  copy of the repo, with a stand-in of tones for any sound not made): it
+  checks what plays and when, not how it sounds. No Suno connector was found in the
   directory.
 - **The script of api 9 waits for his paste** (2026-11-27: the creature's
   copy in the Sheet). Api 8 is in the Sheet (he said so on 2026-11-26 and

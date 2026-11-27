@@ -1175,6 +1175,7 @@ const SOUNDS = {
   pet_play: { n: 1, v: 0.65 },
   pet_sleep: { n: 1, v: 0.3, loop: [0.12, 5.03] },
   pet_wake: { n: 1, v: 0.45 },
+  pet_walk: { n: 1, v: 0.9, loop: [0.12, 4.12] },
   pet_wash: { n: 1, v: 0.6 },
   pet_yawn: { n: 2, v: 0.6 },
   wear_on: { n: 2, v: 0.6 }

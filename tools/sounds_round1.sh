@@ -9,7 +9,8 @@
 R="$1"
 [ -f "$R/adopt.wav" ] || { echo "usage: bash tools/sounds_round1.sh FOLDER_OF_THE_DOWNLOADS"; exit 1; }
 S="python3 tools/sounds.py make"
-rm -f audio/*.mp3 audio/sounds.json
+# everything this makes is made afresh; the steps only when their download is in the folder too (below)
+find audio -name "*.mp3" ! -name "pet_walk.mp3" -delete 2>/dev/null
 
 # "This creature is mine": a chord that rises (0.3 - 1.9 s), then the swoosh he liked, as he made it: only its
 # length is cut. The swoosh is nearly all under 150 Hz (strongest at 64 Hz), which a phone's speaker gives little of;
@@ -51,5 +52,24 @@ $S pet_wake "$R/pet_wake.wav,0.10,2.30" --out=0.08 --v=0.45
 # take above 300 Hz at its own speed. (Reshaped: he heard both and did not object.)
 $S wear_on_1 "$R/wear_on.wav,0.02,0.28;speed=5" "$R/wear_on.wav,0.02,0.28;highpass=300;gain=-4" --highpass=200 --out=0.04 --v=0.6
 $S wear_on_2 "$R/wear_on.wav,0.76,0.96;speed=6" "$R/wear_on.wav,0.76,0.96;highpass=300;gain=-4" --highpass=200 --out=0.04 --v=0.6
+
+# The walk's steps. Suno gave heavy steps, "like a grown human", twice (pet_walk.wav, then steps.wav: four thumps
+# 0.8 s apart, strongest at 50 Hz, on what sounds like a wooden floor), and he wanted "a softer sound, like walking on
+# a carpet". After five rounds of tries he chose this one ("steps_soft_2b_most_muffled"): the four steps of steps.wav
+# with what is under 250 Hz and over 380 Hz taken off (twice over, for a sharp edge), each start eased in over 60 ms,
+# set three a second from 0.083 s, as the creature's waddle shifts its weight (its 24 frames are three sways). The
+# part that repeats is four seconds, twelve steps, exactly what he heard: twice over for the walk's eight seconds.
+# (The last piece is a moment of the download's silence, to make the arrangement 4.06 s: 4 s and the loop's fade.)
+if [ -f "$R/steps.wav" ]; then
+  P=(); K=0
+  for T0 in 0.074 0.796 1.630 2.474 0.074 0.796 1.630 2.474 0.074 0.796 1.630 2.474; do
+    AT=$(python3 -c "print(round(0.083 + $K / 3, 3))"); END=$(python3 -c "print(round($T0 + 0.14, 3))")
+    G=$([ $((K % 2)) = 0 ] && echo 0 || echo -2.5)
+    P+=("$R/steps.wav,$T0,$END@$AT;highpass=250;lowpass=380;steep=2;in=0.06;out=0.084;gain=$G"); K=$((K + 1))
+  done
+  $S pet_walk "${P[@]}" "$R/steps.wav,0.30,0.31@4.05;gain=-80" --highpass=200 --loop=0.06 --v=0.9
+else
+  echo "steps.wav is not in $R: audio/pet_walk.mp3 is left as it is"
+fi
 
 python3 tools/sounds.py table && python3 tools/sounds.py check

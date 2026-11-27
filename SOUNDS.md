@@ -1,12 +1,13 @@
 # Sounds for the creature
 
-**Where it stands (2026-11-27):** twelve of the thirteen are in the app (all but the steps). Avsha made them in Suno
-and pushed the WAVs on the branch `sounds`; `tools/sounds_round1.sh` cut them into `audio/` (fourteen MP3s, 339 KB,
-from 9.6 MB). Its numbers were read off measures, not chosen by ear: he listens in his test profile and says what
-does not fit. His notes on the downloads, what was found in them and what was done are under the table.
+**Where it stands (2026-11-27):** all thirteen are in the app. Avsha made them in Suno and pushed the WAVs on the
+branch `sounds` (the two takes of the steps came as uploads and are still to be pushed there);
+`tools/sounds_round1.sh` cut them into `audio/` (fifteen MP3s, 390 KB, from some 11 MB). Its numbers were read off
+measures, not chosen by ear: he listens in his test profile and says what does not fit. His notes on the downloads,
+what was found in them and what was done are under the table.
 
-Before these the app's only sounds were short beeps made in code (`SFX` in app.js); where a sound is not made yet
-(the steps) the beep still plays. Avsha makes sounds in Suno's Sounds
+Before these the app's only sounds were short beeps made in code (`SFX` in app.js); where a sound cannot be had
+the beep still plays. Avsha makes sounds in Suno's Sounds
 tab from prompts Claude writes (as for his football game), downloads them, and hands the files over: dropped into
 the chat, or put in a Drive folder he names. Claude cuts each take, levels it, and turns it into a small file the
 phones can play (M4A or MP3: an iPhone does not play OGG), in `audio/`, with a line of credit here.
@@ -45,9 +46,11 @@ come out too childish: add "subtle, understated" if so).
 - The bath came as two files, a splash and bubbles: each is heard once, the splash and then the bubbles. (Laid out
   six times over the wash's four seconds they were "too repetitive".) A longer download of bubbles, three or four
   seconds, would fill the rest of the wash.
-- The steps came out heavy, "like a grown human" (four thumps 0.8 s apart, strongest at 70 Hz), and are not in the
-  app yet: he is choosing among three tries sent to him to hear (his recording twice as fast; each step made smaller
-  and set three a second, in time with the waddle; the same, smaller still).
+- The steps came out heavy, "like a grown human", twice (four thumps 0.8 s apart, strongest at 50 to 70 Hz, as on
+  a wooden floor), where he had asked Suno for a carpet. After five rounds of tries sent to him to hear, the walk has
+  the four steps of his second take with what is under 250 Hz and over 380 Hz taken off and each start eased in, set
+  three a second in time with the creature's waddle: his pick. It is the one sound here that is reshaped and not only
+  cut, and every step of the reshaping was his word on a file he heard.
 - `wear_on` holds two like sounds: both are kept and played in turn.
 - `pet_sleep` is deep and bassy: of its six breaths three are deep and three are light whistles near 1 kHz; two of the
   light ones, with the quiet between them, repeat.
