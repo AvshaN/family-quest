@@ -16,6 +16,9 @@ with any of
     pitch=N         semitones up (down with a minus), its length kept
     highpass=HZ     without what is under HZ        lowpass=HZ      without what is over HZ
     steep=N         those two filters N times over: a sharper edge (a more muffled sound at the same HZ)
+    dry=K           less echo: what is more than 12 dB under its loudest moment is turned down K dB more for each dB
+                    (0.5 a little drier, 2 much drier): the ring after each note falls away sooner; knee=DB moves
+                    the 12
     in=S out=S      its own fades (0.005 and 0.03)
 Options of make:
     --highpass=HZ   over the whole sound (none unless said: a sound of his goes in as he made it)
@@ -151,6 +154,17 @@ def look(path):
               f"  bands {' '.join(f'{v:.0%}' for v in bs)}\n          {bars}")
 
 
+def dry(x, k, knee=-12.0, win=0.012):
+    """Less echo: what is quieter than `knee` dB under the sound's loudest moment is turned down further, k dB for
+    every dB under the knee (the ring after each note falls away sooner; the notes themselves are left alone)."""
+    n = max(1, int(RATE * win))
+    env = np.sqrt(np.convolve(x ** 2, np.ones(n) / n, "same") + 1e-12)
+    db = 20 * np.log10(env / (env.max() + 1e-12) + 1e-9)
+    gain = 10 ** (k * np.minimum(0, db - knee) / 20)
+    m = max(1, int(RATE * 0.02)); gain = np.convolve(gain, np.ones(m) / m, "same")   # no sudden step in the gain itself
+    return x * gain
+
+
 def piece(spec):
     """FILE,FROM,TO[@AT][;key=value ...] -> (the sound, where it starts)."""
     head, *kv = spec.split(";")
@@ -165,6 +179,7 @@ def piece(spec):
         if "highpass" in o: f.append(f"highpass=f={o['highpass']}")
         if "lowpass" in o: f.append(f"lowpass=f={o['lowpass']}")
     x = shaped(x, f)
+    if "dry" in o: x = dry(x, float(o["dry"]), float(o.get("knee", -12)))
     i, u = min(len(x) // 2, int(float(o.get("in", 0.005)) * RATE)), min(len(x) // 2, int(float(o.get("out", 0.03)) * RATE))
     if i: x[:i] *= np.linspace(0, 1, i)
     if u: x[-u:] *= np.linspace(1, 0, u)

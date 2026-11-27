@@ -552,9 +552,12 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   main" for it, so they are on the site switched off for the girls
   (`PET_LIVE`), and he is trying them in his test profile on his phone.
   The care scenes, the music and the cues went to main the same evening on
-  his "push to main" (fq-38, then fq-39 with the new word, the dressing
-  sound as he made it and the cues in the rest of the app): **ask how the
-  scenes felt under a finger, and how loud the music is**.
+  his "push to main" (fq-38). **Built and tested since, on the work
+  branch, and waiting for his word to go to main** (a push of it was
+  stopped: his "push to main" was said of the scenes): the word חיה, the
+  dressing sound as he made it, the cues in the rest of the app (fq-39),
+  and the scenes' own sounds (fq-40). **Ask how the scenes felt under a
+  finger, and how loud the music is**.
   Ask what he thought of each creature, its motions and its outfits,
   whether the numbers (care a day, what each outfit takes) feel right, and
   how it ran on his phone: it is the first real phone any of this has been
@@ -1180,19 +1183,25 @@ from the 6 designs ... eventually I'm sure they'll all be used".
     arrows run outward at its two sides until she pushes; the seesaw's
     other end has a glowing spot, a ring and an arrow down onto it. The
     three banners first written for these are gone.
-  - **Sounds**: what there was (the splash as the tub lands, the play
-    sound at the first swing or flight, the yawn, a beep as it shines);
-    five of their own are asked of him (SOUNDS.md, round 3). **The
+  - **Sounds**: their own, from his round 3 (SOUNDS.md has his note on
+    each download): the splash and two seconds of bubbles as the tub
+    lands, two scrubs in turn while the sponge moves (`pet_scrub`), a
+    sparkle as it shines (`pet_shine`), the creature's "whee" once a swing
+    and at her push, a little faster or slower each time as he suggested
+    (`pet_swing`, `SWING_RATES`, the player's `rate`), a bump as each end
+    of the seesaw meets the ground (`pet_bump`), its sigh as it settles
+    into the bed (`pet_bed`). **Waiting on him**: which of seven cheers to
+    keep (sent cut and numbered), and whether to make the sounds drier
+    (he finds "too much echo" in what Suno makes; three sounds went to
+    him at three levels; `dry=K` in tools/sounds.py does it). **The
     section's music** (`petTheme`, `THEME`): his song "Quest for the
     Crown" ("the melody fits well", after two demos of it under the
     creature's sounds), whole, at `v` 0.14, fading in and out with the
     creature's screens, going on from where it stopped, switched by a note
-    button in the header (`L.petMusic`). Its original is not on the
-    `sounds` branch: he said he had added it, and on 2026-11-27 the
-    branch's folder still held the fifteen effects only (not pushed from
-    his computer, perhaps). The recipe makes the music only when
-    `pet_theme.wav` is in the folder; the copy sent in the chat is gone
-    with the session, so ask again before the sounds are next rebuilt. **The sleeping sound**: of three
+    button in the header (`L.petMusic`). Its original is on the `sounds`
+    branch as `pet_theme.wav` since his push of that night (twenty-three
+    WAVs there now; the recipe run on that folder alone makes every file
+    of `audio/` again). **The sleeping sound**: of three
     higher tries he said "let's just leave it as is but less frequent":
     the same two breaths, five seconds apart.
   - **A fault the sounds' walk found**: the hop after a bath was begun a

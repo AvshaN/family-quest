@@ -1,6 +1,6 @@
 #!/bin/bash
-# The creature's sounds, round 1: from Avsha's Suno downloads (the folder sounds/ of the branch `sounds`,
-# 2026-11-27: fifteen WAVs) to audio/*.mp3. Run from the repo's root with that folder:
+# The creature's sounds, every round: from Avsha's Suno downloads (the folder sounds/ of the branch `sounds`,
+# 2026-11-27: twenty-three WAVs) to audio/*.mp3. Run from the repo's root with that folder:
 #     git archive origin/sounds sounds | tar -x -C /somewhere
 #     bash tools/sounds_round1.sh /somewhere/sounds
 # (Run so on the day the last two were pushed, it made every file of audio/ again, byte for byte.)
@@ -43,7 +43,8 @@ $S pet_play "$R/pet_play.wav,0,3.16" --out=0.1 --v=0.65
 # Laid out six times over the wash's four and a half seconds, a little higher or lower each time, they were "too
 # repetitive" (his words). So each is heard once, as it came: the splash, then the bubbles. The rest of the wash is
 # quiet; a longer download of bubbles would fill it.
-$S pet_wash "$R/water_splash.wav,0.36,1.16@0" "$R/bubbles.wav,0.08,0.92@0.55;gain=-2" --out=0.15 --v=0.6
+# Round 3: he made a longer run of bubbles (bubbles2, two seconds), which takes the place of the first, shorter one.
+$S pet_wash "$R/water_splash.wav,0.36,1.16@0" "$R/bubbles2.wav,0,1.95@0.55;gain=-2" --out=0.2 --v=0.6
 # Going to sleep: two yawns in the download, played in turn.
 $S pet_yawn_1 "$R/pet_yawn.wav,0.30,1.24" --out=0.1 --v=0.6
 $S pet_yawn_2 "$R/pet_yawn.wav,2.58,3.58" --out=0.15 --v=0.6
@@ -81,9 +82,23 @@ else
   echo "steps.wav is not in $R: audio/pet_walk.mp3 is left as it is"
 fi
 
+# The care scenes' own sounds (round 3, SOUNDS.md), each cut as he said of its download:
+# scrub: "only use the first 2 sounds" (two short scrubs, played in turn while the sponge is moving on the creature).
+$S pet_scrub_1 "$R/scrub.wav,0.54,1.18" --out=0.08 --v=0.5
+$S pet_scrub_2 "$R/scrub.wav,1.82,2.34" --out=0.08 --v=0.5
+# shine: the whole of it, a sparkle of two seconds as the creature shines after its bath.
+$S pet_shine "$R/shine.wav,0,1.96" --out=0.4 --v=0.5
+# swing: "one sound that can be the creature's when swinged, maybe we can use the same one but with different speeds
+# to mix it up": one file, and the app plays it a little faster or slower each time (SWING_RATES in app.js).
+$S pet_swing "$R/swing.wav,0.34,1.62" --out=0.15 --v=0.5
+# bump: "very long, only use one of those first sounds": fourteen seconds of bumps; the first of them.
+$S pet_bump "$R/bump.wav,0.05,0.47" --out=0.06 --v=0.5
+# bed: "use only the 2nd sound. it's only the creature's sigh": its sigh as it settles into the bed.
+$S pet_bed "$R/bed.wav,2.04,3.98" --out=0.25 --v=0.45
+
 # The music of the creature's section (round 3, SOUNDS.md): his song "Quest for the Crown", whole, as he made it, with
 # a second and a half of quiet before it starts again. Mono at 64 kbit: two minutes at the effects' 96 would be 1.5 MB.
-# Its original came in the chat and is not on the branch yet: made only when it is in the folder, as pet_theme.wav.
+# Its original came in the chat first and is on the branch since his next push, as pet_theme.wav.
 if [ -f "$R/pet_theme.wav" ]; then $S pet_theme "$R/pet_theme.wav,0,124.4;in=0.02;out=0.4" --len=126 --loop=0.05 --bitrate=64k --v=0.14; fi
 
 python3 tools/sounds.py table && python3 tools/sounds.py check

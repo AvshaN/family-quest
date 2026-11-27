@@ -1170,10 +1170,15 @@ const SOUNDS = {
   heart: { n: 1, v: 0.6 },
   level_up: { n: 1, v: 0.8 },
   new_item: { n: 1, v: 0.75 },
+  pet_bed: { n: 1, v: 0.45 },
+  pet_bump: { n: 1, v: 0.5 },
   pet_chirp: { n: 2, v: 0.4 },
   pet_eat: { n: 1, v: 0.6 },
   pet_play: { n: 1, v: 0.65 },
+  pet_scrub: { n: 2, v: 0.5 },
+  pet_shine: { n: 1, v: 0.5 },
   pet_sleep: { n: 1, v: 0.3, loop: [0.12, 9.87] },
+  pet_swing: { n: 1, v: 0.5 },
   pet_theme: { n: 1, v: 0.14, loop: [0.12, 126.07] },
   pet_wake: { n: 1, v: 0.45 },
   pet_walk: { n: 1, v: 0.9, loop: [0.12, 4.12] },
@@ -1212,7 +1217,7 @@ function sndWatch() {
 }
 /* opt: alive (a function: the sound stops when it turns false), secs (repeat it for so long), loop (repeat it until
  * alive turns false), vol (a share of its own level), late (ms it may come late and still play; a repeating one may
- * always); and for the music: fade (seconds: it comes in and goes out over them), from (seconds into its repeating
+ * always), rate (played so much faster and higher: 1.1; or slower and lower); and for the music: fade (seconds: it comes in and goes out over them), from (seconds into its repeating
  * part to begin at), gone (called with how far through it was when it stopped), began (called when it has started,
  * or could not). False when there is no such sound. */
 function snd(name, opt) {
@@ -1227,7 +1232,7 @@ function snd(name, opt) {
     if (!buf || !L.sound || (opt.alive && !opt.alive()) || (!again && performance.now() - asked > (opt.late || 600))) { if (opt.began) opt.began(false); return; }
     const src = ac.createBufferSource(), g = ac.createGain(), item = { name, src, g, alive: opt.alive || null, till: 0, pan: null, side: null, fade: opt.fade || 0, gone: opt.gone || null, t0: ac.currentTime, from: 0 };
     const level = (s.v == null ? 1 : s.v) * (opt.vol == null ? 1 : opt.vol);
-    src.buffer = buf;
+    src.buffer = buf; if (opt.rate) src.playbackRate.value = opt.rate;
     if (opt.fade) { g.gain.value = 0.0001; g.gain.setTargetAtTime(level, ac.currentTime, opt.fade / 4); } else g.gain.value = level;
     // pan: a function that says where the sound is, from -1 (the left of the screen) to 1: the steps go with the walker
     if (opt.pan && ac.createStereoPanner) { item.pan = ac.createStereoPanner(); item.side = opt.pan; src.connect(g).connect(item.pan).connect(ac.destination); }
@@ -2637,9 +2642,11 @@ function petBath(E, stage, done) {
   let landed = false, ready = false, held = false, auto = false, trav = 0, lastFoam = 0, ticks = 0, rinse = 0, ph = 0, cued = false;
   // waiting for her finger it glows (.cue) and bobs; held, it turns as it scrubs
   const lay = () => { const bob = cued ? Math.sin(sc.t * 5.5) * 4 : 0; sponge.style.transform = `translate(${sp.x.toFixed(1)}px,${(sp.y + bob).toFixed(1)}px) rotate(${(cued ? Math.sin(sc.t * 5.5 + 1) * 9 : Math.sin(trav / 26) * 14).toFixed(1)}deg)`; };
+  let scrubbed = -9;   // when the sponge last scrubbed: its sound (two takes, in turn) lasts while it does, and goes out half a second after
   const scrub = d => {   // the sponge moved d px: over the creature it is a scrub
     const on = Math.pow((sp.x - body.x) / (body.rx * 1.25), 2) + Math.pow((sp.y - body.y) / (body.ry * 1.3), 2) < 1;
     if (!on || sc.over) return;
+    scrubbed = sc.t; if (!SND.live.some(x => x.name === "pet_scrub")) snd("pet_scrub", { fade: 0.2, alive: () => !!PETUI && PETUI.scene === sc && !sc.over && sc.t - scrubbed < 0.45 });
     trav += d; lastFoam += d; ticks += d;
     if (lastFoam > 20 && foam.length < 34) { lastFoam = 0; foam.push({ x: sp.x + (Math.random() - 0.5) * 16, y: sp.y + 10 + (Math.random() - 0.5) * 14, r: 9 + Math.random() * 7, ph: Math.random() * 6, a: 0 }); }
     if (Math.random() < d / 60) E.spawn("bubble", sp.x, sp.y - 6, 1);
@@ -2655,7 +2662,7 @@ function petBath(E, stage, done) {
         sponge.remove(); sc.meter(0); const m = $("#petmeter", stage); if (m) m.hidden = true;
         // clean: it shines for a second (still the scene's: a walk begun while it shone was cut short by the hop that follows)
         E.cv.classList.remove("shine"); void E.cv.offsetWidth; E.cv.classList.add("shine"); setTimeout(() => E.cv.classList.remove("shine"), 1200);
-        E.spawn("spark", ...E.pt(0.5, 0.42), 26); SFX.good(); buzz([12, 40, 12]);
+        E.spawn("spark", ...E.pt(0.5, 0.42), 26); if (!snd("pet_shine")) SFX.good(); buzz([12, 40, 12]);
         setTimeout(() => { if (PETUI && PETUI.scene === sc) { sc.end(); sceneJoy(E, done); } }, 950); }); }, 520);
   };
   sc.down = pt => { if (!ready || sc.over) return; held = true; auto = false; sc.quiet = 0; sp.x = pt.x; sp.y = pt.y - 26; lay(); };
@@ -2695,14 +2702,16 @@ function petSwing(E, stage, done) {
   const swing = propMount(stage, rope(-1) + rope(1) + propPic("seat", 0, seatY, seatW, "seat"), "");
   const seat = $(".seat", swing.back), ropes = $$(".proprope", swing.back), lift = (seatTop + SEAT_DROP * S) * k, w0 = 3.4, want = 3.4;
   const top = Math.max(0.17, Math.min(0.3, (E.W / 2 - 0.34 * S * k) / (Lr * k)));   // as far as it swings: less on a narrow screen, so a wide creature stays in it
-  let th = 0, om = 0, damp = 0.32, on = false, mounting = false, fun = 0, sang = false, moved = 0, leaving = false, was = 0, cued = false, touched = false;
+  let th = 0, om = 0, damp = 0.32, on = false, mounting = false, fun = 0, sang = false, moved = 0, leaving = false, was = 0, cued = false, touched = false, whee = -1, wheeAt = -9;
   const lay = () => { const sx = Lr * Math.sin(th), sy = Lr * (1 - Math.cos(th));
     seat.style.transform = `translate(calc(-50% + ${sx.toFixed(1)}px),${(-sy).toFixed(1)}px)`; ropes.forEach(r => { r.style.transform = `rotate(${(-th).toFixed(4)}rad)`; });
     if (on && !leaving) sc.place(sx * k, lift + sy * k, -th * 20); };
   const cap = () => { const amp = Math.hypot(th, om / w0); if (amp > top) { th *= top / amp; om *= top / amp; } };
-  const push = v => { om += v; cap(); sc.quiet = 0; touched = true; buzz(8); };
+  // its "whee": once a swing and at her push, never two within a second, a little faster or slower each time and never the same twice running
+  const voice = () => { if (sc.t - wheeAt < 1) return; wheeAt = sc.t; let r; do { r = Math.floor(Math.random() * SWING_RATES.length); } while (r === whee); whee = r; snd("pet_swing", { rate: SWING_RATES[r], alive: () => !!PETUI && PETUI.scene === sc }); };
+  const push = v => { om += v; cap(); sc.quiet = 0; touched = true; buzz(8); voice(); };
   sc.down = () => { moved = 0; };
-  sc.move = (pt, d, dx) => { if (!on || sc.over) return; moved += d; om += dx / (Lr * k) * 7.5; cap(); sc.quiet = 0; touched = true; };
+  sc.move = (pt, d, dx) => { if (!on || sc.over) return; moved += d; om += dx / (Lr * k) * 7.5; cap(); sc.quiet = 0; touched = true; if (moved > 30) voice(); };
   sc.up = pt => { if (!on || sc.over || moved > 10) return; push((Math.abs(om) > 0.25 ? Math.sign(om) : pt.x < ox + Lr * Math.sin(th) * k ? 1 : -1) * 1.05); };
   E.tick = dt => {
     sc.t += dt;
@@ -2713,13 +2722,14 @@ function petSwing(E, stage, done) {
     if (!on || leaving) { lay(); return; }
     om += (-w0 * w0 * Math.sin(th) - damp * om) * dt; th += om * dt; lay();
     const amp = Math.hypot(th, om / w0);
-    if (was * th < 0 && amp > 0.1) { E.spawn("note", ox + (Math.random() - 0.5) * 0.4 * S, sc.oy - 0.75 * S * k, 1); buzz(5); }
+    if (was * th < 0 && amp > 0.1) { E.spawn("note", ox + (Math.random() - 0.5) * 0.4 * S, sc.oy - 0.75 * S * k, 1); buzz(5);
+      if (th > 0) voice(); }
     was = th || was;
     if (sc.over) { if (amp < 0.02 || (sc.quiet += dt) > 2.2) {   // it has come to rest: off it hops, and the swing goes up
         const x0 = Lr * Math.sin(th) * k; leaving = true; om = 0;
         sc.hop({ x: x0, up: lift }, { x: 0, up: 0 }, 0.45, () => E.rest(), () => { swing.lift(); sc.end(); sceneJoy(E, done); }); }
       return; }
-    if (amp > 0.11) { fun += dt; if (!sang) { sang = true; snd(PET_SND.p); } sc.meter(fun / want); }
+    if (amp > 0.11) { fun += dt; if (!sang) { sang = true; if (!sndHas("pet_swing")) snd(PET_SND.p); } sc.meter(fun / want); }   // until it has a voice of its own for the swing, the play sound
     if (fun >= want) { sc.over = true; sc.quiet = 0; damp = 3.4; return; }
     sc.quiet += dt;
     if (sc.quiet > 2.4 && amp < 0.14 && Math.abs(th) < 0.05) om = (om < 0 ? -1 : 1) * w0 * 0.25;   // she does not push: it is pushed for her
@@ -2734,6 +2744,7 @@ function petSwing(E, stage, done) {
   };
 }
 
+const SWING_RATES = [0.9, 1, 1.1, 1.2];   // his one sound for the swing, "with different speeds to mix it up"
 /* The seesaw. It sits on one end; her finger on the stage is the weight on the other: down goes her end and up goes
  * the creature, off its seat for a moment at the top; lifted, it comes down again with a bump. */
 function petSeesaw(E, stage, done) {
@@ -2757,9 +2768,9 @@ function petSeesaw(E, stage, done) {
     if (!sc.over && !pressed) { sc.quiet += dt; if (sc.quiet > 2.6) { autoT += dt; down = autoT % 1.5 < 0.55; } } else autoT = 0;   // she does not press: it is pressed for her
     v += (64 * ((down && !sc.over ? max : -max) * 1.5 - phi) - 9.5 * v) * dt; phi += v * dt;   // pushed past where it stops, so it meets the stop with a bump
     if (phi > max) { phi = max;
-      if (v > 1.2 && !air) { air = true; cvy = Math.min(430, v * arm * 1.25); ups++; sc.meter(ups / want); buzz(8); E.spawn("note", ox + seatAt(max).x * k, oy - (seatAt(max).y + 0.5 * S) * k, 2); if (!sang) { sang = true; snd(PET_SND.p); } }
+      if (v > 1.2 && !air) { air = true; cvy = Math.min(430, v * arm * 1.25); ups++; sc.meter(ups / want); buzz(8); E.spawn("note", ox + seatAt(max).x * k, oy - (seatAt(max).y + 0.5 * S) * k, 2); snd("pet_bump", { vol: 0.55 }); if (!sang) { sang = true; snd(PET_SND.p); } }
       v = -v * 0.2; }
-    if (phi < -max) { phi = -max; if (v < -1.4) { E.pulse(); buzz(12); } v = -v * 0.25; }
+    if (phi < -max) { phi = -max; if (v < -1.4) { E.pulse(); buzz(12); snd("pet_bump"); } v = -v * 0.25; }
     if (air) { cvy -= 1250 * dt; cy += cvy * dt; const s = seatAt(phi); if (cy <= s.y) { cy = s.y; air = false; E.pulse(); } }
     lay();
     if (!sc.over && ups >= want) { sc.over = true; pressed = false; sc.quiet = 0; }
@@ -2809,7 +2820,7 @@ function petBed(E, stage, on, still) {
     set("--sz", BED.sz); E.sleepPose = "abed";
     if (still || REDUCED) { set("--py", (-up).toFixed(1) + "px"); E.still("abed"); return true; }
     setTimeout(() => { if (PETUI !== mine || !mine.bed || !E.asleep) return; let lain = false; E.pulse(); buzz(10);   // the bed has landed: in it hops, and lies down at the top of the hop
-      E.tween(0, 1, 0.5, u => { if (u > 0.45 && !lain) { lain = true; E.still("abed"); } set("--py", (-(up * u + Math.sin(u * Math.PI) * 0.17 * S * E.grow)).toFixed(1) + "px"); }, null, x => x); }, PROP_LAND * 1000);
+      E.tween(0, 1, 0.5, u => { if (u > 0.45 && !lain) { lain = true; E.still("abed"); setTimeout(() => snd("pet_bed", { alive: () => PETUI === mine && E.asleep }), 420); } set("--py", (-(up * u + Math.sin(u * Math.PI) * 0.17 * S * E.grow)).toFixed(1) + "px"); }, null, x => x); }, PROP_LAND * 1000);
     return true;
   }, () => false);
 }
@@ -2827,7 +2838,7 @@ function petAct(k) {
     L.petSleep[p.id] = TODAY; E.asleep = true; scr.classList.add("night"); auraMood({ calm: 0.7, energy: 0.05 }); if (btn) btn.textContent = "להעיר";
     snd("pet_yawn", { alive: () => !!PETUI && PETUI.E === E });
     petBed(E, stage, true).then(inBed => { if (!PETUI || PETUI.E !== E || !E.asleep) return;
-      if (inBed) setTimeout(() => { if (PETUI && PETUI.E === E && E.asleep) petSnore(E); }, 1500);
+      if (inBed) setTimeout(() => { if (PETUI && PETUI.E === E && E.asleep) petSnore(E); }, sndHas("pet_bed") ? 2800 : 1500);
       else E.play([{ name: "sit", stay: true }], () => { if (E.asleep) { E.still("asleep"); petSnore(E); } }); });   // no bed: it sits down and shuts its eyes, as before
     if (first) { pet.c = pet.c || {}; pet.c[TODAY] = have + "s"; petEarn(pet); pet.s = petGrowth(pet); petSave(p.id, pet); petPaint(PET.care, wasLv); } else { save(); petPaint(0, wasLv); }
     SFX.tap(); return;
