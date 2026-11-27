@@ -1,0 +1,55 @@
+#!/bin/bash
+# The creature's sounds, round 1: from Avsha's Suno downloads (the folder "sound effects" of the branch `sounds`,
+# 2026-11-27: thirteen WAVs) to audio/*.mp3. Run from the repo's root with that folder:
+#     bash tools/sounds_round1.sh "/path/to/sound effects"
+# Every number here was read off `tools/sounds.py look` (where a take starts and ends, where its energy is), not
+# chosen by ear. A sound is cut and levelled and otherwise left as he made it: the first try reshaped two of them
+# (a pitched copy over the adoption's swoosh, the wash laid out six times) and he heard both as worse. What is still
+# reshaped is said at its line. Change a line, run it again, and send him the file to hear.
+R="$1"
+[ -f "$R/adopt.wav" ] || { echo "usage: bash tools/sounds_round1.sh FOLDER_OF_THE_DOWNLOADS"; exit 1; }
+S="python3 tools/sounds.py make"
+rm -f audio/*.mp3 audio/sounds.json
+
+# "This creature is mine": a chord that rises (0.3 - 1.9 s), then the swoosh he liked, as he made it: only its
+# length is cut. The swoosh is nearly all under 150 Hz (strongest at 64 Hz), which a phone's speaker gives little of;
+# a copy of it two and a half octaves up was laid over it to be heard there, and the low part filtered off, and he
+# said it "sounds terrible, far from the original, especially the sound at the end". So nothing is added and nothing
+# filtered: on a phone the swoosh is soft, on earphones it is all there. The creature appears at the swoosh (cue).
+$S adopt "$R/adopt.wav,0,3.6" --out=0.4 --v=0.85 --cue=2.05
+
+# A new level: the rising run of bells is its first two and a half seconds; after it comes a long low tail.
+$S level_up "$R/level_up.wav,0,2.7" --out=0.5 --v=0.8
+# A choice reached, a thing taken: it fades by itself at 2.7 s.
+$S new_item "$R/new_item.wav,0,2.75" --out=0.3 --v=0.75
+# A gift sent or received: a pop and a shimmer with a long tail, shortened.
+$S heart "$R/heart.wav,0.04,1.9" --out=0.6 --v=0.6
+
+# A stroke: the first take (the second is a blip at 5 kHz).
+$S pet_chirp "$R/pet_chirp.wav,0,0.66" --out=0.12 --v=0.55
+# Feeding: a crunch, then four small bites a second later, as it came.
+$S pet_eat "$R/pet_eat.wav,0.26,2.40" --v=0.6
+# Play: a giggle, a hum and a run of bouncy notes, as it came.
+$S pet_play "$R/pet_play.wav,0,3.16" --out=0.1 --v=0.65
+# The wash: he could not get splashes and bubbles in one sound, so there are two downloads, each under a second.
+# Laid out six times over the wash's four and a half seconds, a little higher or lower each time, they were "too
+# repetitive" (his words). So each is heard once, as it came: the splash, then the bubbles. The rest of the wash is
+# quiet; a longer download of bubbles would fill it.
+$S pet_wash "$R/water_splash.wav,0.36,1.16@0" "$R/bubbles.wav,0.08,0.92@0.55;gain=-2" --out=0.15 --v=0.6
+# Going to sleep: two yawns in the download, played in turn.
+$S pet_yawn_1 "$R/pet_yawn.wav,0.30,1.24" --out=0.1 --v=0.6
+$S pet_yawn_2 "$R/pet_yawn.wav,2.58,3.58" --out=0.15 --v=0.6
+# While it sleeps. The download has six breaths: three deep ones (most of them under 300 Hz: "too deep and bassy",
+# he said) and three light whistling ones near 1 kHz. Two of the light ones, with the quiet between them, repeat.
+$S pet_sleep "$R/pet_sleep.wav,3.76,8.92" --loop=0.25 --v=0.3
+# Waking: a bright squeak, a softer one and a small "ah", as it came. The squeaks are very high (most of the first is
+# over 3 kHz, its strongest note at 6): it is played low, and if it is sharp on a phone, `;lowpass=5000` softens it.
+$S pet_wake "$R/pet_wake.wav,0.10,2.30" --out=0.08 --v=0.45
+
+# Putting a thing on: the two takes are thumps at 63 and 44 Hz, which a phone does not give. Each is played five or
+# six times faster, as a tape sped up, which makes a deep thump a small pop near 300 Hz, over what there is of the
+# take above 300 Hz at its own speed. (Reshaped: he heard both and did not object.)
+$S wear_on_1 "$R/wear_on.wav,0.02,0.28;speed=5" "$R/wear_on.wav,0.02,0.28;highpass=300;gain=-4" --highpass=200 --out=0.04 --v=0.6
+$S wear_on_2 "$R/wear_on.wav,0.76,0.96;speed=6" "$R/wear_on.wav,0.76,0.96;highpass=300;gain=-4" --highpass=200 --out=0.04 --v=0.6
+
+python3 tools/sounds.py table && python3 tools/sounds.py check

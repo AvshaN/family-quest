@@ -1126,10 +1126,15 @@ async function flush() {
 
 /* ---------- sound, touch, sparks ---------- */
 let AC = null;
+/* The one AudioContext. A phone lets a page start sound only from a tap, and holds a context made at another time
+ * until one: it is asked to go on whenever a sound is wanted, which works once she has tapped anything. */
+function acOn() {
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") { const r = AC.resume(); if (r && r.catch) r.catch(() => {}); } return AC; } catch (e) { return null; }
+}
 function tone(notes) {
   if (!L.sound) return;
   try {
-    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (!acOn()) return;
     const t0 = AC.currentTime + 0.01;
     notes.forEach(([f, at, dur, vol, type]) => {
       const o = AC.createOscillator(), g = AC.createGain();
@@ -1149,6 +1154,80 @@ const SFX = {
   coin: () => tone([[1568, 0, 0.12, 0.04, "square"], [2093, 0.06, 0.22, 0.035, "square"]])
 };
 function buzz(p) { if (!L.haptics || !navigator.vibrate) return; try { navigator.vibrate(p); } catch (e) { /* not on iPhone */ } }
+/* ---------- recorded sounds (the creature's) ----------
+ * Avsha makes them in Suno from prompts written here (SOUNDS.md). tools/sounds.py cuts and levels each into
+ * audio/<name>.mp3 (MP3: every phone here decodes it; an iPhone does not play OGG) and writes the table below from
+ * audio/sounds.json: for each name its takes (n: files <name>_1 ... when more than one, played in turn), its level
+ * (v), and where they matter the moment in it that a motion should meet (cue, in seconds) and the part that repeats
+ * (loop: from, to).
+ * They are decoded into the same AudioContext as the beeps and played from memory, so a sound that follows a tap by
+ * a second (a cheer after care, the steps of its walk) still plays on an iPhone. snd() says whether there is such a
+ * sound: where there is none (not made yet) the caller beeps as it did before. They follow the sound switch, and one
+ * that belongs to a screen stops when the screen is gone (alive). */
+/* SOUNDS:begin (written by tools/sounds.py table: not by hand) */
+const SOUNDS = {
+  adopt: { n: 1, v: 0.85, cue: 2.05 },
+  heart: { n: 1, v: 0.6 },
+  level_up: { n: 1, v: 0.8 },
+  new_item: { n: 1, v: 0.75 },
+  pet_chirp: { n: 1, v: 0.55 },
+  pet_eat: { n: 1, v: 0.6 },
+  pet_play: { n: 1, v: 0.65 },
+  pet_sleep: { n: 1, v: 0.3, loop: [0.12, 5.03] },
+  pet_wake: { n: 1, v: 0.45 },
+  pet_wash: { n: 1, v: 0.6 },
+  pet_yawn: { n: 2, v: 0.6 },
+  wear_on: { n: 2, v: 0.6 }
+};
+/* SOUNDS:end */
+const SND = { buf: {}, turn: {}, live: [], timer: 0 };
+/* is there such a sound to play: not in a page opened from a file (the one-file preview), which cannot fetch them */
+const sndHas = name => !!SOUNDS[name] && location.protocol !== "file:";
+const sndFile = (name, k) => (SOUNDS[name].n || 1) > 1 ? `${name}_${k + 1}` : name;
+function sndBuf(file) {
+  if (SND.buf[file]) return SND.buf[file];
+  const ac = acOn();
+  if (!ac) return Promise.resolve(null);
+  return (SND.buf[file] = fetch("audio/" + file + ".mp3").then(r => { if (!r.ok) throw new Error("no sound"); return r.arrayBuffer(); })
+    .then(a => new Promise((ok, no) => { const pr = ac.decodeAudioData(a, ok, no); if (pr && pr.catch) pr.catch(no); }))   // an older iPhone takes the callbacks, not a promise
+    .catch(() => { delete SND.buf[file]; return null; }));   // asked for again the next time
+}
+/* fetched and decoded ahead, when the screen they belong to opens: a sound that comes late is not played */
+function sndWarm(names) { if (!L.sound) return; (names || Object.keys(SOUNDS)).forEach(nm => { const s = sndHas(nm) && SOUNDS[nm]; if (s) for (let k = 0; k < (s.n || 1); k++) sndBuf(sndFile(nm, k)); }); }
+function sndEnd(item) {
+  SND.live = SND.live.filter(x => x !== item);
+  try { const t = AC.currentTime; item.g.gain.cancelScheduledValues(t); item.g.gain.setTargetAtTime(0.0001, t, 0.05); item.src.stop(t + 0.25); } catch (e) { /* it had ended */ }
+}
+function sndWatch() {
+  if (SND.timer) return;
+  SND.timer = setInterval(() => {
+    SND.live.slice().forEach(x => { if (!L.sound || (x.alive && !x.alive()) || (x.till && AC.currentTime >= x.till)) sndEnd(x); });
+    if (!SND.live.length) { clearInterval(SND.timer); SND.timer = 0; }
+  }, 120);
+}
+/* opt: alive (a function: the sound stops when it turns false), secs (repeat it for so long), loop (repeat it until
+ * alive turns false), vol (a share of its own level), late (ms it may come late and still play; a repeating one may
+ * always). False when there is no such sound. */
+function snd(name, opt) {
+  const s = SOUNDS[name];
+  if (!sndHas(name)) return false;
+  if (!L.sound) return true;
+  const ac = acOn();
+  if (!ac) return true;
+  opt = opt || {};
+  const k = SND.turn[name] = ((SND.turn[name] == null ? -1 : SND.turn[name]) + 1) % (s.n || 1), asked = performance.now(), again = !!(opt.secs || opt.loop);
+  sndBuf(sndFile(name, k)).then(buf => {
+    if (!buf || !L.sound || (opt.alive && !opt.alive()) || (!again && performance.now() - asked > (opt.late || 600))) return;
+    const src = ac.createBufferSource(), g = ac.createGain(), item = { name, src, g, alive: opt.alive || null, till: 0 };
+    src.buffer = buf; g.gain.value = (s.v == null ? 1 : s.v) * (opt.vol == null ? 1 : opt.vol); src.connect(g).connect(ac.destination);
+    if (again) { src.loop = true; if (s.loop) { src.loopStart = s.loop[0]; src.loopEnd = s.loop[1]; } if (opt.secs) item.till = ac.currentTime + opt.secs; }
+    src.onended = () => { SND.live = SND.live.filter(x => x !== item); };
+    src.start(0, again && s.loop ? s.loop[0] : 0);
+    SND.live.push(item); sndWatch();
+    if (window.FQ_TEST) (window.FQ_TEST.snd = window.FQ_TEST.snd || []).push(sndFile(name, k) + (again ? "~" : ""));
+  });
+  return true;
+}
 /* ---------- motion (Avsha, 2026-11-14: "the girls react well to animations and interesting graphics") ----------
  * One canvas over the page (#fx) carries the short effects: sparks, a ring off a right answer, motes that fly from
  * the answer to its place on the round's bar, a comet at a streak of three and five. They stop drawing when done. */
@@ -2119,7 +2198,12 @@ function petEngine(cv, fxc, kind, worn) {
   const KEEP = ["rest", "blink", "smile", "asleep", "hop", "look"];
   const letGo = name => { if (KEEP.includes(name) || name === cur.name || queue.some(x => x.name === name)) return;
     [base(name)].concat(wear.map(k => layerOf(k, name))).forEach(rel => { if (sheets[rel] !== undefined) { delete sheets[rel]; artImg.drop(rel); } }); };
-  const start = (name, opt) => { const was = cur.name; sctx.clearRect(0, 0, snap.width, snap.height); sctx.drawImage(cv, 0, 0); blend = REDUCED ? 0 : 1; cur = Object.assign({ name, t: 0, hold: false, loop: false, times: 1 }, opt || {}); if (was !== name) letGo(was); if (REDUCED) draw(0); };
+  /* a motion's sound (snd) starts when the motion does, or sndAt seconds into it; one that repeats (a walk's steps)
+   * lasts as long as the motion and stops with it */
+  const voice = (name, opt) => { if (!opt || !opt.snd) return; const secs = opt.loop ? (PET_CLIPS[name] || 1) / PET.fps * (opt.times || 1) : 0, mine = token;
+    const go = () => { if (cv.isConnected && mine === token) snd(opt.snd, { alive: () => cv.isConnected && (!secs || cur.name === name), secs: secs }); };
+    if (opt.sndAt) setTimeout(go, opt.sndAt * 1000); else go(); };
+  const start = (name, opt) => { const was = cur.name; sctx.clearRect(0, 0, snap.width, snap.height); sctx.drawImage(cv, 0, 0); blend = REDUCED ? 0 : 1; cur = Object.assign({ name, t: 0, hold: false, loop: false, times: 1 }, opt || {}); if (was !== name) letGo(was); voice(name, opt); if (REDUCED) draw(0); };
   const finish = () => { E.busy = false; E.soft = false; start(E.asleep ? "asleep" : "rest", { hold: true }); const f = onEnd, g = E.after; onEnd = null; E.after = null; if (f) f(); if (g) g(); };
   /* list: [{ name, loop, times, stay }]; done when the last has played; gentle: one that gives way to her tap */
   E.play = (list, done, gentle) => {
@@ -2129,7 +2213,7 @@ function petEngine(cv, fxc, kind, worn) {
     Promise.all(list.map(x => fetchClip(x.name))).then(() => {
       if (mine !== token || !cv.isConnected) return;
       const have = list.filter(x => sheet(x.name));
-      if (REDUCED || !have.length) { finish(); return; }
+      if (REDUCED || !have.length) { const v = list.find(x => x.snd); if (v) snd(v.snd, { alive: () => cv.isConnected }); finish(); return; }   // with no motion its sound is still heard, once
       queue = have.slice(1); start(have[0].name, have[0]);
     });
   };
@@ -2189,7 +2273,7 @@ function petStroke(stage, E) {
     const r = stage.getBoundingClientRect(), d = Math.hypot(e.clientX - PETUI.at[0], e.clientY - PETUI.at[1]);
     PETUI.at = [e.clientX, e.clientY]; PETUI.strokes += d;
     if (Math.random() < d / 26) E.spawn("heart", e.clientX - r.left, e.clientY - r.top - 8, 1);
-    if (PETUI.strokes > 150 && (!E.busy || E.soft)) { PETUI.strokes = 0; PETUI.pets++; E.face = null; buzz(12); E.play([{ name: PETUI.pets % 3 ? "hop" : "flip" }]); if (PETUI.pets % 3 === 0) E.spawn("heart", ...E.pt(0.5, 0.36), 9); }
+    if (PETUI.strokes > 150 && (!E.busy || E.soft)) { PETUI.strokes = 0; PETUI.pets++; E.face = null; buzz(12); snd("pet_chirp", { alive: () => PETUI && PETUI.E === E }); E.play([{ name: PETUI.pets % 3 ? "hop" : "flip" }]); if (PETUI.pets % 3 === 0) E.spawn("heart", ...E.pt(0.5, 0.36), 9); }
   });
   const lift = () => { if (PETUI && PETUI.E === E) { PETUI.at = null; PETUI.strokes = 0; } E.face = null; };
   stage.addEventListener("pointerup", lift); stage.addEventListener("pointercancel", lift);
@@ -2245,12 +2329,14 @@ function petNews() {
   if (!gifts.length && !fresh.length) return;
   if (gifts.length) { const names = [...new Set(gifts.map(x => x.who.name))];
     toast(`${joinHe(names)} ${names.length > 1 ? "שלחו" : "שלחה"} ל${pet.n} ${gifts.length > 1 ? "מתנות" : PET_GIFTS[gifts[0].g].n}`);
+    snd("heart");
     if (!E.asleep) PET_GIFTS[gifts[0].g].on(E); }
-  if (fresh.length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; E.spawn("spark", ...E.pt(0.5, 0.3), 24); SFX.done(); buzz([20, 60, 20]); if (!E.asleep && (!E.busy || E.soft)) E.play([{ name: "flip" }]);
+  if (fresh.length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; E.spawn("spark", ...E.pt(0.5, 0.3), 24); if (!snd("new_item")) SFX.done(); buzz([20, 60, 20]); if (!E.asleep && (!E.busy || E.soft)) E.play([{ name: "flip" }]);
     toast(`הגעת ליעד: בחירה חדשה ל${pet.n}`); petGiftShow(pet); }, gifts.length ? 2800 : 0);
   pet.hn = []; pet.nw = []; save();
 }
 function renderPetPick(kind) {
+  sndWarm(["adopt"]);
   const typed = ($("#petname", layer) || {}).value || "";
   layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="בחירת יצור"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
     <div class="row"><span class="eyebrow">Your creature</span><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button></div>
@@ -2272,7 +2358,7 @@ function petAdopt(kind) {
   petSave(p.id, { k: kind, n: name, d: TODAY, g0: 0, c: {}, o: {}, w: {}, m: {}, pm: {} });
   petCredit(p);
   petOf(p.id).s = petGrowth(petOf(p.id)); save();
-  SFX.good();
+  if (!snd("adopt", { late: 1500 })) SFX.good();
   renderPet(true);
 }
 /* Its wardrobe in one line: how much she has, and the choice she is nearest to. */
@@ -2342,11 +2428,21 @@ function renderPet(fresh) {
       <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="grow"><bdi dir="ltr">+100</bdi> גדילה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="pick">עוד בחירה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="all">כל הפריטים</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="new">יצור אחר</button></div></section>` : ""}</div></div>`;
   const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
   PETUI = { E, kind: pet.k, pid: p.id, strokes: 0, pets: 0, at: null };
+  sndWarm();
   $("#petname", layer).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); const b = $("[data-act=petRenameSave]", layer); if (b) b.click(); } });
   E.asleep = asleep;
   auraMood(asleep ? { calm: 0.7, energy: 0.05 } : { calm: 0.15, energy: 0.4 });
-  if (asleep) E.still("asleep");
-  else if (fresh) setTimeout(() => { if (PETUI && PETUI.E === E) { E.play([{ name: "flip" }], null, true); E.spawn("spark", ...E.pt(0.5, 0.38), 26); SFX.done(); } }, 350);
+  if (asleep) { E.still("asleep"); petSnore(E); }
+  else if (fresh) {
+    /* The moment she chose it. The adoption's sound is a chord that rises and then a swoosh (Avsha: "a nice swoosh
+     * sound at the end which will be nice to sync with the animation"): while the chord rises there are only sparks
+     * gathering over the glow on the floor, and the creature appears with the swoosh (cue), in a flip. With sound
+     * off, or no such sound, it is there at once as before. */
+    const cue = sndHas("adopt") && SOUNDS.adopt.cue && L.sound && !REDUCED ? SOUNDS.adopt.cue * 1000 : 0;
+    if (cue) { stage.classList.add("arriving");
+      const h = setInterval(() => { if (!PETUI || PETUI.E !== E || !stage.classList.contains("arriving")) return clearInterval(h); E.spawn("spark", ...E.pt(0.5 + (Math.random() - 0.5) * 0.55, 0.3 + Math.random() * 0.4), 1); }, 90); }
+    setTimeout(() => { stage.classList.remove("arriving"); if (PETUI && PETUI.E === E) { E.play([{ name: "flip" }], null, true); E.spawn("spark", ...E.pt(0.5, 0.38), cue ? 40 : 26); if (!sndHas("adopt")) SFX.done(); else buzz([20, 50, 30]); } }, cue ? Math.max(350, cue - 80) : 350);
+  }
   else setTimeout(() => { if (PETUI && PETUI.E === E && !E.busy) E.play([{ name: "hop" }], null, true); }, 350);
   // now and then it looks about; a finger drawn across it is a stroke
   const idle = setInterval(() => { if (!PETUI || PETUI.E !== E || !stage.isConnected) return clearInterval(idle); if (!E.busy && !E.asleep && !PETUI.at) E.play([{ name: "look" }], null, true); }, 14000);
@@ -2367,17 +2463,21 @@ function petPaint(gained, wasLv) {
   const gain = $("#petgain", layer);
   if (gain && gained > 0) { gain.textContent = "+" + gained; gain.classList.remove("on"); void gain.offsetWidth; gain.classList.add("on"); }
   if (E && g.lv > wasLv) {
-    const cheer = () => { if (!PETUI || PETUI.E !== E) return; E.play([{ name: "flip" }]); E.spawn("spark", ...E.pt(0.5, 0.38), 30); SFX.done(); buzz([20, 60, 20]); toast(`${pet.n}: רמה ${g.lv}!`);
+    const cheer = () => { if (!PETUI || PETUI.E !== E) return; E.play([{ name: "flip" }]); E.spawn("spark", ...E.pt(0.5, 0.38), 30); if (!snd("level_up")) SFX.done(); buzz([20, 60, 20]); toast(`${pet.n}: רמה ${g.lv}!`);
       const st = $("#petstage", layer); if (st) { E.grow = +petGrowCss(g.lv); st.style.setProperty("--grow", E.grow.toFixed(2)); petFit(st, pet.k, petWorn(pet), g.lv); }
       if ((pet.nw || []).length) setTimeout(() => { if (PETUI && PETUI.E === E) petNews(); }, 2400); };   // a level that is a milestone: its choice is said after the cheer
     if (E.busy && !E.soft) E.after = cheer; else setTimeout(cheer, 400);
   }
 }
+/* its breathing while it sleeps, for as long as it sleeps on this screen */
+const petSnore = E => snd("pet_sleep", { loop: true, alive: () => !!PETUI && PETUI.E === E && E.asleep && !PETUI.mode && !!$(".petscr", layer) });
+/* each care action's sound, started by its motion (petEngine: snd, and sndAt seconds into it) */
+const PET_SND = { e: "pet_eat", p: "pet_play", w: "pet_wash", k: "pet_walk" };
 const PET_ACTS = {
-  e: E => { const m = E.pt(0.53, 0.47); E.treat = { t: 0, x0: E.W - 30, y0: E.H - 6, x1: m[0], y1: m[1] }; E.play([{ name: "eat" }], () => E.spawn("heart", ...E.pt(0.5, 0.34), 3)); },
-  p: E => { E.play([{ name: "play" }]); const h = setInterval(() => { if (!E.busy || !PETUI || PETUI.E !== E) return clearInterval(h); E.spawn("note", ...E.pt(0.5 + (Math.random() - 0.5) * 0.6, 0.34), 1); }, 380); },
-  w: E => { E.play([{ name: "wash" }], () => E.spawn("spark", ...E.pt(0.5, 0.4), 16)); const h = setInterval(() => { if (!E.busy || !PETUI || PETUI.E !== E) return clearInterval(h); E.spawn("bubble", ...E.pt(0.5 + (Math.random() - 0.5) * 0.44, 0.3 + Math.random() * 0.3), 2); }, 140); },
-  k: E => { const st = $("#petstage", layer); if (st) st.classList.add("walking"); E.play([{ name: "walk", loop: true, times: 4 }], () => { if (st) st.classList.remove("walking"); }); }
+  e: E => { const m = E.pt(0.53, 0.47); E.treat = { t: 0, x0: E.W - 30, y0: E.H - 6, x1: m[0], y1: m[1] }; E.play([{ name: "eat", snd: PET_SND.e, sndAt: 0.7 }], () => E.spawn("heart", ...E.pt(0.5, 0.34), 3)); },   // the treat reaches its mouth in 0.75 s
+  p: E => { E.play([{ name: "play", snd: PET_SND.p }]); const h = setInterval(() => { if (!E.busy || !PETUI || PETUI.E !== E) return clearInterval(h); E.spawn("note", ...E.pt(0.5 + (Math.random() - 0.5) * 0.6, 0.34), 1); }, 380); },
+  w: E => { E.play([{ name: "wash", snd: PET_SND.w }], () => E.spawn("spark", ...E.pt(0.5, 0.4), 16)); const h = setInterval(() => { if (!E.busy || !PETUI || PETUI.E !== E) return clearInterval(h); E.spawn("bubble", ...E.pt(0.5 + (Math.random() - 0.5) * 0.44, 0.3 + Math.random() * 0.3), 2); }, 140); },
+  k: E => { const st = $("#petstage", layer); if (st) st.classList.add("walking"); E.play([{ name: "walk", loop: true, times: 4, snd: PET_SND.k }], () => { if (st) st.classList.remove("walking"); }); }
 };
 function petAct(k) {
   const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E;
@@ -2386,18 +2486,19 @@ function petAct(k) {
   L.petSleep = L.petSleep || {};
   if (k === "s") {   // sleep is a toggle; the first time in a day it is one of the day's care
     const asleep = L.petSleep[p.id] === TODAY;
-    if (asleep) { delete L.petSleep[p.id]; save(); E.asleep = false; scr.classList.remove("night"); auraMood({ calm: 0.15, energy: 0.4 }); if (btn) btn.textContent = "שינה"; E.play([{ name: "hop" }], null, true); petPaint(0, wasLv); return; }
+    if (asleep) { delete L.petSleep[p.id]; save(); E.asleep = false; scr.classList.remove("night"); auraMood({ calm: 0.15, energy: 0.4 }); if (btn) btn.textContent = "שינה"; E.play([{ name: "hop", snd: "pet_wake" }], null, true); petPaint(0, wasLv); return; }
     if (E.busy && !E.soft) return;
     const first = !have.includes("s");
     if (first && !care.left) return;
     L.petSleep[p.id] = TODAY; E.asleep = true; scr.classList.add("night"); auraMood({ calm: 0.7, energy: 0.05 }); if (btn) btn.textContent = "להעיר";
-    E.play([{ name: "sit", stay: true }], () => { if (E.asleep) E.still("asleep"); });
+    E.play([{ name: "sit", stay: true, snd: "pet_yawn" }], () => { if (E.asleep) { E.still("asleep"); petSnore(E); } });
     if (first) { pet.c = pet.c || {}; pet.c[TODAY] = have + "s"; petEarn(pet); pet.s = petGrowth(pet); petSave(p.id, pet); petPaint(PET.care, wasLv); } else { save(); petPaint(0, wasLv); }
     SFX.tap(); return;
   }
   if (!PET_ACTS[k] || (E.busy && !E.soft) || E.asleep || !care.left) return;
   pet.c = pet.c || {}; pet.c[TODAY] = have + k; petEarn(pet); pet.s = petGrowth(pet); petSave(p.id, pet);
-  SFX.good(); buzz(15); PET_ACTS[k](E);
+  if (!sndHas(PET_SND[k])) SFX.good();
+  buzz(15); PET_ACTS[k](E);
   setTimeout(() => { if (PETUI && PETUI.E === E) { petPaint(PET.care, wasLv); if ((pet.nw || []).length && petLevel(petGrowth(pet)).lv === wasLv) setTimeout(() => { if (PETUI && PETUI.E === E) petNews(); }, 1500); } }, 800);
 }
 
@@ -2433,7 +2534,8 @@ function petWear(k) {
   pet.wv = Date.now();   // when it was last dressed: of two phones' copies, the later dressing is kept
   petSave(p.id, pet);
   const worn = petWorn(pet), stage = $("#petstage", layer);
-  SFX.tap(); buzz(10);
+  if (!snd("wear_on")) SFX.tap();
+  buzz(10);
   E.wear(worn).then(() => { if (PETUI && PETUI.E === E && (!E.busy || E.soft)) { E.play([{ name: "hop" }], null, true); if (worn.includes(k)) E.spawn("spark", ...E.pt(0.5, 0.3), 10); } });
   petFit(stage, pet.k, worn, petLevel(petGrowth(pet)).lv);
   $$(".pwi", layer).forEach(b => { const kk = b.dataset.k, on = worn.includes(kk), s = $("span.small", b); b.setAttribute("aria-pressed", on); if (s && (pet.o || {})[kk]) s.textContent = on ? "לבוש עכשיו" : "להלביש"; });
@@ -2461,7 +2563,7 @@ function petTryOn(k) {
   if (!pet || !E || !it || PETUI.mode !== "choose" || PETUI.took) return;
   PETUI.pick = k;
   const w = Object.assign({}, pet.w || {}, { [it.slot]: k }), worn = PET_SLOTS.map(s => w[s]).filter(x => x && PET_WEAR[x]);
-  SFX.tap();
+  if (!snd("wear_on")) SFX.tap();
   E.wear(worn).then(() => { if (PETUI && PETUI.E === E && (!E.busy || E.soft)) E.play([{ name: "hop" }], null, true); });
   petFit($("#petstage", layer), pet.k, worn, petLevel(petGrowth(pet)).lv);
   $$(".pwi", layer).forEach(b => b.setAttribute("aria-pressed", b.dataset.k === k));
@@ -2473,7 +2575,8 @@ function petTakeTap(mileKey) {
   if (!pet || !E || PETUI.mode !== "choose" || !k || PETUI.took) return;
   if (!petTake(p.id, mileKey, k)) return;
   PETUI.took = true;
-  SFX.done(); buzz([20, 60, 20]); E.spawn("spark", ...E.pt(0.5, 0.3), 30); E.play([{ name: "flip" }]);
+  if (!snd("new_item")) SFX.done();
+  buzz([20, 60, 20]); E.spawn("spark", ...E.pt(0.5, 0.3), 30); E.play([{ name: "flip" }]);
   toast(`${PET_WEAR[k].n}: של ${pet.n}`);
   $$(".pwi, [data-act=petTake]", layer).forEach(b => { b.disabled = true; });
   setTimeout(() => { if (!PETUI || PETUI.E !== E) return; if (petPending(pet).length) renderChoose(); else renderPet(); }, 2300);
@@ -2520,7 +2623,8 @@ function petHeart(id, g) {
   pet.h[id] = days.concat(TODAY + (g === "h" ? "" : ":" + g)).slice(-10); pet.hs = (+pet.hs || 0) + 1;
   const got = petEarn(pet);
   petSave(p.id, pet);
-  SFX.good(); buzz([15, 40, 15]);
+  if (!snd("heart")) SFX.good();
+  buzz([15, 40, 15]);
   PET_GIFTS[g].on(E);
   const box = $("#petgifts", layer), note = $("#petgiftnote", layer);
   if (note) note.remove();
@@ -4518,7 +4622,7 @@ async function boot() {
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
   shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, factOf, otherPool, me, family: () => FAM, bank: p => BANKS[p],
-  petOf, petAny, petGrowth, petLevel, petCare, petWish, petCredit, petTally, petWorn, petItems, petEarn, petSave, petMiles, petPending, petOptions, petTake, PET_WEAR, pet: () => PETUI };
+  petOf, petAny, petGrowth, petLevel, petCare, petWish, petCredit, petTally, petWorn, petItems, petEarn, petSave, petMiles, petPending, petOptions, petTake, PET_WEAR, pet: () => PETUI, sndLive: () => SND.live.map(x => x.name) };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

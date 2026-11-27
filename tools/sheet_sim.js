@@ -85,7 +85,7 @@ ctx.setup();
 ctx.setSetting_("family_code", "TEST42");
 SS.getSheetByName("Profiles").getRange(2, 2, 3, 1).setValues([["Maya"], ["Tal"], ["Shir"]]);
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".webp": "image/webp", ".jpg": "image/jpeg", ".webmanifest": "application/manifest+json" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".webp": "image/webp", ".jpg": "image/jpeg", ".mp3": "audio/mpeg", ".webmanifest": "application/manifest+json" };
 http.createServer((req, res) => {
   const u = url.parse(req.url, true), cors = { "Access-Control-Allow-Origin": "*" };
   const send = (code, type, body) => { res.writeHead(code, Object.assign({ "Content-Type": type }, cors)); res.end(body); };

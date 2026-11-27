@@ -730,6 +730,11 @@ button.chip{min-height:44px;padding:4px 14px}
 .petcv{position:absolute;left:50%;bottom:0;width:calc(var(--pw)*1.25);height:calc(var(--pw)*1.25);margin-left:calc(var(--pw)*-.625);max-width:none;pointer-events:none;transform-origin:50% 90.4%;transform:scale(var(--grow,1));animation:petbreathe 3.4s ease-in-out infinite;transition:transform 1.2s var(--ease)}
 @keyframes petbreathe{50%{transform:scale(calc(var(--grow,1)*1.012),calc(var(--grow,1)*.984))}}
 .petcv.pop{animation:petpop .42s var(--ease)}
+/* the moment it was chosen: not there while its sound's chord rises, then there with the swoosh */
+.petcv{transition:transform 1.2s var(--ease),opacity .28s ease}
+.petstage.arriving .petcv{opacity:0;transition:none}
+.petfloor{transition:opacity .5s ease}
+.petstage.arriving .petfloor{opacity:.75}
 @keyframes petpop{0%{transform:scale(var(--grow,1))}30%{transform:scale(calc(var(--grow,1)*1.07),calc(var(--grow,1)*.92))}62%{transform:scale(calc(var(--grow,1)*.96),calc(var(--grow,1)*1.05))}100%{transform:scale(var(--grow,1))}}
 .petfx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .petzzz{position:absolute;top:40px;inset-inline-end:56px;font-family:var(--f-display);font-size:30px;color:var(--text-2);opacity:0;pointer-events:none;transition:opacity .6s}

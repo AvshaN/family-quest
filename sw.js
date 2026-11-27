@@ -1,7 +1,7 @@
 /* Keeps the app and its question banks on the phone, so it opens at once and works on a bus with no signal.
  * The Sheet (script.google.com) is never cached: answers wait in the app's outbox until there is a connection.
  * Bump VERSION when the app's files change, so phones take the new copy. */
-const VERSION = "fq-34";
+const VERSION = "fq-35";
 const ART = "fq-art";
 const KEEP = ["fq-banks", ART];   // the page's own copies of the question banks (app.js, BANK_KEPT) and the art outlive a version
 const SHELL = ["./", "index.html", "app.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
@@ -19,6 +19,16 @@ self.addEventListener("fetch", e => {
   /* The art (art/: the coin, the wreath, each girl's piece) never changes under a name: a changed picture gets a new
    * one. So the phone's copy is served without asking, and kept over every version: 1.8 MB is not fetched again
    * each time the app is updated. */
+  /* The sounds (audio/, a third of a megabyte): the phone's copy is served without asking, but it is kept with the
+   * version and not for good, so a sound that is cut again arrives with the next version under the same name. (They
+   * are changed often: Avsha listens and says what does not fit.) */
+  if (url.pathname.includes("/audio/")) {
+    e.respondWith(caches.open(VERSION).then(c => c.match(e.request, { ignoreSearch: true }).then(kept => kept || fetch(e.request.url, { cache: "no-cache", credentials: "same-origin" }).then(r => {
+      if (r.ok) c.put(e.request, r.clone());
+      return r;
+    }))));
+    return;
+  }
   if (url.pathname.includes("/art/")) {
     e.respondWith(caches.open(ART).then(c => c.match(e.request, { ignoreSearch: true }).then(kept => kept || fetch(e.request).then(r => {
       if (r.ok) c.put(e.request, r.clone());

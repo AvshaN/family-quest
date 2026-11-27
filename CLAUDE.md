@@ -475,6 +475,9 @@ tests with the girls and gives feedback; Claude writes the code.
 - `python3 tools/facts.py check` after touching the facts or their pictures.
 - `python3 tools/art.py check` after touching the art or a line that names a
   picture: every picture app.js names is in `art/`, and each sheet fits.
+- `python3 tools/sounds.py check` after touching the sounds or a line that
+  plays one: every sound the table names is in `audio/`, and every name the
+  app asks for is one of SOUNDS.md.
 - `python3 tools/build_preview.py /tmp/x.html --names "A,B,C"` and open it
   (or walk it with Playwright) for a demo-mode look at every screen.
 - The walks of 2026-11-26 are the pattern for a new feature: stage rows with
@@ -550,12 +553,74 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   (`.toast.high`), clear of the care buttons; today's care is said in
   words beside its hearts (`petCareLine`). Light mode, the phone's largest
   text size and a real phone were not looked at.
-- **Sounds from Suno** (SOUNDS.md, 2026-11-27): he said yes to a list of
-  prompts; thirteen creature sounds are asked for. He makes them (he began
-  on 2026-11-27; MP3 is fine, he was told, WAV if Suno offers it), drops the
-  files in the chat or names a Drive folder; then cut them (ffmpeg is on
-  this machine), wire them to the care actions and the moments, and follow
-  the sound switch. No Suno connector was found in the directory.
+- **The creature's sounds are in; nobody has heard them as the app plays
+  them** (SOUNDS.md, 2026-11-27). He made twelve of the thirteen in Suno
+  (all but the steps) and pushed thirteen WAVs, 9.6 MB, on the branch
+  `sounds`, in a folder "sound effects" (a cloud session cannot reach a
+  folder on his computer, and nothing was in his Drive: a push from his
+  computer is the way; a Claude session there did it for him). They are
+  cut into fourteen MP3s, 339 KB, in `audio/` by `tools/sounds_round1.sh`,
+  whose every number was read off measures and none chosen by ear: **ask
+  him how each sounds on his phone**, in his test profile, and change the
+  script's line for what does not fit (louder or softer is `--v`).
+  **Cut, do not reshape** (his word on the first try, the same day): the
+  adoption's sound with a pitched copy laid over it "sounds terrible, far
+  from the original, especially the sound at the end", and the wash laid
+  out six times was "too repetitive". A sound of his goes in as he made
+  it, trimmed and levelled; anything more (a pitch, a speed, a filter, a
+  repeat) is shown to him first as a file to listen to, beside the plain
+  cut. `SendUserFile` with the MP3s reaches his phone in a minute. The
+  WAVs stay on `sounds` and are not merged: to make the sounds again,
+  `git archive origin/sounds "sound effects" | tar -x -C SOMEWHERE` and run
+  the script on that folder. What was done for his notes: the bath came as
+  a splash and bubbles in two files, each heard once, the splash and then
+  the bubbles (1.4 s; the rest of the wash is quiet, and a longer download
+  of bubbles would fill it);
+  `wear_on` held two takes, both kept and played in turn; `pet_sleep` was
+  "too deep and bassy": of its six breaths three are deep and three are
+  light whistles near 1 kHz, and two of the light ones repeat; the `adopt`
+  sound's swoosh is met by the creature's entrance (below). **Two things
+  found by measuring**: the swoosh and both `wear_on` takes were nearly all
+  under 150 Hz (64, 63 and 44 Hz), which a phone's speaker does not give,
+  though his computer's does. The swoosh is left as he made it (above), so
+  on a phone's speaker it is soft and on earphones it is all there. Each
+  `wear_on` thump is sped up five or six times into a small pop near 300
+  Hz: he heard both and did not object, and they are the likeliest to be
+  wrong still. The waking squeak is very high (its strongest note at 6 kHz): it
+  plays low, and `;lowpass=5000` softens it if he finds it sharp. **The steps are not made**:
+  he could not get steps that were not heavy or like an instrument, and
+  was told to download the plainest take (sped up and with its bass cut,
+  heavy steps become paws; a patter made in code if not). Until then the
+  walk beeps as before.
+  **The player** (app.js "recorded sounds": `SOUNDS`, `snd`, `sndWarm`,
+  `sndBuf`, `sndWatch`, `acOn`): files of `audio/` decoded into the beeps'
+  AudioContext and played from memory, so a sound a second after a tap
+  still plays on an iPhone. `snd(name)` is false when the table has no
+  such sound, and the caller beeps as before. A motion's sound starts with
+  the motion (`snd` on an item of `E.play`'s list, `sndAt` seconds in: the
+  munching starts as the treat reaches its mouth), a walk's steps repeat
+  for the motion's length, its breathing repeats while it sleeps on screen
+  (`petSnore`). **The adoption** (`renderPet(true)`, `.petstage.arriving`):
+  while the sound's chord rises there are only sparks gathering over the
+  floor's glow, and the creature appears in a flip at the sound's `cue`
+  (2.05 s, the swoosh); with sound off it is there at once as before.
+  Takes of one name play in turn. A sound stops when its screen is gone
+  (`alive`) and all follow the sound switch. The service worker serves
+  the phone's copy of a sound without asking, and keeps it with the
+  version and not for good (unlike `art/`): a sound cut again arrives with
+  the next version under the same name. `tools/sounds.py`: `look` (the
+  takes in a download and where each one's energy is), `make NAME PIECE
+  ...` (pieces of downloads, each with its own `speed`, `pitch`, `highpass`,
+  `gain`, set at its moment; `--loop`, `--v`, `--cue`), `table` (writes
+  `SOUNDS` in app.js from `audio/sounds.json`: never by hand), `check`.
+  Every sound is brought to one loudness as a phone gives it (300 to 6000
+  Hz), so `v` alone says how loud each is. A repeating sound is made with
+  `--loop`: its end is faded into its start and the file carries a little
+  before and after the repeating part, because an MP3 has silence at both
+  ends. The walk of the sounds is scratch `t_snd.js` on `snd_setup.sh` (a
+  copy of the repo with a stand-in for the steps): it checks what plays
+  and when, not how it sounds. No Suno connector was found in the
+  directory.
 - **The script of api 9 waits for his paste** (2026-11-27: the creature's
   copy in the Sheet). Api 8 is in the Sheet (he said so on 2026-11-26 and
   the Sheet showed it). Until he pastes, a creature lives on its phone

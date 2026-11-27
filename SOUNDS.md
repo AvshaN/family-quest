@@ -1,6 +1,12 @@
 # Sounds for the creature
 
-The app's only sounds today are short beeps made in code (`SFX` in app.js). Avsha makes sounds in Suno's Sounds
+**Where it stands (2026-11-27):** twelve of the thirteen are in the app (all but the steps). Avsha made them in Suno
+and pushed the WAVs on the branch `sounds`; `tools/sounds_round1.sh` cut them into `audio/` (fourteen MP3s, 339 KB,
+from 9.6 MB). Its numbers were read off measures, not chosen by ear: he listens in his test profile and says what
+does not fit. His notes on the downloads, what was found in them and what was done are under the table.
+
+Before these the app's only sounds were short beeps made in code (`SFX` in app.js); where a sound is not made yet
+(the steps) the beep still plays. Avsha makes sounds in Suno's Sounds
 tab from prompts Claude writes (as for his football game), downloads them, and hands the files over: dropped into
 the chat, or put in a Drive folder he names. Claude cuts each take, levels it, and turns it into a small file the
 phones can play (M4A or MP3: an iPhone does not play OGG), in `audio/`, with a line of credit here.
@@ -34,6 +40,34 @@ but not babyish, soft, warm, a little magical, for a dark and elegant app used b
 If a download holds several takes in one file, that is fine: say which sound it is and they are cut apart here. A
 take can be asked for again in other words when none of them fits (the chirp and the giggle are the likeliest to
 come out too childish: add "subtle, understated" if so).
+
+**His notes on the downloads (2026-11-27)**, and what was done with each:
+- The bath came as two files, a splash and bubbles: each is heard once, the splash and then the bubbles. (Laid out
+  six times over the wash's four seconds they were "too repetitive".) A longer download of bubbles, three or four
+  seconds, would fill the rest of the wash.
+- The steps came out heavy or like an instrument, and are not downloaded yet. Sped up and with the bass cut, heavy
+  steps become small ones (`speed`, `highpass`); a patter made in code if that fails.
+- `wear_on` holds two like sounds: both are kept and played in turn.
+- `pet_sleep` is deep and bassy: of its six breaths three are deep and three are light whistles near 1 kHz; two of the
+  light ones, with the quiet between them, repeat.
+- `adopt` ends in a swoosh: the creature appears with it (`cue` 2.05 s). The sound is as he made it, trimmed.
+
+**Found by measuring them** (`tools/sounds.py look`): a phone's speaker gives little under 300 Hz, and the swoosh of
+`adopt` and both takes of `wear_on` were nearly all under 150 Hz (strongest at 64, 63 and 44 Hz): heard on a
+computer, they are soft or silent on a phone. The swoosh is left as he made it: a copy two and a half octaves up was
+laid over it at first, and he said it "sounds terrible, far from the original, especially the sound at the end". Each
+`wear_on` thump is played five or six times faster, which makes it a small pop near 300 Hz. **The rule since: a sound
+is cut and levelled, not reshaped; anything more is a file for him to hear first.** `level_up` is the first
+2.7 s of five (after its run of bells comes a long low tail), `new_item` 2.75 s, `heart` 1.9 s. The waking squeak's
+strongest note is at 6 kHz: it is played low, and can be softened (`lowpass`) if it is sharp on a phone. `pet_chirp` is the first of its
+two takes (the second is a blip at 5 kHz).
+
+**From a download to the app:** `python3 tools/sounds.py look FILE` lists the takes in it; `make NAME PIECE ...`
+makes `audio/NAME.mp3` from pieces of downloads (a second take is `NAME_2`); `table` writes the app's list; `check`
+says what is missing. The recipe of this round, line by line, is `tools/sounds_round1.sh`. A sound that is cut again
+reaches the phones with the app's next version (`VERSION` in sw.js), under the same name.
+
+**Credit:** every file in `audio/` is cut from a sound Avsha generated with Suno (its Sounds tab), November 2026.
 
 Later, if the first round sits well: a voice for each of the six creatures (the fox's chirp, the dragon's little
 growl, the axolotl's bubble), and sounds for the tricks.
