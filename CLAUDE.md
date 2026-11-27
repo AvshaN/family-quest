@@ -587,11 +587,23 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   `wear_on` thump is sped up five or six times into a small pop near 300
   Hz: he heard both and did not object, and they are the likeliest to be
   wrong still. The waking squeak is very high (its strongest note at 6 kHz): it
-  plays low, and `;lowpass=5000` softens it if he finds it sharp. **The steps are not made**:
-  he could not get steps that were not heavy or like an instrument, and
-  was told to download the plainest take (sped up and with its bass cut,
-  heavy steps become paws; a patter made in code if not). Until then the
-  walk beeps as before.
+  plays low, and `;lowpass=5000` softens it if he finds it sharp. **The steps wait for his pick.**
+  He sent `pet_walk.wav` as an upload the same evening ("the steps are
+  heavy, sounds like a grown human"; he added it to his `sounds` branch
+  too but had not pushed it: ask him to, so the original is kept with the
+  others; until then it is only in a session's scratchpad). Measured: four
+  thumps 0.8 s apart, a slow adult's pace, strongest at 70 Hz. The
+  creature's waddle is three sways in its 24 frames, so it shifts its
+  weight every third of a second. Three tries were sent to him to hear
+  (`make ... --to=DIR` writes a try outside `audio/`): his recording twice
+  as fast; each of his four steps sped up 2.2 times and set three a second
+  from 0.083 s ("small paws"); the same at 3.2 times ("tiny paws"). When he
+  picks: make `pet_walk` as one 2 s loop (six steps at 0.083 + k/3 in an
+  arrangement of 2.06 s with `--loop=0.06`, so the part that repeats is
+  the motion's own two seconds), `table`, `check`, the sound walk without
+  its stand-in, a new version. If none fits: a patter made in code, or
+  ask Suno again for "tiny quick taps, like fingertips on a wooden table".
+  Until then the walk beeps as before.
   **The player** (app.js "recorded sounds": `SOUNDS`, `snd`, `sndWarm`,
   `sndBuf`, `sndWatch`, `acOn`): files of `audio/` decoded into the beeps'
   AudioContext and played from memory, so a sound a second after a tap

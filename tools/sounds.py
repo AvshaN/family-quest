@@ -24,6 +24,7 @@ Options of make:
                     repeats is noted for the table (the file carries a little of the sound before and after that part,
                     so the silence an MP3 has at its two ends is never played)
     --v=X --cue=S   kept in audio/sounds.json for the table: its level in the app, the moment a motion should meet
+    --to=DIR        write it there and not in audio/, and note nothing: a try for Avsha to hear before it goes in
 
 Every sound is brought to one loudness, measured as a phone gives it (300 to 6000 Hz, its loudest 300 ms), so `v`
 alone says how loud each is beside the others. A name with several takes is made as NAME_1, NAME_2 ...; the app plays
@@ -189,9 +190,9 @@ def make(name, specs, o):
     else:
         u = int(float(o.get("out", 0.06)) * RATE)
         if u: x[-u:] *= np.linspace(1, 0, u)
-    out = os.path.join(AUDIO, name + ".mp3")
+    out = os.path.join(o.get("to") or AUDIO, name + ".mp3")
     write(x, out)
-    note(name, o, loop)
+    if "to" not in o: note(name, o, loop)
     bs, top = bands(x)
     print(f"{name}.mp3: {len(x) / RATE:.2f} s, {os.path.getsize(out) / 1024:.0f} KB, as a phone gives it {phone(x):.3f}{' (held by its peak)' if held else ''}, peak {np.abs(x).max():.2f},"
           f" strongest {top:.0f} Hz, under 300 Hz {bs[0] + bs[1]:.0%}" + (f", repeats {loop[0]:.3f} - {loop[1]:.3f}" if loop else ""))

@@ -45,8 +45,9 @@ come out too childish: add "subtle, understated" if so).
 - The bath came as two files, a splash and bubbles: each is heard once, the splash and then the bubbles. (Laid out
   six times over the wash's four seconds they were "too repetitive".) A longer download of bubbles, three or four
   seconds, would fill the rest of the wash.
-- The steps came out heavy or like an instrument, and are not downloaded yet. Sped up and with the bass cut, heavy
-  steps become small ones (`speed`, `highpass`); a patter made in code if that fails.
+- The steps came out heavy, "like a grown human" (four thumps 0.8 s apart, strongest at 70 Hz), and are not in the
+  app yet: he is choosing among three tries sent to him to hear (his recording twice as fast; each step made smaller
+  and set three a second, in time with the waddle; the same, smaller still).
 - `wear_on` holds two like sounds: both are kept and played in turn.
 - `pet_sleep` is deep and bassy: of its six breaths three are deep and three are light whistles near 1 kHz; two of the
   light ones, with the quiet between them, repeat.
