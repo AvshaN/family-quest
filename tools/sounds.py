@@ -25,6 +25,7 @@ Options of make:
     --gain=DB       louder or softer than the level every sound is brought to
     --out=S         the fade at its end (0.06)
     --len=S         its whole length: quiet is added after its last piece (breaths further apart in a repeating sound)
+    --dry=K         every piece made drier (as dry= on a piece, above): less of the echo Suno puts in what it makes
     --bitrate=64k   a smaller file than the 96k of the others (the music, which is two minutes long)
     --loop=S        make it repeat without a seam: its end is faded into its start over S seconds, and the part that
                     repeats is noted for the table (the file carries a little of the sound before and after that part,
@@ -187,6 +188,8 @@ def piece(spec):
 
 
 def make(name, specs, o):
+    # --dry=K makes every piece of the sound drier (a piece's own dry= stands)
+    if "dry" in o: specs = [s if ";dry=" in s else s + f";dry={o['dry']}" + (f";knee={o['knee']}" if "knee" in o else "") for s in specs]
     parts = [piece(s) for s in specs]
     x = np.zeros(max(int(at * RATE) + len(p) for p, at in parts))
     for p, at in parts: x[int(at * RATE):int(at * RATE) + len(p)] += p

@@ -1172,7 +1172,7 @@ const SOUNDS = {
   new_item: { n: 1, v: 0.75 },
   pet_bed: { n: 1, v: 0.45 },
   pet_bump: { n: 1, v: 0.5 },
-  pet_chirp: { n: 2, v: 0.4 },
+  pet_chirp: { n: 5, v: 0.4 },
   pet_eat: { n: 1, v: 0.6 },
   pet_play: { n: 1, v: 0.65 },
   pet_scrub: { n: 2, v: 0.5 },

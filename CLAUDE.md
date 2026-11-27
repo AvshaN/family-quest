@@ -552,12 +552,12 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   main" for it, so they are on the site switched off for the girls
   (`PET_LIVE`), and he is trying them in his test profile on his phone.
   The care scenes, the music and the cues went to main the same evening on
-  his "push to main" (fq-38). **Built and tested since, on the work
-  branch, and waiting for his word to go to main** (a push of it was
-  stopped: his "push to main" was said of the scenes): the word חיה, the
-  dressing sound as he made it, the cues in the rest of the app (fq-39),
-  and the scenes' own sounds (fq-40). **Ask how the scenes felt under a
-  finger, and how loud the music is**.
+  his "push to main" (fq-38), and on his second "push to main" the word
+  חיה, the dressing sound as he made it, the cues in the rest of the app
+  and the scenes' own sounds (fq-40), then his three cheers and the drier
+  effects (fq-41). A push to main needs his word for what it carries: one
+  made on an earlier "push to main" for later work was stopped. **Ask how
+  the scenes felt under a finger, and how loud the music is**.
   Ask what he thought of each creature, its motions and its outfits,
   whether the numbers (care a day, what each outfit takes) feel right, and
   how it ran on his phone: it is the first real phone any of this has been
@@ -1190,10 +1190,13 @@ from the 6 designs ... eventually I'm sure they'll all be used".
     and at her push, a little faster or slower each time as he suggested
     (`pet_swing`, `SWING_RATES`, the player's `rate`), a bump as each end
     of the seesaw meets the ground (`pet_bump`), its sigh as it settles
-    into the bed (`pet_bed`). **Waiting on him**: which of seven cheers to
-    keep (sent cut and numbered), and whether to make the sounds drier
-    (he finds "too much echo" in what Suno makes; three sounds went to
-    him at three levels; `dry=K` in tools/sounds.py does it). **The
+    into the bed (`pet_bed`). Of seven new cheers sent to him cut and
+    numbered he kept "1, 4 and 7": a stroke has five now. **Echo**: he
+    finds "too much echo" in what Suno makes; of three levels he heard he
+    chose "b - a little drier", so every effect is made with `--dry=0.8`
+    (tools/sounds.py: what is more than 12 dB under a sound's loudest
+    moment is turned down further), all but the song, the sleeping
+    breaths and the steps, which are as they were (SOUNDS.md says why). **The
     section's music** (`petTheme`, `THEME`): his song "Quest for the
     Crown" ("the melody fits well", after two demos of it under the
     creature's sounds), whole, at `v` 0.14, fading in and out with the

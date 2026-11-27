@@ -10,7 +10,14 @@
 # reshaped is said at its line. Change a line, run it again, and send him the file to hear.
 R="$1"
 [ -f "$R/adopt.wav" ] || { echo "usage: bash tools/sounds_round1.sh FOLDER_OF_THE_DOWNLOADS"; exit 1; }
-S="python3 tools/sounds.py make"
+# Echo. "One thing I've noticed in most if not all of suno's generations - too much echo" (Avsha, 2026-11-27). It is
+# inside the sounds and cannot be taken out; the ring after each note can be turned down. He heard three sounds as
+# they were, a little drier and much drier, and chose "b - a little drier": dry=0.8 on every effect ($S). Three are
+# left as they are ($PLAIN): the song, the sleeping breaths (of those he said "leave it as is": a breath is not an
+# echo, and it would be the breath itself that was turned down) and the steps (his pick after five rounds, already
+# cut to a narrow band where nothing rings).
+S="python3 tools/sounds.py make --dry=0.8"
+PLAIN="python3 tools/sounds.py make"
 # everything this makes is made afresh; the steps only when their download is in the folder too (below)
 find audio -name "*.mp3" ! -name "pet_walk.mp3" -delete 2>/dev/null
 
@@ -35,6 +42,11 @@ $S heart "$R/heart.wav,0.04,1.9" --out=0.6 --v=0.6
 # (pet_wake.wav, 1.92 to 2.30 s), he heard and did not like.
 $S pet_chirp_1 "$R/pet_chirp.wav,0,0.66" --out=0.12 --v=0.4
 $S pet_chirp_2 "$R/pet_play.wav,0,0.84" --out=0.08 --v=0.4
+# Round 3 brought a download of cheers ("not all are useable"): its seven takes went to him cut and numbered, and he
+# kept "1, 4 and 7". With the two above a stroke now has five, in turn.
+$S pet_chirp_3 "$R/cheers.wav,0.10,0.68" --out=0.08 --v=0.4
+$S pet_chirp_4 "$R/cheers.wav,4.32,5.08" --out=0.1 --v=0.4
+$S pet_chirp_5 "$R/cheers.wav,9.64,10.50" --out=0.1 --v=0.4
 # Feeding: a crunch, then four small bites a second later, as it came.
 $S pet_eat "$R/pet_eat.wav,0.26,2.40" --v=0.6
 # Play: a giggle, a hum and a run of bouncy notes, as it came.
@@ -52,7 +64,7 @@ $S pet_yawn_2 "$R/pet_yawn.wav,2.58,3.58" --out=0.15 --v=0.6
 # he said) and three light whistling ones near 1 kHz. Two of the light ones repeat. They came 2.6 s apart; in the app
 # that was still "a bit deep, sounds like a bigger creature", and of three higher tries he said: "let's just leave it
 # as is but less frequent". So the same two breaths, as he made them, one every five seconds.
-$S pet_sleep "$R/pet_sleep.wav,3.76,5.20" "$R/pet_sleep.wav,6.34,7.86@5.0" --len=10 --loop=0.25 --v=0.3
+$PLAIN pet_sleep "$R/pet_sleep.wav,3.76,5.20" "$R/pet_sleep.wav,6.34,7.86@5.0" --len=10 --loop=0.25 --v=0.3
 # Waking: a bright squeak, a softer one and a small "ah", as it came. The squeaks are very high (most of the first is
 # over 3 kHz, its strongest note at 6): it is played low, and if it is sharp on a phone, `;lowpass=5000` softens it.
 $S pet_wake "$R/pet_wake.wav,0.10,2.30" --out=0.08 --v=0.45
@@ -77,7 +89,7 @@ if [ -f "$R/steps.wav" ]; then
     G=$([ $((K % 2)) = 0 ] && echo 0 || echo -2.5)
     P+=("$R/steps.wav,$T0,$END@$AT;highpass=250;lowpass=380;steep=2;in=0.06;out=0.084;gain=$G"); K=$((K + 1))
   done
-  $S pet_walk "${P[@]}" "$R/steps.wav,0.30,0.31@4.05;gain=-80" --highpass=200 --loop=0.06 --v=0.9
+  $PLAIN pet_walk "${P[@]}" "$R/steps.wav,0.30,0.31@4.05;gain=-80" --highpass=200 --loop=0.06 --v=0.9
 else
   echo "steps.wav is not in $R: audio/pet_walk.mp3 is left as it is"
 fi
@@ -99,6 +111,6 @@ $S pet_bed "$R/bed.wav,2.04,3.98" --out=0.25 --v=0.45
 # The music of the creature's section (round 3, SOUNDS.md): his song "Quest for the Crown", whole, as he made it, with
 # a second and a half of quiet before it starts again. Mono at 64 kbit: two minutes at the effects' 96 would be 1.5 MB.
 # Its original came in the chat first and is on the branch since his next push, as pet_theme.wav.
-if [ -f "$R/pet_theme.wav" ]; then $S pet_theme "$R/pet_theme.wav,0,124.4;in=0.02;out=0.4" --len=126 --loop=0.05 --bitrate=64k --v=0.14; fi
+if [ -f "$R/pet_theme.wav" ]; then $PLAIN pet_theme "$R/pet_theme.wav,0,124.4;in=0.02;out=0.4" --len=126 --loop=0.05 --bitrate=64k --v=0.14; fi
 
 python3 tools/sounds.py table && python3 tools/sounds.py check

@@ -127,14 +127,17 @@ among them). His notes on the downloads, and what was done with each:
   (`pet_bed`) as it settles into the bed, after the yawn and before its breathing.
 - `shine`: came with the others, with no note: the whole of it as the creature shines after its bath (`pet_shine`).
 - `bubbles2`: two seconds of bubbles, in the wash sound after the splash, in place of the first, shorter ones.
-- `cheers`: "not all are useable". Its seven takes went to him cut and numbered (`cheer_1` to `cheer_7`), to say
-  which to keep: **waits for his numbers**; a stroke still plays the two it had.
+- `cheers`: "not all are useable". Its seven takes went to him cut and numbered (`cheer_1` to `cheer_7`), and he
+  kept "1, 4 and 7": with the two it had, a stroke now has five cheers, in turn (`pet_chirp_1` to `_5`).
 
 **Echo.** "One thing I've noticed in most if not all of suno's generations - too much echo." It is inside the sounds
 as Suno makes them and cannot be taken out here; what can be done is to turn down the ring after each note
 (`dry=K` on a piece, in tools/sounds.py: what is more than 12 dB under the sound's loudest moment is turned down K dB
-more for each dB). Three sounds went to him to hear, each as it is, a little drier (`dry=0.8`) and much drier
-(`dry=2;knee=-8`): **waits for his word** before anything is changed. For new prompts, put this first and not last:
+more for each dB). Three sounds went to him to hear, each as it was, a little drier (`dry=0.8`) and much drier
+(`dry=2;knee=-8`), and he chose "b - a little drier". So every effect is made with `--dry=0.8` (the recipe's `$S`);
+the three he heard are in the app as the very files he heard. Three are left as they were (`$PLAIN`): the song, the
+sleeping breaths (of those he had said "leave it as is", and it is the breath itself that would be turned down) and
+the steps (his pick after five rounds, cut to a narrow band where nothing rings). Say so if he asks why they differ. For new prompts, put this first and not last:
 "Recorded completely dry in a small padded vocal booth, close microphone: no reverb, no echo, no room, no delay."
 
 Later, if the first round sits well: a voice for each of the six creatures (the fox's chirp, the dragon's little
