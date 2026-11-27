@@ -621,7 +621,14 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   at 380 Hz with a sharper edge (`steep=2`). Measured, his steps' own
   knock is a note near 480 Hz, so the first of them still has it and the
   second dulls it (and is mostly under 500 Hz: quiet on a phone's speaker,
-  full on earphones). When he
+  full on earphones). His answer was two words, "more muffled", which is
+  also the name the first of the two was given: it was read as "further",
+  and he was told to say "use 2a" if he meant that one. Two more went to
+  him: the top cut at 300 Hz and at 220 Hz (`steep=3`), with the lower cut
+  brought down to 150 and 110 Hz, since between 250 and 300 nothing is
+  left: low dull thuds near 176 Hz, nearly all under 300 Hz, so **on a
+  phone's speaker they are faint or silent** and he was asked to hear them
+  on the phone itself. When he
   picks: make `pet_walk` as one 2 s loop (six steps at 0.083 + k/3 in an
   arrangement of 2.06 s with `--loop=0.06`, so the part that repeats is
   the motion's own two seconds), `table`, `check`, the sound walk without

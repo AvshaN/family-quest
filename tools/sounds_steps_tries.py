@@ -25,18 +25,22 @@ for a, b in S.takes(x):
 print("his steps start at", [round(t, 3) for t in starts])
 
 AT = [round(0.083 + k / 3, 3) for k in range(12)]           # four seconds: two of the walk's loops
-def his(name, low, ease, tail, extra=""):   # extra: more of a piece's options, as ";steep=2"
+def his(name, low, ease, tail, extra="", high=250):   # extra: more of a piece's options, as ";steep=2"; high: what is under it is off
     pieces = []
     for k, at in enumerate(AT):
         t0 = starts[k % len(starts)]
         g = 0 if k % 2 == 0 else -2.5
-        pieces.append(f"{raw},{t0:.3f},{t0 + tail:.3f}@{at};highpass=250;lowpass={low};in={ease};out={tail * 0.6:.3f};gain={g}{extra}")
-    make(name, pieces, "--highpass=200")
+        pieces.append(f"{raw},{t0:.3f},{t0 + tail:.3f}@{at};highpass={high};lowpass={low};in={ease};out={tail * 0.6:.3f};gain={g}{extra}")
+    make(name, pieces, f"--highpass={int(high * 0.8)}")
 his("steps_soft_1", 1200, 0.03, 0.16)
 his("steps_soft_2_softer", 700, 0.05, 0.14)
 # "increase the muffle on steps_soft_2_softer" (his word on the three): the top cut lower and with a sharper edge
 his("steps_soft_2a_more_muffled", 500, 0.05, 0.14, ";steep=2")
 his("steps_soft_2b_most_muffled", 380, 0.06, 0.14, ";steep=2")
+# "more muffled" (his word on those two). Under 380 Hz there is little left between the two cuts, so the lower cut
+# comes down too: a step on a carpet is mostly a low dull thud. (Not the 50 Hz he called bassy: that stays off.)
+his("steps_soft_2c_muffled_more", 300, 0.06, 0.14, ";steep=3", 150)
+his("steps_soft_2d_muffled_most", 220, 0.07, 0.15, ";steep=3", 110)
 
 # made here: a pad on a carpet is a short hush of low noise that swells in and dies at once, with a little weight under it
 rng = np.random.default_rng(7)
