@@ -21,15 +21,20 @@ find audio -name "*.mp3" ! -name "pet_walk.mp3" -delete 2>/dev/null
 # filtered: on a phone the swoosh is soft, on earphones it is all there. The creature appears at the swoosh (cue).
 $S adopt "$R/adopt.wav,0,3.6" --out=0.4 --v=0.85 --cue=2.05
 
-# A new level: the rising run of bells is its first two and a half seconds; after it comes a long low tail.
-$S level_up "$R/level_up.wav,0,2.7" --out=0.5 --v=0.8
+# A new level: the rising run of bells and all of its tail (cut at 2.7 s it "gets cut off too quickly", he said).
+$S level_up "$R/level_up.wav,0,4.9" --out=1.2 --v=0.8
 # A choice reached, a thing taken: it fades by itself at 2.7 s.
 $S new_item "$R/new_item.wav,0,2.75" --out=0.3 --v=0.75
 # A gift sent or received: a pop and a shimmer with a long tail, shortened.
 $S heart "$R/heart.wav,0.04,1.9" --out=0.6 --v=0.6
 
-# A stroke: the first take (the second is a blip at 5 kHz).
-$S pet_chirp "$R/pet_chirp.wav,0,0.66" --out=0.12 --v=0.55
+# A stroke. One chirp every time was too much of one sound, and too loud ("a few more cheers to avoid
+# repetitiveness when petted, softer than the current"): until he makes more in Suno there are two, played in turn
+# and lower, each a plain cut of a sound of his: the chirp (the first take of its download: the second is a blip at
+# 5 kHz) and the giggle that opens the play sound. A third, the small "ah" that closes the waking sound
+# (pet_wake.wav, 1.92 to 2.30 s), he heard and did not like.
+$S pet_chirp_1 "$R/pet_chirp.wav,0,0.66" --out=0.12 --v=0.4
+$S pet_chirp_2 "$R/pet_play.wav,0,0.84" --out=0.08 --v=0.4
 # Feeding: a crunch, then four small bites a second later, as it came.
 $S pet_eat "$R/pet_eat.wav,0.26,2.40" --v=0.6
 # Play: a giggle, a hum and a run of bouncy notes, as it came.

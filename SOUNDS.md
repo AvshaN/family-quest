@@ -73,5 +73,17 @@ reaches the phones with the app's next version (`VERSION` in sw.js), under the s
 
 **Credit:** every file in `audio/` is cut from a sound Avsha generated with Suno (its Sounds tab), November 2026.
 
+## Round 2 (asked 2026-11-27, from his first try on his phone)
+
+| File | Where it plays | Length | Prompt |
+|---|---|---|---|
+| `pet_chirp` (more takes) | A stroke of the finger: one of several, in turn | under 1 s each | Four different tiny happy sounds of a small cute creature being petted, each under a second, with a second of silence between them: a soft coo, a little purr-trill, a quiet delighted hum, a tiny contented sigh. Very soft and gentle, quieter and rounder than a squeak, no sharp start. No words, no music, close and dry. |
+| `pet_wash` (longer bubbles) | The wash, which lasts four seconds | 3 to 4 s | Soft bubbles popping and fizzing in a small bath for three or four seconds, gentle and continuous, no splash, no music. |
+| `wear_on` (if the slowed one does not fit) | Putting a thing on | half a second | A light swish of cloth and one small soft pop, bright and airy, with no bass and no thump. |
+
+Until the new cheers come, a stroke plays one of two plain cuts in turn, lower than before: the chirp and the giggle
+that opens the play sound (a third, the small "ah" that closes the waking sound, he heard and did not like). `level_up` is the whole of his sound now
+(cut at 2.7 s it "gets cut off too quickly"). `wear_on` was "too fast": three slower tries went to him to hear.
+
 Later, if the first round sits well: a voice for each of the six creatures (the fox's chirp, the dragon's little
 growl, the axolotl's bubble), and sounds for the tricks.

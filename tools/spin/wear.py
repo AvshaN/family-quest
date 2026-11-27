@@ -58,7 +58,7 @@ KIND = {
 ONE = {("axolotl", "headphones"): dict(w=0.9)}
 # motion: (Meshy's motion, from, to): pets.py's CLIPS without the eyelids, which are the creature's own
 CLIPS = {"rest": ("0", 0, 0.1), "look": ("0", 0, None), "hop": ("466", 0, None), "eat": ("342", 1.0, 5.0), "play": ("22", 0, 5.6),
-         "wash": ("405", 0.2, 4.7), "sit": ("363", 0, None), "asleep": ("363", 2.43, 2.53), "walk": ("62", 0, None), "flip": ("452", 0, None)}
+         "wash": ("405", 0.2, 4.7), "sit": ("363", 0, None), "asleep": ("363", 2.43, 2.53), "stroll": ("62", 0, None, ["--turn=-58"]), "flip": ("452", 0, None)}
 cams = json.load(open(os.path.join(HERE, "cams.json")))
 
 def spec(kind, keys):
@@ -139,13 +139,14 @@ elif mode in ("draw", "pack"):
         c = cams[kind]; total = 0; got = {}
         lst = os.path.join(WORK, kind, "outfit.json")
         if mode == "draw": outfit(kind, keys, lst)
-        for name, (src, a, b) in CLIPS.items():
+        for name, (src, a, b, *more) in CLIPS.items():
             if only and name not in only: continue
             if mode == "draw":
                 cmd = [model(kind, src), os.path.join(WORK, kind, name), f"--from={a}", f"--fps={FPS}", f"--d={c['d']}", f"--aim={c['aim']}", f"--size={FRAME}", "--pad=1", "--layer=1", f"--outfit={lst}", f"--weardir={WEAR}"]
                 if b is not None: cmd.append(f"--to={b}")
                 if name == "hop": cmd.append(f"--lift={c['hop']}")
                 if name == "flip": cmd.append(f"--rise={c['flip']}")
+                if more: cmd += more[0]
                 for go in range(3):   # a run whose WebGL context was lost is drawn again
                     r = node(*cmd)
                     if not r.returncode: break

@@ -28,7 +28,9 @@ CLIPS = {
     "wash":   ("405", 0.2, 4.7, ["--eyes=happy"]),
     "sit":    ("363", 0, None, []),
     "asleep": ("363", 2.43, 2.53, ["--eyes=closed"]),
-    "walk":   ("62", 0, None, []),
+    # the walk, seen from three quarters, facing left: from the front it stepped from side to side over a road that
+    # passed under it sideways, "crab style" (Avsha, 2026-11-27). ("walk", the front view, is no longer drawn or used.)
+    "stroll": ("62", 0, None, ["--turn=-58"]),
     "flip":   ("452", 0, None, ["--rise=0.5", "--eyes=happy"]),
 }
 cams = {}

@@ -279,7 +279,10 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
     for (const w of WORN) { WORN.forEach(x => { x.hold.visible = x === w; }); renderer.render(scene, camera); out[w.key] = renderer.domElement.toDataURL("image/png"); }
     WORN.forEach(x => { x.hold.visible = true; }); return out; };
   // the same moment from another side (degrees), for looking at how a thing sits
-  window.frameYaw = (t, yaw) => { pivot.rotation.y = yaw * Math.PI / 180; const u = window.frame(t); pivot.rotation.y = num("yaw", 0) * Math.PI / 180; return u; };
+  // turn=DEG: the whole motion drawn from another side (a walk seen from three quarters, so that it walks along its
+  // road and not across it). Set here, after everything was measured and hung on it facing the camera.
+  const TURN = num("turn", num("yaw", 0)) * Math.PI / 180; pivot.rotation.y = TURN;
+  window.frameYaw = (t, yaw) => { pivot.rotation.y = yaw * Math.PI / 180; const u = window.frame(t); pivot.rotation.y = TURN; return u; };
   window.ready = true;
 })().catch(e => { window.failed = String(e && e.message || e); });
 </script>

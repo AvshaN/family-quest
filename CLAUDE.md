@@ -842,7 +842,7 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   list with preview GIFs is public at
   api.meshy.ai/web/public/animations/resources): 0 (rest, a blink, a smile,
   looking about), 466 a hop, 342 hand to mouth (eating), 22 a dance (play),
-  405 a sway (the wash), 363 sitting down (sleep), 62 a waddle (the walk),
+  405 a sway (the wash), 363 sitting down (sleep), 62 a waddle (the walk, drawn from three quarters as `stroll`),
   452 a backflip (a new level). `PET_CLIPS` has each sheet's frames, the
   same for every creature, twelve a second (`petEngine` shows them one at a
   time: blended, as the turning objects are, a fast arm came out double).
@@ -1010,6 +1010,64 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   01a21ccb-9493-75b8-a67e-fdb52ee07ab1 (its model
   01a21ccc-2a4b-7762-bad1-d0810e21930d); the other models' ids are in his
   Meshy account by date.
+- **His first notes from his phone** (2026-11-27, seven of them, the first
+  time any of this was on a real phone), and what was done:
+  - *The word "יצור" is "a bit off, any other ideas?"* Open: he was offered
+    פֶּט (what children who play Adopt Me say), גור, קמע, מלווה and חיה, and
+    that the girls could choose. When he picks, the noun is in about twelve
+    strings of the creature's module (`grep -n "יצור" app.js`) and its
+    gender changes the words round it.
+  - *"איך קוראים לו is forcing its gender, maybe add /ה".* The label is "איך
+    קוראים לו/ה?", and the other lines that took a named creature for a
+    "he" say it another way (no "קיבל", "נחלש", "לו"). Keep new lines so.
+  - *The walk was "crab style".* It was drawn from the front, stepping side
+    to side over a road that passed under it. Then: "let the creature walk
+    to one side of the screen until he disappears and emerge from the
+    other side walking back to the center". So the walk is a new motion,
+    `stroll`: Meshy's waddle drawn from three quarters, facing left
+    (`--turn=-58` of clip.html, which turns the model after everything was
+    measured and hung on it facing the camera; pets.py and wear.py have it
+    in their CLIPS, a fourth item of a motion being more options). In the
+    app (`PET_ACTS.k`) it goes off the left of the screen in the walk's
+    first four seconds and comes in from the right in the last four
+    (`step(p)` on the motion's item sets `--walk` on the stage, which moves
+    the canvas and its shadow; `.petscr .quiz-in{overflow-x:hidden}` keeps
+    the screen from scrolling sideways), and its steps go with it across
+    the speakers (`pan`). The road (`.petway`) is gone, and the old `walk`
+    sheets are deleted.
+  - *"Feeding is very simple, a star moving to creature's mouth without
+    any reaction from it."* The eat motion's first second is standing
+    still, so it is entered at frame 10 (`from`); the treat is a cookie
+    that lands as its head goes down, is eaten in three bites (crumbs, a
+    squash of the canvas, `E.pulse`, and a buzz at each: `E.treat.bites`,
+    seconds from the tap), and it ends with hearts and a hop. Its mouth is
+    found for each creature under its glasses' place (`petBox(kind,
+    "glasses", "rest")`): a cat's is far lower in its frame than a fox's.
+  - *"A few more cheers to avoid repetitiveness when petted, softer than
+    the current. A couple different animations as well."* `petJoy`,
+    `PET_JOYS`: a hop, a shimmy where it stands (`E.wiggle`, CSS), a sway
+    with its eyes shut (the wash's first 22 frames), a dance step (the
+    play's first 20), and seldom a spin (the play from frame 42) or the
+    flip; none twice running; the first is the hop while the others'
+    sheets are fetched (`E.warm`). All from motions it already had: **a new
+    Meshy motion made for being stroked was offered** (3 credits a
+    creature and about an hour of drawing with its layers). The cheer is
+    one of two, in turn and lower (`pet_chirp_1`, `_2`, `v` 0.4): the chirp
+    and the giggle that opens the play sound, each a plain cut (a third,
+    the "ah" that closes the waking sound, he heard and did not like);
+    **he was asked for more in Suno** (SOUNDS.md, round 2).
+  - *"The wear on sound is too fast."* It was his two thumps sped up five
+    and six times. Three slower tries went to him to hear (as he made it,
+    twice as fast, three times): **waits for his pick**; the app keeps the
+    old ones until then.
+  - *"Level up sound gets cut off too quickly."* It is the whole of his
+    sound now (4.9 s), not its first 2.7.
+  The engine learned three things for these, all on an item of `E.play`'s
+  list: `from` and `to` (a part of a motion, in frames), `step(p)` (called
+  each frame with how far through it is) and `pan` (where its sound is).
+  The walk of these is scratch `t_feedback.js`: it samples the page
+  against its own clock from the tap, because a screenshot takes a third
+  of a second there and threw a first version's times off.
 - **Next, when he says so**: a second creature and a house, which he said
   can wait, "granted after a certain high threshold/s" (ask what
   threshold; level 7 is about five weeks of good days); more outfits (39
