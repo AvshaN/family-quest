@@ -715,9 +715,10 @@ button.chip{min-height:44px;padding:4px 14px}
 .petnamepill svg{width:14px;height:14px;opacity:.7}
 .petlv b{font-family:var(--f-display);font-weight:400;font-size:40px;line-height:1}
 #petrename input{flex:1;min-width:0;padding:11px 14px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid var(--hair);font-size:16px}
-.petstage{position:relative;height:292px;touch-action:none;-webkit-user-select:none;user-select:none}
-.petstage.pick{height:244px;touch-action:auto}
-.petstage.tall{height:324px}.petstage.pick.tall{height:270px}
+/* --pw is the size of the creature's own frame; --rise (app.js, petRise) is how high what it wears reaches over the
+   foot of that frame, in the frame's 272 px: the stage grows to hold a tall hat, so it never stands on the name above */
+.petstage{--pw:340px;position:relative;height:max(292px,calc(var(--pw) / 272 * var(--rise,0) + 14px));touch-action:none;-webkit-user-select:none;user-select:none}
+.petstage.pick{--pw:252px;height:max(244px,calc(var(--pw) / 272 * var(--rise,0) + 14px));touch-action:auto}
 .petfloor{position:absolute;left:50%;bottom:14px;width:230px;height:46px;margin-left:-115px;border-radius:50%;background:radial-gradient(ellipse,var(--a3),transparent 68%);opacity:.3}
 .petfloor::after{content:"";position:absolute;left:50%;top:12px;width:110px;height:18px;margin-left:-55px;border-radius:50%;background:rgba(0,0,0,.5);filter:blur(6px)}
 .petway{position:absolute;left:0;right:0;bottom:4px;height:60px;overflow:hidden;opacity:0;transition:opacity .4s;-webkit-mask:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
@@ -725,8 +726,7 @@ button.chip{min-height:44px;padding:4px 14px}
 .petway i:nth-child(2){animation-delay:-.4s;bottom:30px;width:6px;height:6px;opacity:.6}.petway i:nth-child(3){animation-delay:-.8s}.petway i:nth-child(4){animation-delay:-1.2s;bottom:34px;width:5px;height:5px;opacity:.5}
 @keyframes petpass{from{left:-6%}to{left:106%}}
 .petstage.walking .petway{opacity:1}
-.petcv{--pw:340px;position:absolute;left:50%;bottom:0;width:calc(var(--pw)*1.25);height:calc(var(--pw)*1.25);margin-left:calc(var(--pw)*-.625);max-width:none;pointer-events:none;transform-origin:50% 90.4%;transform:scale(var(--grow,1));animation:petbreathe 3.4s ease-in-out infinite;transition:transform 1.2s var(--ease)}
-.petstage.pick .petcv{--pw:252px}
+.petcv{position:absolute;left:50%;bottom:0;width:calc(var(--pw)*1.25);height:calc(var(--pw)*1.25);margin-left:calc(var(--pw)*-.625);max-width:none;pointer-events:none;transform-origin:50% 90.4%;transform:scale(var(--grow,1));animation:petbreathe 3.4s ease-in-out infinite;transition:transform 1.2s var(--ease)}
 @keyframes petbreathe{50%{transform:scale(calc(var(--grow,1)*1.012),calc(var(--grow,1)*.984))}}
 .petcv.pop{animation:petpop .42s var(--ease)}
 @keyframes petpop{0%{transform:scale(var(--grow,1))}30%{transform:scale(calc(var(--grow,1)*1.07),calc(var(--grow,1)*.92))}62%{transform:scale(calc(var(--grow,1)*.96),calc(var(--grow,1)*1.05))}100%{transform:scale(var(--grow,1))}}
@@ -785,5 +785,5 @@ button.chip{min-height:44px;padding:4px 14px}
 .petsis{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px 10px;border-radius:20px;background:var(--glass);border:1px solid var(--hair);color:inherit;text-align:center;min-width:0}
 .petsis .petpic{width:92px;height:92px}
 .petsis.none{justify-content:center;gap:8px;min-height:110px;border-style:dashed}
-@media (max-height:700px){.petstage{height:240px}.petstage.tall{height:262px}.petcv{--pw:280px}.petstage.pick{height:196px}.petstage.pick.tall{height:214px}.petstage.pick .petcv{--pw:204px}.petopt .petpic{width:62px;height:62px}.pwi .petpic{width:70px;height:70px}}
+@media (max-height:700px){.petstage{--pw:280px;height:max(240px,calc(var(--pw) / 272 * var(--rise,0) + 14px))}.petstage.pick{--pw:204px;height:max(196px,calc(var(--pw) / 272 * var(--rise,0) + 14px))}.petopt .petpic{width:62px;height:62px}.pwi .petpic{width:70px;height:70px}}
 @media (prefers-reduced-motion:reduce){.petcv,.petcv.pop,.petfaces .petpic,.petcard.has .petpic,.petzzz span,.petway i{animation:none}.petzzz span{opacity:.8}}

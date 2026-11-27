@@ -2142,7 +2142,14 @@ function petStroke(stage, E) {
   stage.addEventListener("pointerup", lift); stage.addEventListener("pointercancel", lift);
 }
 const petGrowCss = lv => (0.82 + Math.min(lv - 1, 6) * 0.03).toFixed(2);
-const petTall = worn => worn.some(k => PET_WEAR[k].slot === "head") ? "tall" : "";
+/* How high over the foot of its frame the things on it reach at rest, in the layer's px, at its size for the level.
+ * The stage is made tall enough for it (--rise, app.css): a wool hat on the cat's big head stood on the name above
+ * it, and a wizard's hat on the line under a visit's name (found in the design review of 2026-11-27). */
+function petRise(kind, worn, lv) {
+  const top = worn.reduce((t, w) => { const b = petBox(kind, w, "rest"); return b ? Math.min(t, b[1]) : t; }, PET_LAYER), foot = (1 - 0.88) * PET_FRAME;
+  return top >= PET_LAYER ? 0 : Math.ceil((PET_LAYER - top - foot) * +petGrowCss(lv) + foot);
+}
+const petFit = (stage, kind, worn, lv) => { if (stage) stage.style.setProperty("--rise", petRise(kind, worn, lv)); };
 
 /* Her home screen's card: an invitation until she has a creature, then the creature, its level and today's care. */
 function petCard(p) {
@@ -2197,6 +2204,7 @@ function renderPetPick(kind) {
     <p class="small faint" style="text-align:center">בוחרים אחד. בהמשך יהיו עוד.</p></div></div>`;
   const E = petEngine($(".petcv", layer), $(".petfx", layer), kind);
   PETUI = { E, kind, mode: "pick" };
+  $("#petname", layer).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); petAdopt(kind); } });
   setTimeout(() => { if (PETUI && PETUI.E === E) E.play([{ name: "hop" }], null, true); }, 250);
 }
 function petAdopt(kind) {
@@ -2240,7 +2248,7 @@ function renderPet(fresh) {
     <div class="row"><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button>
       <button type="button" class="petnamepill" data-act="petRename" aria-label="שינוי השם">${esc(pet.n)} ${I('<path d="M4 20l1-4L16 5l3 3L8 19z"/>')}</button><span class="petlv"><span class="eyebrow">רמה</span> <b class="num" id="petlv">${g.lv}</b></span></div>
     <div id="petrename" hidden><div class="row" style="flex-wrap:nowrap"><input id="petname" maxlength="${PET.name}" autocomplete="off" enterkeyhint="done" value="${esc(pet.n)}"><button type="button" class="btn btn-primary btn-sm" data-act="petRenameSave">שמירה</button></div></div>
-    <div class="petstage ${petTall(worn)}" id="petstage" style="--grow:${petGrowCss(g.lv)}"><div class="petfloor"></div><div class="petway" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="petstage" id="petstage" style="--grow:${petGrowCss(g.lv)};--rise:${petRise(pet.k, worn, g.lv)}"><div class="petfloor"></div><div class="petway" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas>
       <div class="petzzz" dir="ltr" aria-hidden="true"><span>z</span><span>z</span><span>z</span></div><div class="petgain" id="petgain" dir="ltr" aria-hidden="true"></div></div>
     <div class="petgrow"><div class="bar"><i id="petbar" style="width:${Math.min(100, g.have / g.need * 100)}%"></i></div>
@@ -2265,6 +2273,7 @@ function renderPet(fresh) {
       <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="grow"><bdi dir="ltr">+100</bdi> גדילה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="all">כל הפריטים</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="new">יצור אחר</button></div></section>` : ""}</div></div>`;
   const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
   PETUI = { E, kind: pet.k, pid: p.id, strokes: 0, pets: 0, at: null };
+  $("#petname", layer).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); const b = $("[data-act=petRenameSave]", layer); if (b) b.click(); } });
   E.asleep = asleep;
   auraMood(asleep ? { calm: 0.7, energy: 0.05 } : { calm: 0.15, energy: 0.4 });
   if (asleep) E.still("asleep");
@@ -2289,9 +2298,9 @@ function petPaint(gained, wasLv) {
   if (gain && gained > 0) { gain.textContent = "+" + gained; gain.classList.remove("on"); void gain.offsetWidth; gain.classList.add("on"); }
   if (E && g.lv > wasLv) {
     const cheer = () => { if (!PETUI || PETUI.E !== E) return; E.play([{ name: "flip" }]); E.spawn("spark", ...E.pt(0.5, 0.38), 30); SFX.done(); buzz([20, 60, 20]); toast(`${pet.n}: רמה ${g.lv}!`);
-      const st = $("#petstage", layer); if (st) { E.grow = +petGrowCss(g.lv); st.style.setProperty("--grow", E.grow.toFixed(2)); }
+      const st = $("#petstage", layer); if (st) { E.grow = +petGrowCss(g.lv); st.style.setProperty("--grow", E.grow.toFixed(2)); petFit(st, pet.k, petWorn(pet), g.lv); }
       // what the new level brought it to wear: on at once if the place was free, and said
-      if ((pet.nw || []).length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; const st2 = $("#petstage", layer), wn = petWorn(pet); E.wear(wn); if (st2) st2.classList.toggle("tall", !!petTall(wn)); petNews(); }, 2400); };
+      if ((pet.nw || []).length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; const wn = petWorn(pet); E.wear(wn); petFit($("#petstage", layer), pet.k, wn, g.lv); petNews(); }, 2400); };
     if (E.busy && !E.soft) E.after = cheer; else setTimeout(cheer, 400);
   }
 }
@@ -2320,7 +2329,7 @@ function petAct(k) {
   if (!PET_ACTS[k] || (E.busy && !E.soft) || E.asleep || !care.left) return;
   pet.c = pet.c || {}; pet.c[TODAY] = have + k; petEarn(pet); pet.s = petGrowth(pet); petSave(p.id, pet);
   SFX.good(); buzz(15); PET_ACTS[k](E);
-  setTimeout(() => { if (PETUI && PETUI.E === E) { petPaint(PET.care, wasLv); if ((pet.nw || []).length && petLevel(petGrowth(pet)).lv === wasLv) setTimeout(() => { if (PETUI && PETUI.E === E) { E.wear(petWorn(pet)); petNews(); } }, 1500); } }, 800);
+  setTimeout(() => { if (PETUI && PETUI.E === E) { petPaint(PET.care, wasLv); if ((pet.nw || []).length && petLevel(petGrowth(pet)).lv === wasLv) setTimeout(() => { if (PETUI && PETUI.E === E) { E.wear(petWorn(pet)); petFit($("#petstage", layer), pet.k, petWorn(pet), wasLv); petNews(); } }, 1500); } }, 800);
 }
 
 /* Its wardrobe: everything there is to wear, what she has and what each of the rest takes. A tap puts a thing on or
@@ -2334,7 +2343,7 @@ function renderWardrobe() {
       <b>${it.n}</b><span class="small ${has ? "muted" : "faint"}">${has ? (on ? "לבוש עכשיו" : "להלביש") : `${it.how}${need > 1 ? ` · <bdi dir="ltr">${Math.min(have, need)}/${need}</bdi>` : ""}`}</span></button>`; };
   layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="הארון של ${esc(pet.n)}"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
     <div class="row"><button type="button" class="round" data-act="petBack" aria-label="חזרה">${ICON.back}</button><b class="petname">הארון של ${esc(pet.n)}</b><span class="small muted num" dir="ltr">${own.length}/${items.length}</span></div>
-    <div class="petstage pick ${petTall(worn)}" id="petstage" style="--grow:${petGrowCss(tally.lv)}"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
+    <div class="petstage pick" id="petstage" style="--grow:${petGrowCss(tally.lv)};--rise:${petRise(pet.k, worn, tally.lv)}"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
     <div class="petwear">${items.map(tile).join("")}</div>
     <p class="small faint" style="text-align:center">כל פריט מגיע מלמידה או מטיפול. שום דבר לא נקנה, ושום דבר לא נלקח בחזרה.</p></div></div>`;
   const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
@@ -2353,7 +2362,7 @@ function petWear(k) {
   const worn = petWorn(pet), stage = $("#petstage", layer);
   SFX.tap(); buzz(10);
   E.wear(worn).then(() => { if (PETUI && PETUI.E === E && (!E.busy || E.soft)) { E.play([{ name: "hop" }], null, true); if (worn.includes(k)) E.spawn("spark", ...E.pt(0.5, 0.3), 10); } });
-  if (stage) stage.classList.toggle("tall", !!petTall(worn));
+  petFit(stage, pet.k, worn, petLevel(petGrowth(pet)).lv);
   $$(".pwi", layer).forEach(b => { const kk = b.dataset.k, on = worn.includes(kk), s = $("span.small", b); b.setAttribute("aria-pressed", on); if (s && (pet.o || {})[kk]) s.textContent = on ? "לבוש עכשיו" : "להלביש"; });
 }
 
@@ -2372,7 +2381,7 @@ function renderVisit(id, dad) {
     <div class="row">${dad ? `<button type="button" class="round" data-act="closeQuiz" data-to="parent" aria-label="סגירה">${ICON.close}</button>` : `<button type="button" class="round" data-act="petBack" aria-label="חזרה">${ICON.back}</button>`}
       <span class="petnamepill still">${esc(pet.n)}</span><span class="petlv"><span class="eyebrow">רמה</span> <b class="num">${g.lv}</b></span></div>
     <p class="small muted" style="text-align:center">${PET_KINDS[pet.k]} · של ${esc(who.name)}</p>
-    <div class="petstage ${petTall(worn)}" id="petstage" style="--grow:${petGrowCss(g.lv)}"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
+    <div class="petstage" id="petstage" style="--grow:${petGrowCss(g.lv)};--rise:${petRise(pet.k, worn, g.lv)}"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
     <div class="petgrow"><div class="bar"><i style="width:${Math.min(100, g.have / g.need * 100)}%"></i></div>
       <div class="row small muted"><span><b class="num" dir="ltr" style="color:var(--text)">${g.have} / ${g.need}</b> נקודות גדילה</span><span>עוד ${g.need - g.have} לרמה ${g.lv + 1}</span></div></div>
     ${heart}

@@ -513,12 +513,45 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The evening reminder** (below): which phones, and whether the girls
   use Telegram.
   He is still to confirm, and may replace one twin's phone in a few days.
-- **The creatures wait for his review** (2026-11-27): they are on the
-  working branch, switched off for the girls (`PET_LIVE`). He was sent
-  clips and told he can try it in his test profile once he says "push to
-  main"; then he says go, and the switch is turned. Ask what he thought of
-  each creature, its motions and its outfits, and whether the numbers (care
-  a day, what each outfit takes) feel right.
+- **The creatures wait for his review** (2026-11-27). He said "push to
+  main" for it, so they are on the site (fq-33) switched off for the girls
+  (`PET_LIVE`), and he is trying them in his test profile on his phone.
+  Ask what he thought of each creature, its motions and its outfits,
+  whether the numbers (care a day, what each outfit takes) feel right, and
+  how it ran on his phone: it is the first real phone any of this has been
+  on. When he says go: `PET_LIVE` true, a new version, a push, and the
+  script of api 9 pasted.
+- **Tricks and a glow, after the creatures are live** (2026-11-27, his
+  "yes but after the app is live"): a new trick at certain levels, as in
+  Adopt Me (a Meshy motion is 3 credits a creature, then its sheet and the
+  eleven layers for each creature, about an hour of drawing a motion), and
+  a glow round it at a high level, drawn by the app with no new art. A new
+  grown-up body was offered and not chosen: about 59 credits a creature and
+  every sheet and layer drawn again.
+- **The design review's list waits for his pick** (2026-11-27). He added
+  the "UI Design Review" and "Design" plugins and said yes to a review of
+  the creature's screens. It was done from rendered screens at 390 x 844
+  and 360 x 640 with measures (scratch `rev.js`: no tap target under 44 px,
+  no sideways scroll), without the plugin's UXKIN library: its connector
+  asked him to buy a subscription with no clear way on, "which lowered my
+  trust in its usefulness", so do not lean on it or send him there. Fixed
+  at once, as faults: a tall hat stood on the name above the stage (the
+  stage now grows to what is worn, `petRise`, `--rise`), and the keyboard's
+  Done on a name did nothing. Offered, for him to choose: the wardrobe's
+  locked lines and the "who sees it" sentence are small and dim (11.5 and
+  13 px at 3.8 to 1; 4.5 is the rule); on a 640 px phone "this creature is
+  mine" is under the fold; before her five the creature's screen has two
+  buttons to the same five (the big one and the wish's); the invitation's
+  gradient button on the home screen outshouts the day's own Start; Dad's
+  three creatures wrap two and one; "GROW <name>" mixes English and
+  Hebrew; a toast covers the care buttons; the hearts of care have no
+  count in words. Light mode, the phone's largest text size and a real
+  phone were not looked at.
+- **Sounds from Suno** (SOUNDS.md, 2026-11-27): he said yes to a list of
+  prompts; thirteen creature sounds are asked for. He makes them, drops the
+  files in the chat or names a Drive folder; then cut them (ffmpeg is on
+  this machine), wire them to the care actions and the moments, and follow
+  the sound switch. No Suno connector was found in the directory.
 - **The script of api 9 waits for his paste** (2026-11-27: the creature's
   copy in the Sheet). Api 8 is in the Sheet (he said so on 2026-11-26 and
   the Sheet showed it). Until he pastes, a creature lives on its phone
