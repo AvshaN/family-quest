@@ -132,10 +132,14 @@ def check():
     m = re.search(r"const SPIN = \{(.*?)\n\};", js, re.S)
     spins = dict(re.findall(r"(\w+):\s*\{ src: \"([^\"]+)\"", m.group(1))) if m else {}
     named |= set(spins.values())
+    # each creature's motions: art/pet/<kind>/<motion>.webp, the frame counts of PET_CLIPS, eight a row
+    kinds = re.findall(r"(\w+):", re.search(r"const PET_KINDS = \{(.*?)\};", js, re.S).group(1)) if "const PET_KINDS" in js else []
+    clips = {k: int(v) for k, v in re.findall(r"(\w+): (\d+)", re.search(r"const PET_CLIPS = \{(.*?)\};", js, re.S).group(1))} if kinds else {}
+    named |= {f"pet/{k}/{c}.webp" for k in kinds for c in clips}
     bad, total = 0, 0
     for rel in sorted(named):
         path = os.path.join(ART, rel)
-        if rel.startswith("facts") or "${" in rel:
+        if rel.startswith("facts") or "${" in rel or ("/" not in rel and rel[:-5] in clips):   # a motion's name, read off a template
             continue
         if not os.path.exists(path):
             if os.path.exists(os.path.join(ROOT, "data", "facts", os.path.basename(rel))):
@@ -153,6 +157,16 @@ def check():
         if w % COLS or h * COLS != w * -(-n // COLS):
             print("SHEET", rel, f"is {w} x {h}, not {COLS} a row of {n} square frames")
             bad += 1
+    for k in kinds:
+        for c, n in clips.items():
+            f = os.path.join(ART, "pet", k, c + ".webp")
+            if not os.path.exists(f):
+                continue
+            w, h = Image.open(f).size
+            cols = min(COLS, n); side = w // cols
+            if w % cols or h != side * -(-n // cols):
+                print("SHEET", f"pet/{k}/{c}.webp is {w} x {h}, not {cols} a row of {n} square frames")
+                bad += 1
     print(f"{len(have)} pictures in art/, {sum(os.path.getsize(os.path.join(ART, r)) for r in have) / 1024:.0f} KB; {bad} problems")
     sys.exit(1 if bad else 0)
 

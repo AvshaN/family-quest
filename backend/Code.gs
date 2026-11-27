@@ -19,7 +19,9 @@ var TZ = "Asia/Jerusalem";
 var TABS = {
   Settings: ["key", "value", "what it is"],
   // photo: her picture as she chose it in the app, as text (a data URL, under 49,000 characters), for her sisters' phones
-  Profiles: ["id", "name", "track", "pair", "slot", "flavor", "aura", "photo"],
+  // pet: her creature as her phone keeps it (its kind, its name, the day she chose it, its growth and each day's
+  // care), as JSON text: so it is still hers on a new phone, and her sisters can see it
+  Profiles: ["id", "name", "track", "pair", "slot", "flavor", "aura", "photo", "pet"],
   // revenge: 0 one of the daily five, 1 a revenge round, 2 practice (no points). secs: how long her first answer took.
   // flag: the question's text, when she marked it "we have not learned this yet" (empty otherwise)
   Answers: ["when", "date", "profile", "question", "pool", "topic", "level", "right", "revenge", "secs", "flag"],
@@ -49,7 +51,7 @@ var POINTS_BY = [["2026-12", { day: 5, right: 5, perfect: 5, revenge: 5, lesson:
                  ["", { day: 10, right: 4, perfect: 0, revenge: 8, lesson: 5, page: 5, week: 15, weekDays: 5 }]];
 function pointsOf_(mk) { for (var i = 0; i < POINTS_BY.length; i++) if (mk >= POINTS_BY[i][0]) return POINTS_BY[i][1]; }
 /* The app's version of this script: the phones turn on practice and deleting an exam only when they see 2. */
-var API = 8;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages, taking a "not learned yet" mark off; 8: the parent decides on a mark (stopping a question or a topic), pending marks in the email, a photo and his yes for a grade, a token for three exams above 85
+var API = 9;   // 3: photos; 4: "not learned yet" marks; 5: the gift at a month's end; 6: one reading of each tab a request, fix-it lessons (kind 3), a grade after an exam, the trend, the sisters' streak; 7: notebook pages, taking a "not learned yet" mark off; 8: the parent decides on a mark (stopping a question or a topic), pending marks in the email, a photo and his yes for a grade, a token for three exams above 85; 9: each girl's creature is kept in her profile
 // (the parent's Settings tab compares this with SCRIPT_API in app.js and says when the script here is behind: raise both together)
 /* Her own path to a token: every 4 full weeks (Sunday to Saturday, 5 days played), counted from this Sunday. */
 var PATH = { start: "2026-11-15", every: 4 };
@@ -301,9 +303,21 @@ function setProfile_(b) {
     if (String(v[0][7] || "") !== "photo") sh.getRange(1, 8).setValue("photo");
     sh.getRange(row, 8).setValue(ph);
   }
+  if (b.pet !== undefined) {     // her creature, as her phone keeps it; "" lets it go
+    var pet = String(b.pet);
+    if (pet) {
+      if (pet.length > PET.max) throw new Error("bad pet");
+      var o; try { o = JSON.parse(pet); } catch (e) { throw new Error("bad pet"); }
+      if (!o || typeof o !== "object" || PET.kinds.indexOf(String(o.k)) < 0 || String(o.n || "").length > PET.name) throw new Error("bad pet");
+    }
+    if (String(v[0][8] || "") !== "pet") sh.getRange(1, 9).setValue("pet");
+    sh.getRange(row, 9).setValue(pet);
+  }
   wrote_();
   return { ok: true };
 }
+/* Her creature (Avsha, 2026-11-26): the phone is where it lives and grows; the Sheet keeps its copy. */
+var PET = { kinds: ["fox", "dragon", "axolotl", "bunny", "cat", "spirit"], name: 24, max: 6000 };
 function photos_() {
   var out = {};
   values_("Profiles").slice(1).forEach(function (r) { if (r[0] !== "" && PIC_OK.test(String(r[7] || ""))) out[String(r[0])] = String(r[7]); });
@@ -1003,7 +1017,7 @@ function setSetting_(k, v) {
 function profiles_() {
   return values_("Profiles").slice(1).filter(function (r) { return r[0] !== ""; }).map(function (r) {
     return { id: String(r[0]), name: String(r[1]), track: String(r[2]), pair: String(r[3] || ""), slot: Number(r[4]) || 0,
-             flavor: String(r[5] || ""), aura: String(r[6] || "orchid"), pic: picStamp_(r[7]) };
+             flavor: String(r[5] || ""), aura: String(r[6] || "orchid"), pic: picStamp_(r[7]), pet: String(r[8] || "") };
   });
 }
 function answers_() {

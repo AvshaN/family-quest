@@ -1778,8 +1778,342 @@ function liveCard(fig) {
 /* What she is likely to meet soon is fetched while the phone is idle, so a ceremony does not open on an empty place. */
 function artWarm(p) {
   if (!p || SANDBOX) return;
-  const go = () => [SPIN.coin.src, "wreath.webp"].concat(pieceOf(p) ? [SPIN[pieceOf(p)].src] : []).forEach(rel => artImg(rel).catch(() => {}));
+  const pet = petOf(p.id);
+  const go = () => [SPIN.coin.src, "wreath.webp"].concat(pieceOf(p) ? [SPIN[pieceOf(p)].src] : [], pet ? ["rest", "blink", "smile", "hop"].map(c => `pet/${pet.k}/${c}.webp`) : []).forEach(rel => artImg(rel).catch(() => {}));
   if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 6000 }); else setTimeout(go, 3000);
+}
+
+/* ---------- a creature to care for (Avsha, 2026-11-26) ----------
+ * The girls play a pet game, and it reminded him of the Tamagotchi: "they can pick a cute creature at first and then
+ * care for it by answering questions, maybe daily points are also translated to the amount of actions allowed each
+ * day. This is an added layer on the current, all other systems like rewards stay the same." So: each girl chooses
+ * one of six creatures and names it. A day's points are that day's care (PET.per points an action, PET.max at
+ * most): feeding, play, a wash, a walk, sleep. A stroke of the finger is free. Care and what she learns (the five, a
+ * perfect day, a fix-it lesson, practice, the creature's wish of the day) give it growth points, and it grows by
+ * levels. Nothing is ever taken from it: it does not get sick and does not die (his word), and a day off costs
+ * nothing, as with full weeks. Tokens, the board and the prizes do not know it exists.
+ * It lives on her phone (L.pet, by profile): its kind k, name n, the day it was chosen d, and for each day the
+ * letters of what it was given (c: e p w k s for care; F the five, P a perfect day, L a lesson, R a practice round,
+ * W its wish), days older than PET.keep folded into g0. The Sheet keeps a copy in her profile once its script knows
+ * how (api 9), so it is still hers on a new phone; the newer of the two copies wins.
+ * Each creature is a Meshy model with a skeleton and eight of Meshy's ready-made motions, drawn ahead of time into
+ * sheets of frames (art/pet/<kind>/<motion>.webp, tools/spin/clip.js): no 3D engine here, as with the coin. */
+const PET_KINDS = { fox: "שועל", dragon: "דרקון", axolotl: "אקסולוטל", bunny: "ארנב", cat: "חתול", spirit: "כוכבון" };
+const PET = { per: 5, max: 7, care: 3, five: 5, perfect: 3, lesson: 6, practice: 2, rounds: 2, wish: 4, first: 100, step: 30, keep: 45, name: 16, fps: 12 };
+const PET_PTS = { e: PET.care, p: PET.care, w: PET.care, k: PET.care, s: PET.care, F: PET.five, P: PET.perfect, L: PET.lesson, R: PET.practice, W: PET.wish };
+/* The frames of each motion's sheet, eight a row, the same for every creature (render_app.py prints them). */
+const PET_CLIPS = { rest: 1, blink: 1, smile: 1, look: 48, hop: 23, eat: 48, play: 67, wash: 54, sit: 30, asleep: 1, walk: 24, flip: 26 };
+const petOf = pid => { L.pet = L.pet || {}; const x = L.pet[pid]; return x && PET_KINDS[x.k] ? x : null; };
+const petPic = kind => `<span class="petpic" style="background-image:url('${ART}pet/${kind}/rest.webp')" aria-hidden="true"></span>`;
+const petGrowth = pet => (+pet.g0 || 0) + Object.values(pet.c || {}).reduce((t, s) => t + [...String(s)].reduce((a, ch) => a + (PET_PTS[ch] || 0), 0), 0);
+function petLevel(g) { let lv = 1, need = PET.first; while (g >= need) { g -= need; lv++; need = PET.first + PET.step * (lv - 1); } return { lv, have: g, need }; }
+/* Today's care: an action for every PET.per points of the day, and how many are used. */
+function petCare(pid) {
+  const pet = petOf(pid), e = stats(pid, Y, M).byDay[TODAY], played = !!e && e.reg >= 5;
+  const max = played ? Math.min(PET.max, Math.floor(dayPoints(e, POINTS) / PET.per)) : 0;
+  const used = [...String(((pet || {}).c || {})[TODAY] || "")].filter(ch => "epwks".includes(ch)).length;
+  return { max, used, left: Math.max(0, max - used), played };
+}
+/* What it wishes for today: the thing that would help her most. Chosen once a day (her lesson, when one is offered;
+ * the five, until she has played; else a practice round), and kept, so doing it does not change the wish. */
+function petWish(p) {
+  L.petWish = L.petWish || {};
+  let w = L.petWish[p.id];
+  if (!w || w.d !== TODAY) {
+    const fx = canFix() ? fixOffer(p) : null;
+    w = fx ? { d: TODAY, kind: "lesson", t: fx.st.topic, pool: fx.st.pool } : !playedOn(p.id, TODAY) ? { d: TODAY, kind: "five" } : { d: TODAY, kind: "practice" };
+    L.petWish[p.id] = w; save();
+  }
+  const mine = rows().filter(r => r.p === p.id && r.d === TODAY);
+  const done = w.kind === "lesson" ? mine.filter(r => r.r === 3).length >= FIX.n : w.kind === "five" ? playedOn(p.id, TODAY) : mine.filter(r => r.r === 2).length >= PRACTICE.n;
+  return Object.assign({ done }, w);
+}
+/* Writes on its days what her learning has earned it and is not yet there, for the last ten days (the rows a phone
+ * holds reach further, but a creature is looked at more often than that), and folds old days into one number.
+ * Returns the growth it gained. */
+function petCredit(p) {
+  const pet = petOf(p.id);
+  if (!pet) return 0;
+  const all = rows().filter(r => r.p === p.id), was = petGrowth(pet);
+  let changed = false;
+  pet.c = pet.c || {};
+  for (let i = 0; i <= 10; i++) {
+    const d = addDays(TODAY, -i);
+    if (d < pet.d) break;
+    const day = all.filter(r => r.d === d), reg = day.filter(r => !r.r), have = String(pet.c[d] || "");
+    let add = "";
+    if (reg.length >= 5 && !have.includes("F")) add += "F";
+    if (reg.length >= 5 && reg.filter(r => r.ok).length >= reg.length && !have.includes("P")) add += "P";
+    if (day.filter(r => r.r === 3).length >= FIX.n && !have.includes("L")) add += "L";
+    add += "R".repeat(Math.max(0, Math.min(PET.rounds, Math.floor(day.filter(r => r.r === 2).length / PRACTICE.n)) - [...have].filter(ch => ch === "R").length));
+    if (d === TODAY && !have.includes("W") && petWish(p).done) add += "W";
+    if (add) { pet.c[d] = have + add; changed = true; }
+  }
+  const cut = addDays(TODAY, -PET.keep);
+  Object.keys(pet.c).filter(d => d < cut).forEach(d => { pet.g0 = (+pet.g0 || 0) + [...String(pet.c[d])].reduce((a, ch) => a + (PET_PTS[ch] || 0), 0); delete pet.c[d]; changed = true; });
+  if (changed) petSave(p.id, pet);
+  return petGrowth(pet) - was;
+}
+function petSave(pid, pet) { pet.v = Date.now(); L.pet[pid] = pet; save(); petSend(); }
+/* The Sheet's copy (api 9). Until the script there knows of creatures it lives on this phone alone; a phone whose
+ * creature is newer than the Sheet's sends it, and a phone that has none, or an older one, takes the Sheet's. */
+const canPetSync = () => LIVE && !SANDBOX && !!FAM && (FAM.api | 0) >= 9;
+function petSync() {
+  const p = me();
+  if (!p || !canPetSync()) return;
+  const prof = FAM.profiles.find(q => q.id === p.id), near = petOf(p.id);
+  let far = null;
+  try { far = prof && prof.pet ? JSON.parse(prof.pet) : null; } catch (e) { far = null; }
+  if (!far || !PET_KINDS[far.k]) { if (near && near.sent !== near.v) petSend(); return; }
+  if (!near) { far.sent = far.v; L.pet[p.id] = far; save(); if (BOOTED && view === "home" && !layer.innerHTML) show("home", true); return; }
+  if ((+far.v || 0) === (+near.v || 0)) return;
+  // Two copies that differ (she used another phone): its kind and name are the newer one's, and nothing either
+  // phone gave it is lost. A day's letters are joined, each as many times as the copy that has it most.
+  const newer = (+far.v || 0) > (+near.v || 0) ? far : near, older = newer === far ? near : far, cut = addDays(TODAY, -PET.keep);
+  const base = (+newer.g0 || 0) >= (+older.g0 || 0) ? newer : older, out = Object.assign({}, newer, { g0: +base.g0 || 0, c: {} });
+  const count = (str, ch) => [...str].filter(x => x === ch).length;
+  new Set(Object.keys(newer.c || {}).concat(Object.keys(older.c || {}))).forEach(d => {
+    const x = String((newer.c || {})[d] || ""), y = String((older.c || {})[d] || "");
+    if (d < cut) { if ((base.c || {})[d]) out.c[d] = String(base.c[d]); return; }   // days already folded into the larger g0 are not counted again
+    let m = x; new Set(y).forEach(ch => { const more = count(y, ch) - count(x, ch); if (more > 0) m += ch.repeat(more); });
+    out.c[d] = m;
+  });
+  const same = JSON.stringify(out.c) === JSON.stringify(far.c || {}) && out.g0 === (+far.g0 || 0) && newer === far;
+  out.v = same ? far.v : Date.now(); out.sent = same ? far.v : 0; out.s = near.s;
+  L.pet[p.id] = out; save();
+  if (!same) petSend();
+  if (BOOTED && view === "home" && !layer.innerHTML) show("home", true);
+}
+let PET_BUSY = false;
+async function petSend() {
+  const p = me(), pet = p && petOf(p.id);
+  if (!pet || !canPetSync() || PET_BUSY || pet.sent === pet.v) return;
+  PET_BUSY = true;
+  const v = pet.v, copy = Object.assign({}, pet); delete copy.sent;
+  try { await api("profile", { p: p.id, pet: JSON.stringify(copy) }); const now = petOf(p.id); if (now && now.v === v) { now.sent = v; save(); } } catch (e) { PET_BUSY = false; return; /* the next change, or the next opening */ }
+  PET_BUSY = false;
+  const now = petOf(p.id); if (now && now.sent !== now.v) petSend();   // it changed while this was on its way
+}
+
+/* The creature, drawn: the frame of the motion it is in, a short blend from one motion into the next, a blink and a
+ * smile at rest, and small things that fly round it (hearts, bubbles, notes, crumbs, sparks). A motion's sheet is
+ * fetched when it is first wanted and the motion starts when it has come; one that cannot be had is passed over,
+ * and what it was for happens all the same. */
+function petEngine(cv, fxc, kind) {
+  const S = cv.clientWidth, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = cv.height = Math.round(S * dpr); fxc.width = Math.round(fxc.clientWidth * dpr); fxc.height = Math.round(fxc.clientHeight * dpr);
+  const ctx = cv.getContext("2d"), fx = fxc.getContext("2d"), snap = document.createElement("canvas"), sctx = snap.getContext("2d"), sheets = {};
+  snap.width = snap.height = cv.width;
+  const fetchClip = name => sheets[name] !== undefined ? Promise.resolve(sheets[name]) : artImg(`pet/${kind}/${name}.webp`).then(im => (sheets[name] = im), () => (sheets[name] = null));
+  const E = { S, W: fxc.clientWidth, H: fxc.clientHeight, busy: false, soft: false, face: null, asleep: false, parts: [], treat: null, after: null };
+  E.grow = +getComputedStyle(cv).getPropertyValue("--grow") || 1;
+  E.pt = (fx2, fy2) => [cv.offsetLeft + (0.5 + (fx2 - 0.5) * E.grow) * S, cv.offsetTop + (0.88 - (0.88 - fy2) * E.grow) * S];
+  let cur = { name: "rest", t: 0, hold: true }, queue = [], blend = 0, onEnd = null, last = 0, blinkAt = 2.6, blinkTill = 0, token = 0;
+  const put = (name, k, a) => { const im = sheets[name] || sheets.rest; if (!im || a < 0.004) return; const n = PET_CLIPS[sheets[name] ? name : "rest"], F = im.width / Math.min(8, n);
+    k = Math.max(0, Math.min(n - 1, k)); ctx.globalAlpha = a; ctx.drawImage(im, (k % 8) * F, Math.floor(k / 8) * F, F, F, 0, 0, cv.width, cv.height); };
+  const start = (name, opt) => { sctx.clearRect(0, 0, snap.width, snap.height); sctx.drawImage(cv, 0, 0); blend = REDUCED ? 0 : 1; cur = Object.assign({ name, t: 0, hold: false, loop: false, times: 1 }, opt || {}); if (REDUCED) draw(0); };
+  const finish = () => { E.busy = false; E.soft = false; start(E.asleep ? "asleep" : "rest", { hold: true }); const f = onEnd, g = E.after; onEnd = null; E.after = null; if (f) f(); if (g) g(); };
+  /* list: [{ name, loop, times, stay }]; done when the last has played; gentle: one that gives way to her tap */
+  E.play = (list, done, gentle) => {
+    const mine = ++token;
+    E.busy = true; E.soft = !!gentle; onEnd = done || null;
+    if (!REDUCED) { cv.classList.remove("pop"); void cv.offsetWidth; cv.classList.add("pop"); }
+    Promise.all(list.map(x => fetchClip(x.name))).then(() => {
+      if (mine !== token || !cv.isConnected) return;
+      const have = list.filter(x => sheets[x.name]);
+      if (REDUCED || !have.length) { finish(); return; }
+      queue = have.slice(1); start(have[0].name, have[0]);
+    });
+  };
+  E.still = name => fetchClip(name).then(() => { if (cv.isConnected) { ++token; E.busy = false; queue = []; start(name, { hold: true }); } });
+  E.spawn = (kind2, x, y, n) => { if (REDUCED) return; for (let i = 0; i < n; i++) E.parts.push({ kind: kind2, x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 16, vx: (Math.random() - 0.5) * 50, vy: -40 - Math.random() * 60, life: 0, max: 0.9 + Math.random() * 0.8, s: 6 + Math.random() * 7, r: Math.random() * 6 }); };
+  const heart = (x, y, s) => { fx.beginPath(); fx.moveTo(x, y + s * 0.3); fx.bezierCurveTo(x - s, y - s * 0.5, x - s * 0.5, y - s * 1.1, x, y - s * 0.45); fx.bezierCurveTo(x + s * 0.5, y - s * 1.1, x + s, y - s * 0.5, x, y + s * 0.3); fx.fill(); };
+  const star = (x, y, s, rot) => { fx.beginPath(); for (let i = 0; i < 10; i++) { const a = rot + i * Math.PI / 5, r = i % 2 ? s * 0.45 : s; fx[i ? "lineTo" : "moveTo"](x + Math.sin(a) * r, y - Math.cos(a) * r); } fx.closePath(); fx.fill(); };
+  const drawFx = dt => {
+    fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, fxc.clientWidth, fxc.clientHeight);
+    E.parts = E.parts.filter(q => (q.life += dt) < q.max);
+    for (const q of E.parts) {
+      q.x += q.vx * dt; q.y += q.vy * dt; if (q.kind === "crumb") q.vy += 260 * dt; else q.vx *= 0.985;
+      const k = q.life / q.max; fx.globalAlpha = Math.sin(Math.min(1, k * 1.15) * Math.PI) * 0.95;
+      if (q.kind === "heart") { fx.fillStyle = k < 0.5 ? "#FF7FA8" : "#FFB3C9"; heart(q.x, q.y, q.s * (0.7 + k * 0.5)); }
+      else if (q.kind === "bubble") { const bx = q.x + Math.sin(q.life * 5 + q.r) * 5; fx.strokeStyle = "rgba(190,240,255,.9)"; fx.lineWidth = 1.4; fx.beginPath(); fx.arc(bx, q.y, q.s, 0, 7); fx.stroke(); fx.fillStyle = "rgba(255,255,255,.55)"; fx.beginPath(); fx.arc(bx - q.s * 0.35, q.y - q.s * 0.35, q.s * 0.22, 0, 7); fx.fill(); }
+      else if (q.kind === "note") { fx.fillStyle = [cssVar("--a3") || "#67E8F9", "#F2C56B", "#FF9FC0"][Math.floor(q.r) % 3]; fx.font = `${Math.round(q.s * 2.4)}px serif`; fx.fillText(Math.floor(q.r) % 2 ? "♪" : "♫", q.x, q.y); }
+      else if (q.kind === "crumb") { fx.fillStyle = "#F2C56B"; star(q.x, q.y, q.s * 0.5, q.r + q.life * 4); }
+      else { fx.fillStyle = "#FFF3C4"; star(q.x, q.y, q.s * (1 - k) * 0.9, q.r + q.life * 3); }
+    }
+    const tr = E.treat;
+    if (tr) {   // the treat on its way to its mouth
+      tr.t += dt / 0.75; const k = Math.min(1, tr.t), e = 1 - Math.pow(1 - k, 3), x = tr.x0 + (tr.x1 - tr.x0) * e, y = tr.y0 + (tr.y1 - tr.y0) * e - Math.sin(k * Math.PI) * 70;
+      fx.globalAlpha = 1; fx.fillStyle = "#F2C56B"; fx.shadowColor = "rgba(242,197,107,.9)"; fx.shadowBlur = 14; star(x, y, Math.max(0, 13 * (1 - Math.max(0, tr.t - 1.4) * 2)), tr.t * 3); fx.shadowBlur = 0;
+      if (tr.t > 1.9) { E.spawn("crumb", tr.x1, tr.y1, 7); E.treat = null; }
+    }
+    fx.globalAlpha = 1;
+  };
+  const draw = t => {
+    const dt = Math.min(0.1, Math.max(0, t - last)); last = t;
+    const n = PET_CLIPS[cur.name] || 1, dur = n / PET.fps;
+    if (!cur.hold && sheets[cur.name]) { cur.t += dt;
+      if (cur.t >= dur - 0.5 / PET.fps) { if (cur.loop && --cur.times > 0) cur.t = 0; else if (queue.length) { const nx = queue.shift(); start(nx.name, nx); } else if (cur.stay) { cur.hold = true; cur.t = dur - 1 / PET.fps; E.busy = false; const f = onEnd; onEnd = null; if (f) f(); } else finish(); } }
+    blend = Math.max(0, blend - dt / 0.2);
+    ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, cv.width, cv.height); ctx.globalCompositeOperation = "lighter";
+    if (blend > 0) { ctx.globalAlpha = blend; ctx.drawImage(snap, 0, 0); }
+    let name = cur.name;
+    if (name === "rest" && !REDUCED) { if (t > blinkAt) { blinkTill = t + 0.13; blinkAt = t + 2.4 + Math.random() * 2.6; } name = E.face && sheets[E.face] ? E.face : t < blinkTill && sheets.blink ? "blink" : "rest"; }
+    put(name, name === cur.name ? Math.round(cur.t * PET.fps) : 0, 1 - blend);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    if (!REDUCED) drawFx(dt);
+  };
+  fetchClip("rest").then(() => { fetchClip("blink"); fetchClip("smile"); if (REDUCED && cv.isConnected) draw(0); });
+  animate(cv, draw, 60);
+  return E;
+}
+
+/* Her home screen's card: an invitation until she has a creature, then the creature, its level and today's care. */
+function petCard(p) {
+  const pet = petOf(p.id);
+  if (!pet) return `<section class="glass pad stack petcard new"><div class="petfaces" aria-hidden="true">${["fox", "axolotl", "spirit", "bunny"].map(petPic).join("")}</div>
+    <span class="eyebrow">New</span><b class="fixname">יצור משלך</b>
+    <p class="small muted">בוחרים יצור, נותנים לו שם ומטפלים בו. כל יום של שאלות נותן לו טיפולים, והוא גדל יחד איתך.</p>
+    <button type="button" class="btn btn-aura wide" data-act="petOpen">לבחור יצור</button></section>`;
+  const g = petLevel(petGrowth(pet)), care = petCare(p.id);
+  const line = !care.played ? "חמש השאלות של היום נותנות לו טיפולים" : care.left ? (care.left === 1 ? "טיפול אחד מחכה" : `${care.left} טיפולים מחכים`) : "קיבל היום את כל הטיפולים";
+  return `<button type="button" class="glass petcard has ${care.left ? "due" : ""}" data-act="petOpen">${petPic(pet.k)}
+    <span class="stack"><span class="row"><b class="petname">${esc(pet.n)}</b><span class="small muted">רמה <b class="num" style="color:var(--text)">${g.lv}</b></span></span>
+      <span class="bar"><i style="width:${Math.min(100, g.have / g.need * 100)}%"></i></span><span class="small ${care.left ? "" : "muted"}">${line}</span></span></button>`;
+}
+/* The creature's screen. With no creature yet it is the choice: the six, one of them alive, and a name. */
+let PETUI = null;
+function openPet() {
+  const p = me();
+  if (!p) return;
+  Q = null;
+  const pet = petOf(p.id);
+  if (!pet) { renderPetPick("fox"); return; }
+  petCredit(p);
+  const g = petGrowth(pet), seen = pet.s == null ? g : Math.min(g, +pet.s || 0), wasLv = petLevel(seen).lv;
+  pet.s = g; save();
+  renderPet();
+  if (g > seen) setTimeout(() => { if ($(".petscr", layer)) petPaint(g - seen, wasLv); }, 700);
+}
+function renderPetPick(kind) {
+  const typed = ($("#petname", layer) || {}).value || "";
+  layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="בחירת יצור"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
+    <div class="row"><span class="eyebrow">Your creature</span><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button></div>
+    <h2 class="display" style="font-size:44px">מי יהיה שלך?</h2>
+    <div class="petstage pick"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
+    <div class="petopts">${Object.keys(PET_KINDS).map(k => `<button type="button" class="petopt" data-act="petPick" data-k="${k}" aria-pressed="${k === kind}">${petPic(k)}<span>${PET_KINDS[k]}</span></button>`).join("")}</div>
+    <div class="field"><label for="petname">איך קוראים לו?</label><input id="petname" maxlength="${PET.name}" autocomplete="off" enterkeyhint="done" placeholder="שם" value="${esc(typed)}"></div>
+    <button type="button" class="btn btn-primary wide" data-act="petAdopt" data-k="${kind}">זה היצור שלי</button>
+    <p class="small faint" style="text-align:center">בוחרים אחד. בהמשך יהיו עוד.</p></div></div>`;
+  const E = petEngine($(".petcv", layer), $(".petfx", layer), kind);
+  PETUI = { E, kind };
+  setTimeout(() => { if (PETUI && PETUI.E === E) E.play([{ name: "hop" }], null, true); }, 250);
+}
+function petAdopt(kind) {
+  const p = me(), name = String(($("#petname", layer) || {}).value || "").trim().slice(0, PET.name);
+  if (!p || !PET_KINDS[kind]) return;
+  if (!name) { toast("קודם נותנים לו שם"); const el = $("#petname", layer); if (el) el.focus(); return; }
+  petSave(p.id, { k: kind, n: name, d: TODAY, g0: 0, c: {} });
+  petCredit(p);
+  petOf(p.id).s = petGrowth(petOf(p.id)); save();
+  SFX.good();
+  renderPet(true);
+}
+function renderPet(fresh) {
+  const p = me(), pet = petOf(p.id), g = petLevel(petGrowth(pet)), care = petCare(p.id), w = petWish(p), have = String((pet.c || {})[TODAY] || "");
+  L.petSleep = L.petSleep || {};
+  const asleep = L.petSleep[p.id] === TODAY, fx = w.kind === "lesson";
+  const wishText = w.kind === "lesson" ? `חיזוק ב${esc(w.t)}` : w.kind === "five" ? "חמש השאלות של היום" : "סבב תרגול";
+  const wishAct = w.kind === "lesson" ? "fix" : w.kind === "five" ? "start" : "practice";
+  const canGo = !w.done && (w.kind !== "practice" || (canPractice() && practiceLeft(p.id) > 0)) && (w.kind !== "lesson" || !!fixOffer(p));
+  const hearts = Array.from({ length: Math.max(care.max, 1) }, (_, i) => `<svg viewBox="0 0 24 24" fill="currentColor" class="${i < care.left ? "" : "off"}" aria-hidden="true"><path d="M12 20.5C5 15.5 3 12 3 8.8A4.8 4.8 0 0 1 12 6.5a4.8 4.8 0 0 1 9 2.3c0 3.2-2 6.7-9 11.7z"/></svg>`).join("");
+  const act = (k, label, d) => `<button type="button" class="petact" data-act="petAct" data-k="${k}" ${(k === "s" ? (!asleep && !have.includes("s") && !care.left) : (asleep || !care.left)) ? "disabled" : ""}>${I(d)}<span>${label}</span></button>`;
+  const task = (done, label, pts, extra) => `<div class="pettask ${done ? "done" : ""}"><span class="ck">${I('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'stroke-width="3"')}</span><span>${label}</span>${extra || ""}<small dir="ltr">+${pts}</small></div>`;
+  const rounds = [...have].filter(ch => ch === "R").length;
+  layer.innerHTML = `<div class="quiz petscr ${asleep ? "night" : ""}" role="dialog" aria-modal="true" aria-label="${esc(pet.n)}"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
+    <div class="row"><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button>
+      <button type="button" class="petnamepill" data-act="petRename" aria-label="שינוי השם">${esc(pet.n)} ${I('<path d="M4 20l1-4L16 5l3 3L8 19z"/>')}</button><span class="petlv"><span class="eyebrow">רמה</span> <b class="num" id="petlv">${g.lv}</b></span></div>
+    <div id="petrename" hidden><div class="row" style="flex-wrap:nowrap"><input id="petname" maxlength="${PET.name}" autocomplete="off" enterkeyhint="done" value="${esc(pet.n)}"><button type="button" class="btn btn-primary btn-sm" data-act="petRenameSave">שמירה</button></div></div>
+    <div class="petstage" id="petstage" style="--grow:${(0.82 + Math.min(g.lv - 1, 6) * 0.03).toFixed(2)}"><div class="petfloor"></div><div class="petway" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas>
+      <div class="petzzz" dir="ltr" aria-hidden="true"><span>z</span><span>z</span><span>z</span></div><div class="petgain" id="petgain" dir="ltr" aria-hidden="true"></div></div>
+    <div class="petgrow"><div class="bar"><i id="petbar" style="width:${Math.min(100, g.have / g.need * 100)}%"></i></div>
+      <div class="row small muted"><span><b class="num" id="petgp" dir="ltr" style="color:var(--text)">${g.have} / ${g.need}</b> נקודות גדילה</span><span id="petleft">עוד ${g.need - g.have} לרמה ${g.lv + 1}</span></div></div>
+    <div class="row petcare"><span><span class="eyebrow">Today's care</span><br><span class="small muted" id="petcareline">${care.played ? `הנקודות של היום נתנו ${care.max === 1 ? "טיפול אחד" : `${care.max} טיפולים`}` : "עוד לא ענית היום: חמש השאלות נותנות טיפולים"}</span></span><span class="pethearts" id="pethearts">${care.played ? hearts : ""}</span></div>
+    ${care.played ? "" : `<button type="button" class="btn btn-aura wide" data-act="start" ${waitAttr()}>${waiting() ? WAIT_TEXT : "לשאלות של היום"}</button>`}
+    <div class="petacts">${act("e", "האכלה", '<path d="M12 7c-4-3-8 0-7 5s4 8 7 7c3 1 6-2 7-7s-3-8-7-5z"/><path d="M12 7c0-2 1-3.5 3-4"/>')}${act("p", "משחק", '<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>')}${act("w", "רחצה", '<circle cx="9" cy="14" r="5"/><circle cx="16.5" cy="8" r="3"/><circle cx="18" cy="16.5" r="1.6"/>')}${act("k", "טיול", '<path d="M7 20c1.5-1 2-3 2-5 0-2-2-2.5-2-5a3 3 0 0 1 6 0c0 2-1 3-1 5s1 4 3 5"/><path d="M15.5 9.5a2 2 0 1 1 3 2.5"/>')}${act("s", asleep ? "להעיר" : "שינה", '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>')}</div>
+    <section class="glass pad petwish ${w.done ? "done" : ""}"><div class="row"><span class="eyebrow">Wish of the day</span><span class="chip ${w.done ? "good" : ""}"><bdi dir="ltr">+${PET.wish}</bdi></span></div>
+      <div class="row" style="flex-wrap:nowrap;justify-content:flex-start">${fx ? emb(subjOf(w.pool)) : ""}<b>ל${esc(pet.n)} מתחשק: ${wishText}</b></div>
+      ${w.done ? `<p class="small muted">המשאלה של היום התגשמה.</p>` : canGo ? `<button type="button" class="btn btn-ghost wide" data-act="${wishAct}" ${waitAttr()}>${waiting() ? WAIT_TEXT : "להגשים"}</button>` : `<p class="small muted">${w.kind === "practice" ? "אחרי חמש השאלות של היום אפשר לתרגל." : "מחכה במסך הבית."}</p>`}</section>
+    <section class="glass pad"><span class="eyebrow">Grow ${esc(pet.n)}</span>
+      ${task(have.includes("F"), "חמש השאלות של היום", PET.five)}${task(have.includes("P"), "יום מושלם, חמש מחמש", PET.perfect)}
+      ${fx || have.includes("L") ? task(have.includes("L"), "החיזוק של היום", PET.lesson) : ""}${task(rounds >= PET.rounds, "סבב תרגול", PET.practice, `<span class="small muted num" dir="ltr">${rounds}/${PET.rounds}</span>`)}
+      ${task(have.includes("W"), "המשאלה של היום", PET.wish)}${task(care.max > 0 && !care.left, "כל טיפול", PET.care, care.max ? `<span class="small muted num" dir="ltr">${care.used}/${care.max}</span>` : "")}
+      <p class="small faint">${esc(pet.n)} לא נחלש ולא נעלם כשלא באים. יום בלי שאלות הוא פשוט יום בלי טיפולים.</p></section></div></div>`;
+  const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k);
+  PETUI = { E, kind: pet.k, pid: p.id, strokes: 0, pets: 0, at: null };
+  E.asleep = asleep;
+  auraMood(asleep ? { calm: 0.7, energy: 0.05 } : { calm: 0.15, energy: 0.4 });
+  if (asleep) E.still("asleep");
+  else if (fresh) setTimeout(() => { if (PETUI && PETUI.E === E) { E.play([{ name: "flip" }], null, true); E.spawn("spark", ...E.pt(0.5, 0.38), 26); SFX.done(); } }, 350);
+  else setTimeout(() => { if (PETUI && PETUI.E === E && !E.busy) E.play([{ name: "hop" }], null, true); }, 350);
+  // now and then it looks about; a finger drawn across it is a stroke
+  const idle = setInterval(() => { if (!PETUI || PETUI.E !== E || !stage.isConnected) return clearInterval(idle); if (!E.busy && !E.asleep && !PETUI.at) E.play([{ name: "look" }], null, true); }, 14000);
+  stage.addEventListener("pointerdown", e => { PETUI.at = [e.clientX, e.clientY]; if (!E.busy && !E.asleep) E.face = "smile"; try { stage.setPointerCapture(e.pointerId); } catch (err) { /* it is stroked all the same */ } });
+  stage.addEventListener("pointermove", e => {
+    if (!PETUI.at || E.asleep) return;
+    const r = stage.getBoundingClientRect(), d = Math.hypot(e.clientX - PETUI.at[0], e.clientY - PETUI.at[1]);
+    PETUI.at = [e.clientX, e.clientY]; PETUI.strokes += d;
+    if (Math.random() < d / 26) E.spawn("heart", e.clientX - r.left, e.clientY - r.top - 8, 1);
+    if (PETUI.strokes > 150 && (!E.busy || E.soft)) { PETUI.strokes = 0; PETUI.pets++; E.face = null; buzz(12); E.play([{ name: PETUI.pets % 3 ? "hop" : "flip" }]); if (PETUI.pets % 3 === 0) E.spawn("heart", ...E.pt(0.5, 0.36), 9); }
+  });
+  const lift = () => { PETUI.at = null; PETUI.strokes = 0; E.face = null; };
+  stage.addEventListener("pointerup", lift); stage.addEventListener("pointercancel", lift);
+  ["look", "hop", "eat", "play", "wash", "walk", "sit", "asleep", "flip"].forEach((n, i) => setTimeout(() => { if (stage.isConnected) artImg(`pet/${pet.k}/${n}.webp`).catch(() => {}); }, 900 + i * 350));
+}
+/* The bar, the level and the hearts after something was given; a new level waits for the motion in hand to end. */
+function petPaint(gained, wasLv) {
+  const p = me(), pet = petOf(p.id), g = petLevel(petGrowth(pet)), care = petCare(p.id), E = PETUI && PETUI.E;
+  const set = (sel, v) => { const el = $(sel, layer); if (el) el.textContent = v; };
+  if ($("#petbar", layer)) $("#petbar", layer).style.width = Math.min(100, g.have / g.need * 100) + "%";
+  set("#petgp", `${g.have} / ${g.need}`); set("#petleft", `עוד ${g.need - g.have} לרמה ${g.lv + 1}`); set("#petlv", g.lv);
+  $$("#pethearts svg", layer).forEach((el, i) => el.classList.toggle("off", i >= care.left));
+  const have = String((pet.c || {})[TODAY] || ""), asleep = (L.petSleep || {})[p.id] === TODAY;
+  $$(".petact", layer).forEach(b => { b.disabled = b.dataset.k === "s" ? (!asleep && !have.includes("s") && !care.left) : (asleep || !care.left); });
+  const gain = $("#petgain", layer);
+  if (gain && gained > 0) { gain.textContent = "+" + gained; gain.classList.remove("on"); void gain.offsetWidth; gain.classList.add("on"); }
+  if (E && g.lv > wasLv) {
+    const cheer = () => { if (!PETUI || PETUI.E !== E) return; E.play([{ name: "flip" }]); E.spawn("spark", ...E.pt(0.5, 0.38), 30); SFX.done(); buzz([20, 60, 20]); toast(`${pet.n}: רמה ${g.lv}!`);
+      const st = $("#petstage", layer); if (st) { E.grow = 0.82 + Math.min(g.lv - 1, 6) * 0.03; st.style.setProperty("--grow", E.grow.toFixed(2)); } };
+    if (E.busy && !E.soft) E.after = cheer; else setTimeout(cheer, 400);
+  }
+}
+const PET_ACTS = {
+  e: E => { const m = E.pt(0.53, 0.47); E.treat = { t: 0, x0: E.W - 30, y0: E.H - 6, x1: m[0], y1: m[1] }; E.play([{ name: "eat" }], () => E.spawn("heart", ...E.pt(0.5, 0.34), 3)); },
+  p: E => { E.play([{ name: "play" }]); const h = setInterval(() => { if (!E.busy || !PETUI || PETUI.E !== E) return clearInterval(h); E.spawn("note", ...E.pt(0.5 + (Math.random() - 0.5) * 0.6, 0.34), 1); }, 380); },
+  w: E => { E.play([{ name: "wash" }], () => E.spawn("spark", ...E.pt(0.5, 0.4), 16)); const h = setInterval(() => { if (!E.busy || !PETUI || PETUI.E !== E) return clearInterval(h); E.spawn("bubble", ...E.pt(0.5 + (Math.random() - 0.5) * 0.44, 0.3 + Math.random() * 0.3), 2); }, 140); },
+  k: E => { const st = $("#petstage", layer); if (st) st.classList.add("walking"); E.play([{ name: "walk", loop: true, times: 4 }], () => { if (st) st.classList.remove("walking"); }); }
+};
+function petAct(k) {
+  const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E;
+  if (!pet || !E || !$(".petscr", layer)) return;
+  const care = petCare(p.id), have = String((pet.c || {})[TODAY] || ""), wasLv = petLevel(petGrowth(pet)).lv, scr = $(".petscr", layer), btn = $('.petact[data-k="s"] span', layer);
+  L.petSleep = L.petSleep || {};
+  if (k === "s") {   // sleep is a toggle; the first time in a day it is one of the day's care
+    const asleep = L.petSleep[p.id] === TODAY;
+    if (asleep) { delete L.petSleep[p.id]; save(); E.asleep = false; scr.classList.remove("night"); auraMood({ calm: 0.15, energy: 0.4 }); if (btn) btn.textContent = "שינה"; E.play([{ name: "hop" }], null, true); petPaint(0, wasLv); return; }
+    if (E.busy && !E.soft) return;
+    const first = !have.includes("s");
+    if (first && !care.left) return;
+    L.petSleep[p.id] = TODAY; E.asleep = true; scr.classList.add("night"); auraMood({ calm: 0.7, energy: 0.05 }); if (btn) btn.textContent = "להעיר";
+    E.play([{ name: "sit", stay: true }], () => { if (E.asleep) E.still("asleep"); });
+    if (first) { pet.c = pet.c || {}; pet.c[TODAY] = have + "s"; pet.s = petGrowth(pet); petSave(p.id, pet); petPaint(PET.care, wasLv); } else { save(); petPaint(0, wasLv); }
+    SFX.tap(); return;
+  }
+  if (!PET_ACTS[k] || (E.busy && !E.soft) || E.asleep || !care.left) return;
+  pet.c = pet.c || {}; pet.c[TODAY] = have + k; pet.s = petGrowth(pet); petSave(p.id, pet);
+  SFX.good(); buzz(15); PET_ACTS[k](E);
+  setTimeout(() => { if (PETUI && PETUI.E === E) petPaint(PET.care, wasLv); }, 800);
 }
 
 /* A new token is a moment (they are rare: a month won, four full weeks, a gift): the coin spins in under turning
@@ -1942,6 +2276,7 @@ const flavorTitle = p => ({ portfolio: "Portfolio", routine: "The season", stage
 const WAIT_TEXT = "מתעדכן…";
 const waitAttr = () => waiting() ? "disabled data-wait" : "";
 function renderHome() {
+  petCredit(me());   // what she has learned since it was last looked at is its growth
   const p = me(), st = stats(p.id, Y, M), rk = ranking(Y, M), place = placeOf(rk, p.id);
   const done = playedOn(p.id, TODAY), set = dailySet(p, TODAY), rev = done ? null : revengeFor(p, TODAY, set);
   const test = activeTest(p, TODAY), wk = weekStrip(p.id), ws = weeksOf(p.id), h = NOW.getHours();
@@ -1990,6 +2325,7 @@ function renderHome() {
   <header class="top"><div class="hello">${avatar(p, "ring")}<div><b>${hi}, ${esc(p.name)}</b><span>${esc((TRACKS[p.track] || TRACKS.g7).grade)}</span></div></div>
     <button type="button" class="round" data-act="tab" data-to="me" aria-label="ההגדרות שלי">${ICON.me}</button></header>
   ${hero}
+  ${petCard(p)}
   ${fixCard}
   ${gradeDue(p).slice(0, 1).map(t => `<section class="glass pad stack"><div class="row"><span class="eyebrow">After the exam</span><span class="small muted">${dateHe(t.date)}</span></div>
     <b class="fixname">איך היה המבחן ב${esc(SUBJ[t.subj] || t.subj)}?</b>
@@ -2431,10 +2767,11 @@ function parentLife() {
  * only when Avsha pastes it, and nothing told him (or Claude: the Sheet shows no trace until a girl plays) whether a
  * paste had taken. SCRIPT_API is the `API` of backend/Code.gs: raise both together, and say here what an older
  * script leaves out. */
-const SCRIPT_API = 8;
+const SCRIPT_API = 9;
 const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש",
   6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות", 7: "צילום דפים מהמחברת, והסרת סימון ״עוד לא למדנו״ (אחרי ההדבקה מריצים setup פעם אחת ומאשרים גישה ל־Drive)",
-  8: "ההחלטה על סימון ״עוד לא למדנו״ (לעצור שאלה או נושא), הסימונים שמחכים במייל של הערב, צילום ואישור לציון, ואסימון על שלושה מבחנים מעל 85" };
+  8: "ההחלטה על סימון ״עוד לא למדנו״ (לעצור שאלה או נושא), הסימונים שמחכים במייל של הערב, צילום ואישור לציון, ואסימון על שלושה מבחנים מעל 85",
+  9: "היצור של כל אחת נשמר גם בגיליון, כדי שיישאר שלה בטלפון חדש" };
 function scriptCard(brief) {
   if (!LIVE) return "";
   const have = FAM.api | 0;
@@ -3267,6 +3604,7 @@ function renderResult(p, gained, weekBonus, st, x) {
     ${tier ? art + review : review + art}
     <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-aura wide" data-act="closeQuiz" data-to="board">לטבלה</button>
       <button type="button" class="btn btn-ghost wide" data-act="closeQuiz">סיום</button></div>
+    ${petOf(p.id) && petCare(p.id).left ? `<button type="button" class="btn btn-ghost wide petgo" data-act="petOpen">${petPic(petOf(p.id).k)}${esc(petOf(p.id).n)}: ${petCare(p.id).left === 1 ? "טיפול אחד מחכה" : `${petCare(p.id).left} טיפולים מחכים`}</button>` : ""}
     ${more ? `<button type="button" class="btn btn-ghost wide" data-act="practice">עוד תרגול, בלי נקודות (לא חובה)</button>` : ""}`);
   $(".quiz-in", layer).classList.add("reveal");
   paintArt(layer);
@@ -3373,6 +3711,12 @@ document.addEventListener("click", async e => {
   if (act === "storyNext" && e.target.closest("[data-act=storyClose]")) return;
   switch (act) {
     case "tab": SFX.tap(); show(b.dataset.to); break;
+    case "petOpen": SFX.tap(); openPet(); break;
+    case "petPick": SFX.tap(); renderPetPick(b.dataset.k); break;
+    case "petAdopt": petAdopt(b.dataset.k); break;
+    case "petAct": petAct(b.dataset.k); break;
+    case "petRename": { const r = $("#petrename", layer); if (r) { r.hidden = !r.hidden; if (!r.hidden) $("#petname", layer).focus(); } break; }
+    case "petRenameSave": { const p = me(), pet = p && petOf(p.id), v = String(($("#petname", layer) || {}).value || "").trim().slice(0, PET.name); if (pet && v) { pet.n = v; petSave(p.id, pet); renderPet(); } break; }
     case "toSubj": { const el = document.getElementById("subj-" + b.dataset.k); if (el) { SFX.tap(); el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" }); } break; }
     case "start": { const r = b.getBoundingClientRect(); startQuest(); if (Q) iris(r); break; }
     case "practice": { const r = b.getBoundingClientRect(); startPractice(); if (Q) iris(r); break; }
@@ -3672,6 +4016,8 @@ function firstScreen() {
 }
 /* After the first screen, once the Sheet has answered (or cannot): the photos, and whatever popup is due. */
 function greet() {
+  petSync();
+  if ($(".petscr [data-wait]", layer)) openPet();
   FACTS_READY.then(factLate);
   if (LIVE) (me() && !L.parent ? sharePhoto() : Promise.resolve()).then(fetchPhotos);
   loadPagesDone().then(syncPages);
@@ -3724,7 +4070,8 @@ async function boot() {
 /* For tools/simulate_days.js: the page's own pick and scoring, driven from a test (never set in the app). */
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
-  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, factOf, otherPool, me, family: () => FAM, bank: p => BANKS[p] };
+  shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, factOf, otherPool, me, family: () => FAM, bank: p => BANKS[p],
+  petOf, petGrowth, petLevel, petCare, petWish, petCredit, pet: () => PETUI };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

@@ -74,7 +74,8 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
   // front of its head (in its own texture), and over each goes a small dome in the colour of the skin round the eye,
   // with a dark curved line: turned down for sleep ("closed"), up for delight ("happy"). The head bone carries them.
   if (Q.get("eyes")) {
-    pose(0);
+    if (action) action.stop();
+    skinned.forEach(sk => sk.skeleton.pose()); pivot.updateMatrixWorld(true); skinned.forEach(sk => sk.skeleton.update());
     const head = bones[Object.keys(bones).find(n => /^head$/i.test(n))], all = points(), box = new THREE.Box3().setFromPoints(all), H = box.max.y - box.min.y;
     const dark = [], skin = [], p = new THREE.Vector3();
     for (const s of skinned) {
@@ -89,20 +90,41 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
         (lum < 0.2 ? dark : skin).push({ p: p.clone(), c: [r, g2, b], lum });
       }
     }
-    const hc = head.getWorldPosition(new THREE.Vector3()), midx = dark.reduce((a, d) => a + d.p.x, 0) / Math.max(1, dark.length), found = [];
-    for (const side of [-1, 1]) {
-      const pts = dark.filter(d => (d.p.x - midx) * side > 0 && d.p.z > hc.z);
-      if (pts.length < 8) continue;
-      const c = pts.reduce((a, d) => a.add(d.p), new THREE.Vector3()).multiplyScalar(1 / pts.length);
+    // Its eyes among the dark patches. The patches are gathered into blobs (points a short way apart belong together),
+    // and the eyes are the pair of blobs that mirror each other across the face, level and alike in size: a dark nose,
+    // dark ear tips or stripes are other blobs, and are passed over.
+    const hc = head.getWorldPosition(new THREE.Vector3()), front = dark.filter(d => d.p.z > hc.z - H * 0.02), midx = hc.x;
+    const cell = H * 0.02, grid = new Map(), gk = (x, y, z) => x + "," + y + "," + z;
+    front.forEach((d, i) => { const k = gk(Math.round(d.p.x / cell), Math.round(d.p.y / cell), Math.round(d.p.z / cell)); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(i); });
+    const label = new Int32Array(front.length).fill(-1), blobs = [];
+    for (let i = 0; i < front.length; i++) {
+      if (label[i] >= 0) continue;
+      const id = blobs.length, st = [i], pts = []; label[i] = id;
+      while (st.length) { const j = st.pop(), q = front[j].p; pts.push(front[j]); const gx = Math.round(q.x / cell), gy = Math.round(q.y / cell), gz = Math.round(q.z / cell);
+        for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) for (let z = -1; z <= 1; z++) { const arr = grid.get(gk(gx + x, gy + y, gz + z)); if (arr) for (const o of arr) if (label[o] < 0) { label[o] = id; st.push(o); } } }
+      blobs.push({ pts, n: pts.length, c: pts.reduce((acc, d) => acc.add(d.p), new THREE.Vector3()).multiplyScalar(1 / pts.length) });
+    }
+    let best = null;
+    for (const A of blobs) for (const B of blobs) {
+      if (A === B || A.c.x >= B.c.x || A.n < 12 || B.n < 12) continue;
+      if ([A, B].some(X => X.c.y > box.max.y - H * 0.15 || new THREE.Vector3(X.c.x - hc.x, 0, X.c.z - hc.z).normalize().z < 0.45)) continue;
+      const mirror = Math.abs((A.c.x - midx) + (B.c.x - midx)) / H, level = Math.abs(A.c.y - B.c.y) / H, alike = Math.min(A.n, B.n) / Math.max(A.n, B.n), apart = (B.c.x - A.c.x) / H;
+      if (mirror > 0.06 || level > 0.04 || alike < 0.4 || apart < 0.08) continue;
+      const score = (A.n + B.n) * alike * (1 - (mirror + level) * 8);
+      if (!best || score > best.score) best = { score, pair: [A, B] };
+    }
+    window.blobsSeen = blobs.filter(x => x.n >= 12).map(x => ({ n: x.n, at: x.c.toArray().map(v => +v.toFixed(2)) }));
+    const found = [];
+    for (const blob of best ? best.pair : []) {
+      const pts = blob.pts, c = blob.c, side = c.x < midx ? -1 : 1;
       const centre = new THREE.Vector3(hc.x, c.y, hc.z), n = c.clone().sub(centre).normalize();
-      const flat = pts.map(d => { const q = d.p.clone().sub(c), along = q.dot(n); return { r: q.sub(n.clone().multiplyScalar(along)).length(), along }; }).sort((a, b) => a.r - b.r);
+      const flat = pts.map(d => { const q = d.p.clone().sub(c), along = q.dot(n); return { r: q.sub(n.clone().multiplyScalar(along)).length(), along }; }).sort((x, y) => x.r - y.r);
       const r = flat[Math.floor(flat.length * 0.96)].r, bulge = Math.max(...flat.map(f => f.along));
-      // the skin's colour: what lies just above the eye (below and beside it are its cheek and the eye's white rim),
-      // the middle value of each channel so a stray highlight does not tint it
-      const near = skin.filter(d => { const dd = d.p.distanceTo(c); return dd > r * 1.3 && dd < r * 1.9 && d.p.y > c.y + r * 0.9 && d.lum > 0.3 && d.lum < 0.95 && Math.max(...d.c) - Math.min(...d.c) > 0.12; });
-      const mid = j => { const v = near.map(d => d.c[j]).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : 0.8; };
-      const col = [mid(0), mid(1), mid(2)];
-      found.push({ side, c, n, r, bulge, col, count: pts.length });
+      // the skin's colour: the middle value, channel by channel, of what lies in a ring round the eye, so that a cheek,
+      // a highlight or the eye's white rim does not tint it
+      const near = skin.filter(d => { const dd = d.p.distanceTo(c); return dd > r * 1.3 && dd < r * 1.9 && d.p.y > c.y - r * 0.3 && d.lum > 0.25 && d.lum < 0.97; });   // not what is under it: a cheek
+      const mid = j => { const v = near.map(d => d.c[j]).sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : 0.8; };
+      found.push({ side, c, n, r, bulge, col: [mid(0), mid(1), mid(2)], count: pts.length });
     }
     window.eyesFound = found.map(e => ({ side: e.side, at: e.c.toArray().map(x => +x.toFixed(3)), r: +e.r.toFixed(3), bulge: +e.bulge.toFixed(3), col: e.col.map(x => +x.toFixed(2)), n: e.count }));
     const up = Q.get("eyes") === "happy" ? 1 : -1;
@@ -120,6 +142,7 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
       const arc = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(line), 32, R * 0.07, 8), new THREE.MeshStandardMaterial({ color: 0x2b1a12, roughness: 0.6 }));
       scene.add(cap); scene.add(arc); cap.updateMatrixWorld(true); arc.updateMatrixWorld(true); head.attach(cap); head.attach(arc);
     }
+    if (action) action.play();
   }
   const tilt = num("tilt", 6) * Math.PI / 180, tan = Math.tan(camera.fov / 2 * Math.PI / 180);
   const place = (d, aim) => { camera.position.set(0, aim + Math.sin(tilt) * d, Math.cos(tilt) * d); camera.lookAt(0, aim, 0); camera.near = d / 50; camera.far = d * 4; camera.updateProjectionMatrix(); camera.updateMatrixWorld(true); };
@@ -131,8 +154,11 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
         aim += (lo + hi) / 2 * d * tan; d *= Math.max(x, (hi - lo) / 2) / fill; }
       return { d, aim }; };
     const all = fit(Array.from({ length: 16 }, (_, i) => dur * i / 15)), rest = fit([0]);
+    // how high its top and how low its foot go through the motion, moment by moment
+    const tops = [], feet = []; for (let i = 0; i <= 30; i++) { pose(dur * i / 30); let hi = -9, lo = 9; for (const q of points()) { hi = Math.max(hi, q.y); lo = Math.min(lo, q.y); } tops.push(+hi.toFixed(2)); feet.push(+lo.toFixed(2)); }
     pose(0); const b = new THREE.Box3().setFromPoints(points());
-    return { duration: dur, clips: g.animations.map(a => [a.name, +a.duration.toFixed(2)]), all, rest, height: b.max.y - b.min.y, floor: b.min.y, bones: Object.keys(bones) };
+    place(num("d", 3), num("aim", 0.5));   // back where the frames are drawn from: left at the measuring place, everything came out too near
+    return { tops, feet, duration: dur, clips: g.animations.map(a => [a.name, +a.duration.toFixed(2)]), all, rest, height: b.max.y - b.min.y, floor: b.min.y, bones: Object.keys(bones) };
   };
   place(num("d", 3), num("aim", 0.5));
   window.frame = t => { pose(t); renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); };

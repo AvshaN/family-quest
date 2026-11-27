@@ -34,7 +34,8 @@ tests with the girls and gives feedback; Claude writes the code.
   a month's end, 6 since 2026-11-26: one reading of each tab a request,
   fix-it lessons, a grade after an exam, `exams`, `trend` and `sis`; 7 the
   same day: notebook pages; 8 the same day: the parent's word on a mark,
-  a photo and his yes for a grade, the token for three exams):
+  a photo and his yes for a grade, the token for three exams; 9 since
+  2026-11-27: each girl's creature in her profile):
   the app is live
   the minute it is pushed, the script only when Avsha pastes it, so anything
   the old script would get wrong (practice rows, deleting an exam) is shown
@@ -512,6 +513,10 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The evening reminder** (below): which phones, and whether the girls
   use Telegram.
   He is still to confirm, and may replace one twin's phone in a few days.
+- **The script of api 9 waits for his paste** (2026-11-27: the creature's
+  copy in the Sheet). Api 8 is in the Sheet (he said so on 2026-11-26 and
+  the Sheet showed it). Until he pastes, a creature lives on its phone
+  alone and is lost with the phone.
 - **The script of api 7 is in the Sheet** (pasted 2026-11-26; the Pages tab
   exists, the mark on perimeter is gone, the Sheet answers in 4.2 seconds
   by his Speed line, against about 30 before). **The script of api 8 waits
@@ -631,7 +636,7 @@ in the future)". So far 231 credits are spent (4,269 of 4,500 left).
   Xiaomi, and whether the coin's sheet (386 KB) arrives in time for a
   ceremony on the phones' first opening after the update. Ask.
 
-## A creature to care for (an idea; its first step done 2026-11-26, nothing in the app)
+## A creature to care for (its first stage built 2026-11-27)
 
 Avsha, 2026-11-26: the girls play Adopt Me! on Roblox (the eldest confirmed
 it, and that they enjoy all of it: raising, dressing up, collecting, showing
@@ -642,55 +647,85 @@ animations as reactions to the actions picked, maybe a reaction to a pet by
 swiping on the screen", perhaps a second creature and a house after a high
 threshold. "This is an added layer on the current, all other systems like
 rewards stay the same." The eldest also sent a screenshot of a streak pet
-(it looks like TikTok's): a simple round creature shared by two friends,
-with outfits, a level bar of growth points and a "grow your pet" list of
-daily tasks.
+(it looks like TikTok's): a simple round creature with outfits, a level bar
+of growth points and a "grow your pet" list of daily tasks. He saw a mock
+page and said the animations are good, bar one whose face turned upside
+down (a wash made of a head rub: replaced), and: "let them choose in the app
+from the 6 designs ... eventually I'm sure they'll all be used".
 
-- **Agreed so far**: a pet never gets sick and never dies (his word); a day
-  off costs nothing, as with full weeks. Tokens, the board and the prizes
-  are untouched, and nothing of the pet is bought with tokens.
-- **What I proposed** (he has not said yes to the build): today's points
-  become today's care actions (feed, play, wash, walk, sleep; petting by a
-  swipe is free); care and learning tasks give growth points and levels;
-  a "wish of the day" that asks for what helps her most (her fix-it lesson,
-  a faded star, exam practice); outfits earned by learning; sisters visiting
-  each other's creature; a second creature and a house last. One study
-  (EdSurge 2014, a Taiwanese class): a pet alone made lessons more fun but
-  not more learned; with competition it did. The board stays central.
-- **The first step, done** (125 credits; 4,144 left): six designs in one
-  family for the girls to react to (fox, dragon, axolotl, bunny, cat, a star
-  spirit; text-to-image tasks 01a219f7-ed5f…, 01a219f7-f9cf…, 01a219f8-04e2…,
-  -0975…, -146e…, -2144…), and the star spirit as a model (image-to-3d with
-  `--pose-mode a-pose`, 01a219f8-c541-76ec-908f-b3935db0ba6a), rigged
-  (`rigging create --input-task-id`, 5 credits, 01a219fa-410f-7390-a9a4-
-  da6e5cd1690a) and given twelve of Meshy's 680 ready-made motions (3 each,
-  `animate create --rig-task-id --action-id`; the list with preview GIFs is
-  public at api.meshy.ai/web/public/animations/resources). He was sent two
-  recordings of a mock page and stills, and is to say whether the motion is
-  good enough and which creatures the girls want.
-- **What was learned about the motions.** They are human motion capture.
-  On a creature with a big head and short arms the whole-body ones read
-  well (0 idle and look about, 22 a dance, 466 a hop, 452 a backflip, 62 a
-  waddle, 363 sitting down, 342 hand to mouth for eating) and the ones with
-  hands by the head do not (290 a wave, 27 a heart, 316 a head rub, 298 a
-  cheer). On legs this short a jump hardly leaves the floor.
-- **The renderer** is `tools/spin/clip.html` and `clip.js` (as spin.js, for
-  a GLB with a motion): `--info` gives the length, the bones and where a
-  camera must stand; one camera for every motion of a creature (`--d`,
-  `--aim`), its hips kept over one spot, `--lift` and `--rise` to make a
-  jump leave the floor, `--from --to --fps`. **Eyelids** (`--eyes=closed`
-  or `happy`): its face is painted on and cannot blink, so the tool finds
-  its eyes as the dark patches on the front of its head and sets a small
-  dome in the skin's colour over each, with a curved line, carried by the
-  head bone: a blink, sleep, delight. **Something worn** (`--wear=FILE.glb`
-  with `--wearscale --wearup`): a second model handed to the head bone, so
-  it rides every motion (tried with the crown). Fast motion needs 16 frames
-  a second shown one at a time: at 10 with frames blended, as the turning
-  objects are, an arm or an eye came out double. Fourteen motions at 320 px
-  came to 6 MB for one look: for the app, fewer and shorter ones.
-- **Not decided**: which creatures; whether a girl may skip it; how its
-  state is kept (it must be in the Sheet to survive a new phone: a new tab,
-  a new `api`, his paste).
+- **His rules**: a creature never gets sick and never dies; a day off costs
+  it nothing, as with full weeks. Tokens, the board and the prizes do not
+  know it exists, and nothing of it is bought with tokens.
+- **What is built** (app.js "a creature to care for"; app.css, the last
+  block): a card on her home screen; the choice among the six (fox, dragon,
+  axolotl, bunny, cat, a star spirit: `PET_KINDS`) with a name; its screen.
+  **A day's points are that day's care** (`petCare`: an action for every
+  `PET.per` points, `PET.max` at most; none until she has played): feeding,
+  play, a wash, a walk, sleep. A stroke of the finger is free. **Growth**
+  (`PET_PTS`, `petGrowth`, `petLevel`): 3 for each care action, and what she
+  learns: 5 for the five, 3 more for a perfect day, 6 for a fix-it lesson, 2
+  for a practice round (two a day), 4 for **its wish of the day**
+  (`petWish`: her lesson when one is offered, the five until she has
+  played, else a practice round; chosen once a day and kept). The first
+  level takes 100, each next 30 more; it is drawn a little larger each level
+  up to the seventh. The day's result has a button to it when care waits.
+  Dad's screens show nothing of it yet.
+- **Where it lives** (`L.pet`, by profile id; Dad's test profile has its
+  own, and sends nothing): `{ k kind, n name, d the day chosen, c: { date:
+  letters }, g0, v, s }`. A day's letters are what it was given: e p w k s
+  for care, F the five, P a perfect day, L a lesson, R a practice round, W
+  its wish. `petCredit` writes the learning letters from the rows of the
+  last ten days (called when her home screen is drawn and when its screen
+  opens), and folds days older than `PET.keep` into `g0`. `s` is the growth
+  she has been shown: the difference is played to her when she comes.
+  **The Sheet's copy** (api 9; `canPetSync`, `petSync`, `petSend`): the same
+  JSON in a ninth column of Profiles, `pet`, through the `profile` action
+  (the script checks it is a creature: a known kind, a short name, under
+  6,000 characters), and `state` carries it, so a new phone gets it back and
+  a sister's phone holds it (nothing shows a sister's creature yet). Two
+  copies that differ are merged, a day's letters joined, so no phone's care
+  is lost. **With the script of api 8 it lives on her phone alone**: tell
+  him to paste before a phone is replaced.
+- **The pictures** (`art/pet/<kind>/<motion>.webp`, about 2 MB a creature,
+  fetched a motion at a time and kept by the service worker): each creature
+  is a Meshy model (image-to-3d with `--pose-mode a-pose`), rigged
+  (`rigging create`, 5 credits) and given eight of Meshy's 680 ready-made
+  motions (3 credits each; `animate create --rig-task-id --action-id`; the
+  list with preview GIFs is public at
+  api.meshy.ai/web/public/animations/resources): 0 (rest, a blink, a smile,
+  looking about), 466 a hop, 342 hand to mouth (eating), 22 a dance (play),
+  405 a sway (the wash), 363 sitting down (sleep), 62 a waddle (the walk),
+  452 a backflip (a new level). `PET_CLIPS` has each sheet's frames, the
+  same for every creature, twelve a second (`petEngine` shows them one at a
+  time: blended, as the turning objects are, a fast arm came out double).
+  **They are human motion capture**: on a creature with a big head and
+  short arms the whole-body ones read well and the ones with hands by the
+  head do not (290 a wave, 27 a heart, 316 a head rub, 298 a cheer: not
+  used). Models, rigs and motions can be downloaded again from his account.
+- **Drawing them**: `tools/spin/clip.html` and `clip.js` render a rigged
+  GLB's motion from one camera (`--d --aim`, `--from --to --fps`; `--info`
+  measures it; its hips are kept over one spot; `--lift` and `--rise` make
+  a jump leave the floor, which on legs this short it hardly does).
+  **Eyelids** (`--eyes=closed|happy`): a face is painted on and cannot
+  blink, so the tool finds the eyes at rest (the pair of dark patches that
+  mirror each other on the front of the face; a fox's dark ear tips were
+  taken for eyes before it looked only there) and sets over each a small
+  dome in the colour of the skin round it with a curved line, carried by
+  the head bone. **Something worn** (`--wear=FILE.glb`): a second model
+  handed to the head bone (tried with the crown: this is how outfits can be
+  made). A bug worth remembering: `--info` moved the camera and left it
+  there, so every frame was drawn from too near and a hop left the frame.
+  `tools/spin/pets.py ANIM_DIR` makes the app's sheets from a folder of
+  the animated models (a camera for each creature at 70% of the frame, the
+  highest hop and flip that stay in it, the packing); about ten minutes a
+  creature on this machine.
+- **Credits**: the six designs 54, each creature about 59 (model 30, rig 5,
+  eight motions 24), the trial's extra motions 39: 423 for the creatures,
+  654 for the app in all (see `auth status` for what is left).
+- **Next, when he says so**: outfits earned by learning (a worn model is
+  about 39 credits and its own sheets); sisters seeing and visiting each
+  other's creature (the copies are already on every phone); a second
+  creature and a house; Dad seeing them. **Never seen on a real phone.**
 
 ## Reminders (looked into 2026-11-14, not built)
 
