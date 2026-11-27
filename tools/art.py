@@ -18,7 +18,7 @@ import sys
 from collections import deque
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageStat
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 ART = os.path.join(ROOT, "art")
@@ -136,6 +136,15 @@ def check():
     kinds = re.findall(r"(\w+):", re.search(r"const PET_KINDS = \{(.*?)\};", js, re.S).group(1)) if "const PET_KINDS" in js else []
     clips = {k: int(v) for k, v in re.findall(r"(\w+): (\d+)", re.search(r"const PET_CLIPS = \{(.*?)\};", js, re.S).group(1))} if kinds else {}
     named |= {f"pet/{k}/{c}.webp" for k in kinds for c in clips}
+    # what each creature wears: art/pet/<kind>/<item>/<motion>.webp, a layer for every motion but the two that only
+    # close its eyes (they use the resting layer), frame for frame with the creature's sheet and a quarter larger
+    m = re.search(r"const PET_WEAR = \{(.*?)\n\};", js, re.S)
+    wear = re.findall(r"^\s*(\w+):\s*\{ slot:", m.group(1), re.M) if m else []
+    layers = [c for c in clips if c not in ("blink", "smile")]
+    # where each layer's sheet sits in the layer's frame: the table tools/spin/wear.py writes into app.js
+    m = re.search(r"/\* PET_BOX:begin \*/\nconst PET_BOX = (\{.*?\});\n/\* PET_BOX:end \*/", js, re.S)
+    boxes = json.loads(m.group(1)) if m else {}
+    named |= {f"pet/{k}/{w}/{c}.webp" for k in kinds for w in wear for c in layers}
     bad, total = 0, 0
     for rel in sorted(named):
         path = os.path.join(ART, rel)
@@ -167,6 +176,35 @@ def check():
             if w % cols or h != side * -(-n // cols):
                 print("SHEET", f"pet/{k}/{c}.webp is {w} x {h}, not {cols} a row of {n} square frames")
                 bad += 1
+            for item in wear if c in layers else []:
+                g = os.path.join(ART, "pet", k, item, c + ".webp")
+                if not os.path.exists(g):
+                    continue
+                box = ((boxes.get(k) or {}).get(item) or {}).get(c)
+                w2, h2 = Image.open(g).size
+                if not box:
+                    print("LAYER", f"pet/{k}/{item}/{c}.webp has no place in PET_BOX")
+                    bad += 1
+                elif w2 != cols * box[2] or h2 != box[3] * -(-n // cols) or box[0] + box[2] > side * 5 // 4 or box[1] + box[3] > side * 5 // 4:
+                    print("LAYER", f"pet/{k}/{item}/{c}.webp is {w2} x {h2}, not {cols} a row of {n} frames of {box[2]} x {box[3]} (PET_BOX)")
+                    bad += 1
+    # A run of the renderer that lost its WebGL context draws everything about half as bright (two layer runs and one
+    # creature's flip did, on a busy machine): a sheet much darker or lighter than the same thing's other motions.
+    def light(path):
+        im = Image.open(path).convert("RGBA")
+        st = ImageStat.Stat(im.convert("RGB"), im.getchannel("A").point(lambda v: 255 if v > 200 else 0))
+        return 0.3 * st.mean[0] + 0.59 * st.mean[1] + 0.11 * st.mean[2] if st.count[0] > 50 else None
+    for k in kinds:
+        for group in [[f"pet/{k}/{c}.webp" for c in clips]] + [[f"pet/{k}/{w}/{c}.webp" for c in layers] for w in wear]:
+            vals = {r: light(os.path.join(ART, r)) for r in group if os.path.exists(os.path.join(ART, r))}
+            vals = {r: v for r, v in vals.items() if v is not None}
+            if len(vals) < 3:
+                continue
+            mid = sorted(vals.values())[len(vals) // 2]
+            for r, v in vals.items():
+                if v < mid * 0.8 or v > mid * 1.3:
+                    print("LIGHT", f"{r} is {v:.0f}, its other motions about {mid:.0f}: drawn by a run that lost its light?")
+                    bad += 1
     print(f"{len(have)} pictures in art/, {sum(os.path.getsize(os.path.join(ART, r)) for r in have) / 1024:.0f} KB; {bad} problems")
     sys.exit(1 if bad else 0)
 

@@ -12,6 +12,11 @@
 // The same camera is used for every motion of a creature (d, aim in the address), so it does not change size
 // between them. Options: size, d, aim, tilt, fill, inplace (1: its hips stay over one spot), yaw, wear (a second
 // GLB set on its head: /wear.glb, with wearscale, wearup, wearfwd), eyes (closed | happy: lids over its eyes).
+// Outfits (outfit=1: /outfit.json lists them, see outfits() below): things it wears, each carried by one of its bones.
+// With layer=1 the creature itself is drawn into the depth only, and window.layers(t) gives one picture for each
+// thing worn: what shows of it, to lay over the creature's own frame. pad=1 makes those pictures larger than the
+// creature's frame (an eighth more on each side, a quarter more above), because a hat rises over its head at the
+// top of a jump and wings reach past its sides; the creature's frame is the bottom middle of them.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
@@ -19,10 +24,14 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 const Q = new URLSearchParams(location.search), num = (k, d) => Q.has(k) ? +Q.get(k) : d;
 const SIZE = num("size", 512);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-renderer.setSize(SIZE, SIZE); renderer.setPixelRatio(1);
+const PAD = num("pad", 0) ? { side: 0.125, top: 0.25 } : { side: 0, top: 0 }, OUT_W = Math.round(SIZE * (1 + 2 * PAD.side)), OUT_H = Math.round(SIZE * (1 + PAD.top));
+renderer.setSize(OUT_W, OUT_H); renderer.setPixelRatio(1);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = num("exposure", 1.05);
 renderer.setClearColor(0x000000, 0);
 document.body.appendChild(renderer.domElement);
+// A context lost on a busy machine comes back without the room's light: everything drawn after it is half as bright
+// (two of 54 loads of the outfits' layers were, with three jobs and the walks running). clip.js refuses such a run.
+renderer.domElement.addEventListener("webglcontextlost", () => { window.lost = true; });
 const scene = new THREE.Scene();
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = num("env", 0.75);
@@ -73,10 +82,13 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
   // Its face is painted on, so it cannot blink. Lids are made for it: its eyes are found as the dark patches on the
   // front of its head (in its own texture), and over each goes a small dome in the colour of the skin round the eye,
   // with a dark curved line: turned down for sleep ("closed"), up for delight ("happy"). The head bone carries them.
-  if (Q.get("eyes")) {
-    if (action) action.stop();
-    skinned.forEach(sk => sk.skeleton.pose()); pivot.updateMatrixWorld(true); skinned.forEach(sk => sk.skeleton.update());
-    const head = bones[Object.keys(bones).find(n => /^head$/i.test(n))], all = points(), box = new THREE.Box3().setFromPoints(all), H = box.max.y - box.min.y;
+  const HEAD = () => bones[Object.keys(bones).find(n => /^head$/i.test(n))];
+  const bind = () => { if (action) action.stop(); skinned.forEach(sk => sk.skeleton.pose()); pivot.updateMatrixWorld(true); skinned.forEach(sk => sk.skeleton.update()); };
+  let EYES = null;
+  const findEyes = () => {
+    if (EYES) return EYES;
+    bind();
+    const head = HEAD(), all = points(), box = new THREE.Box3().setFromPoints(all), H = box.max.y - box.min.y;
     const dark = [], skin = [], p = new THREE.Vector3();
     for (const s of skinned) {
       const map = s.material.map, uv = s.geometry.attributes.uv; if (!map || !uv) continue;
@@ -127,6 +139,12 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
       found.push({ side, c, n, r, bulge, col: [mid(0), mid(1), mid(2)], count: pts.length });
     }
     window.eyesFound = found.map(e => ({ side: e.side, at: e.c.toArray().map(x => +x.toFixed(3)), r: +e.r.toFixed(3), bulge: +e.bulge.toFixed(3), col: e.col.map(x => +x.toFixed(2)), n: e.count }));
+    if (action) action.play();
+    return (EYES = { found, H, box, hc, head });
+  };
+  if (Q.get("eyes")) {
+    const { found, H, head } = findEyes();
+    if (action) action.stop(); bind();
     const up = Q.get("eyes") === "happy" ? 1 : -1;
     for (const e of found) {
       const R = e.r * num("lid", 1.2), h = e.bulge + H * 0.012 + H * 0.006, Rs = (R * R + h * h) / (2 * h), theta = Math.asin(Math.min(1, R / Rs));
@@ -144,8 +162,102 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
     }
     if (action) action.play();
   }
+  // ---- outfits: things it wears, each carried by one of its bones ----
+  // /outfit.json is a list: { key, type, anchor, bone, at: [x, y, z], w, rot: [x, y, z] (degrees), ... }. A place is
+  // given in shares of the creature's height from an anchor found on its body at rest: "top" (the top of its skull
+  // on its midline), "face" (between its eyes, on the front of its face), "neck" (its neck joint), "chest" (the
+  // front of its chest under the chin), "back" (its back, behind the chest). type "glb" is a model (/wear/<file>),
+  // made w of the creature's height wide; the other types are built here (glasses, heart glasses, a halo).
+  const WORN = [], bodyMeshes = []; m.traverse(o => { if (o.isMesh) bodyMeshes.push(o); });
+  if (num("outfit", 0)) {
+    const spec = await (await fetch("/outfit.json")).json(), list = Array.isArray(spec) ? spec : spec.items, given = Array.isArray(spec) ? null : spec.given;
+    const head = HEAD(), neckB = bones.neck || head, chestB = bones.Spine || bones.Spine01 || neckB;
+    // The places on its body are measured on the model as Meshy made it. A slimmed copy of the model, which is what
+    // the layers are drawn from, is not measured again (fewer points: its eyes would come out a little elsewhere):
+    // it is given the full model's measures (outfit.json's `given`, from window.anchors.raw of a run on the full one).
+    const measure = () => {
+      const eyes = findEyes();
+      bind();
+      // every point of its skin, with the bone that moves it most
+      const P = [], q = new THREE.Vector3();
+      for (const sk of skinned) { const ge = sk.geometry, n = ge.attributes.position.count, si = ge.attributes.skinIndex, sw = ge.attributes.skinWeight, step = Math.max(1, Math.floor(n / 150000));
+        for (let i = 0; i < n; i += step) { let b = 0, bw = -1; for (let k = 0; k < 4; k++) { const wk = sw.getComponent(i, k); if (wk > bw) { bw = wk; b = si.getComponent(i, k); } }
+          sk.getVertexPosition(i, q); P.push({ p: q.clone().applyMatrix4(sk.matrixWorld), b: sk.skeleton.bones[b].name }); } }
+      const box = new THREE.Box3().setFromPoints(P.map(x => x.p)), H = box.max.y - box.min.y;
+      const hc = head.getWorldPosition(new THREE.Vector3()), nk = neckB.getWorldPosition(new THREE.Vector3()), ch = chestB.getWorldPosition(new THREE.Vector3()), mid = hc.x;
+      const headP = P.filter(x => /head/i.test(x.b)), trunk = P.filter(x => /spine|hips|neck/i.test(x.b));
+      const most = (arr, f, d) => arr.length ? arr.reduce((a, x) => Math.max(a, f(x.p)), -1e9) : d;
+      const hb = new THREE.Box3().setFromPoints(headP.map(x => x.p));
+      // the top of its skull: ears, a crest or a star stand in the middle of its head or behind, so the skull is
+      // measured a little forward of the middle, over its forehead
+      const topY = most(headP.filter(x => Math.abs(x.p.x - mid) < H * 0.03 && x.p.z > hc.z + H * 0.06 && x.p.z < hc.z + H * 0.14), p => p.y, hb.max.y);
+      const E = eyes.found.length === 2 ? eyes.found : null;
+      const faceZ = E ? Math.max(...E.map(e => e.c.z + e.n.z * e.bulge)) : hb.max.z, faceY = E ? (E[0].c.y + E[1].c.y) / 2 : hc.y + H * 0.2;
+      // its head sits on its body and hides the neck joint: what it wears at the neck goes under its chin
+      const chinY = -most(headP.filter(x => Math.abs(x.p.x - mid) < H * 0.05 && x.p.z > hc.z), p => -p.y, -nk.y), body = P.filter(x => !/head|arm|hand|shoulder/i.test(x.b));
+      const band = body.filter(x => Math.abs(x.p.x - mid) < H * 0.05 && x.p.y > chinY - H * 0.06 && x.p.y < chinY - H * 0.01);
+      const chestZ = most(band, p => p.z, nk.z + H * 0.1), backZ = -most(trunk.filter(x => Math.abs(x.p.x - mid) < H * 0.06 && Math.abs(x.p.y - ch.y) < H * 0.06), p => -p.z, -(ch.z - H * 0.1));
+      const ring = body.filter(x => Math.abs(x.p.y - (chinY - H * 0.03)) < H * 0.02);
+      const neck = { rx: most(ring, p => Math.abs(p.x - mid), H * 0.1), zf: most(ring, p => p.z, nk.z + H * 0.1), zb: -most(ring, p => -p.z, -(nk.z - H * 0.1)) };
+      const A = { top: new THREE.Vector3(mid, topY, hc.z), face: new THREE.Vector3(mid, faceY, faceZ), neck: nk.clone(), chest: new THREE.Vector3(mid, chinY - H * 0.035, chestZ), collar: new THREE.Vector3(mid, chinY - H * 0.03, nk.z), back: new THREE.Vector3(mid, ch.y, backZ), head: hc.clone() };
+      const eyeR = E ? (E[0].r + E[1].r) / 2 : H * 0.05, eyeAt = E ? E.map(e => ({ x: e.c.x - mid, y: e.c.y - faceY })) : [{ x: -H * 0.09, y: 0 }, { x: H * 0.09, y: 0 }];
+      // (at rest its skin is in the model's own small units; everything here is in shares of its height, so it does not matter)
+      const sh = x => +(x / H).toFixed(3);
+      window.anchors = { head: hc.toArray().map(sh), headBox: [hb.min.toArray().map(sh), hb.max.toArray().map(sh)], chin: sh(chinY), neck: { rx: sh(neck.rx), zf: sh(neck.zf - nk.z), zb: sh(neck.zb - nk.z) }, eyeR: sh(eyeR), eyes: eyeAt.map(e => [sh(e.x), sh(e.y)]),
+        at: Object.fromEntries(Object.entries(A).map(([k, p]) => [k, p.toArray().map(sh)])) };
+      window.anchors.raw = { H, eyeR, eyeAt, A: Object.fromEntries(Object.entries(A).map(([k, p]) => [k, p.toArray()])) };
+      return { H, A, eyeR, eyeAt };
+    };
+    const { H, A, eyeR, eyeAt } = given ? { H: given.H, eyeR: given.eyeR, eyeAt: given.eyeAt, A: Object.fromEntries(Object.entries(given.A).map(([k, v]) => [k, new THREE.Vector3(v[0], v[1], v[2])])) } : measure();
+    bind();
+    const std = (color, o) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.4, metalness: 0.05 }, o || {}));
+    const mesh = (geo, mat, x, y, z) => { const me = new THREE.Mesh(geo, mat); me.position.set(x || 0, y || 0, z || 0); return me; };
+    // a rod from a to b (round), or a flat band of the given width
+    const rod = (a, b, r, mat, flat) => { const d = b.clone().sub(a), me = new THREE.Mesh(flat ? new THREE.BoxGeometry(flat, d.length(), r) : new THREE.CylinderGeometry(r, r, d.length(), 12), mat);
+      me.position.copy(a).add(b).multiplyScalar(0.5); me.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); return me; };
+    const arms = (G, R, mat, yy) => {   // the bridge over its nose and the arms back to its ears
+      const [l, r] = eyeAt[0].x < eyeAt[1].x ? eyeAt : [eyeAt[1], eyeAt[0]];
+      if (r.x - l.x > 2 * R) G.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(l.x + R, l.y + yy, 0), new THREE.Vector3((l.x + r.x) / 2, (l.y + r.y) / 2 + yy + R * 0.22, R * 0.12), new THREE.Vector3(r.x - R, r.y + yy, 0)]), 12, R * 0.1, 8), mat));
+      for (const [e, s] of [[l, -1], [r, 1]]) G.add(rod(new THREE.Vector3(e.x + s * R, e.y + yy, 0), new THREE.Vector3(e.x + s * (R + H * 0.05), e.y + yy + H * 0.01, -H * 0.3), R * 0.09, mat));
+    };
+    const heartShape = s => { const sh = new THREE.Shape(); sh.moveTo(0, -s * 0.9); sh.bezierCurveTo(-s * 1.5, -s * 0.05, -s * 1.15, s * 1.05, 0, s * 0.42); sh.bezierCurveTo(s * 1.15, s * 1.05, s * 1.5, -s * 0.05, 0, -s * 0.9); return sh; };
+    const make = {
+      glasses: it => { const G = new THREE.Group(), R = eyeR * (it.lens || 1.25), rim = std(it.color || 0x2a2440, { roughness: 0.3 });
+        for (const e of eyeAt) { G.add(mesh(new THREE.TorusGeometry(R, R * 0.13, 14, 48), rim, e.x, e.y, 0));
+          G.add(mesh(new THREE.CircleGeometry(R, 40), new THREE.MeshPhysicalMaterial({ color: 0xcfeaff, transparent: true, opacity: 0.2, roughness: 0.05, side: THREE.DoubleSide, depthWrite: false }), e.x, e.y, 0)); }
+        arms(G, R, rim, 0); return G; },
+      hearts: it => { const G = new THREE.Group(), R = eyeR * (it.lens || 1.3), rim = std(it.color || 0xff4f8b, { roughness: 0.25 }), dark = std(0x3a1026, { roughness: 0.08, metalness: 0.3 });
+        for (const e of eyeAt) { const a = mesh(new THREE.ExtrudeGeometry(heartShape(R), { depth: R * 0.16, bevelEnabled: true, bevelSize: R * 0.06, bevelThickness: R * 0.06, bevelSegments: 3 }), rim, e.x, e.y + R * 0.12, -R * 0.1);
+          const b = mesh(new THREE.ExtrudeGeometry(heartShape(R * 0.76), { depth: R * 0.06, bevelEnabled: true, bevelSize: R * 0.03, bevelThickness: R * 0.03, bevelSegments: 2 }), dark, e.x, e.y + R * 0.12, R * 0.12); G.add(a); G.add(b); }
+        arms(G, R, rim, R * 0.2); return G; },
+      halo: it => { const G = new THREE.Group(), R = H * (it.r || 0.13), gold = std(0xffd978, { emissive: 0xffb72e, emissiveIntensity: 0.9, roughness: 0.25, metalness: 0.4 });
+        // (a soft glow round it was tried: a see-through gold over the dark screen comes out grey)
+        G.add(mesh(new THREE.TorusGeometry(R, R * 0.13, 16, 64), gold)); G.rotation.x = -Math.PI / 2 + (it.tip == null ? 0.42 : it.tip); return G; },
+    };
+    for (const it of list) {
+      let obj;
+      if (it.type === "glb") {
+        obj = (await load("/wear/" + it.file)).scene;
+        const wb = new THREE.Box3().setFromObject(obj), ws = wb.getSize(new THREE.Vector3()), c = wb.getCenter(new THREE.Vector3()), k = (it.w || 0.4) * H / ws[it.by || "x"];
+        obj.position.set(-c.x, it.base === "center" ? -c.y : it.base === "top" ? -wb.max.y : -wb.min.y, -c.z);
+        const inner = new THREE.Group(); inner.add(obj); inner.scale.setScalar(k); if (it.squash) inner.scale.multiply(new THREE.Vector3(...it.squash)); obj = inner;
+        obj.traverse(o => { if (o.isMesh) { o.frustumCulled = false; if (o.material) { o.material.envMapIntensity = 1; if (it.tint) o.material.color.multiply(new THREE.Color(it.tint)); } } });
+      } else obj = make[it.type](it);
+      const hold = new THREE.Group(), at = it.at || [0, 0, 0], rot = it.rot || [0, 0, 0];
+      hold.add(obj); hold.position.copy(A[it.anchor || "top"]).add(new THREE.Vector3(at[0], at[1], at[2]).multiplyScalar(H));
+      hold.rotation.set(rot[0] * Math.PI / 180, rot[1] * Math.PI / 180, rot[2] * Math.PI / 180, "YXZ");
+      scene.add(hold); hold.updateMatrixWorld(true); (bones[it.bone] || (/neck|chest|back|collar/.test(it.anchor) ? chestB : head)).attach(hold);
+      WORN.push({ key: it.key, hold });
+    }
+    if (action) action.play();
+  }
+  // layer=1: the creature goes into the depth only, so each thing worn comes out as what shows of it
+  if (num("layer", 0)) bodyMeshes.forEach(o => (Array.isArray(o.material) ? o.material : [o.material]).forEach(mm => { mm.colorWrite = false; }));
   const tilt = num("tilt", 6) * Math.PI / 180, tan = Math.tan(camera.fov / 2 * Math.PI / 180);
-  const place = (d, aim) => { camera.position.set(0, aim + Math.sin(tilt) * d, Math.cos(tilt) * d); camera.lookAt(0, aim, 0); camera.near = d / 50; camera.far = d * 4; camera.updateProjectionMatrix(); camera.updateMatrixWorld(true); };
+  const place = (d, aim) => { camera.position.set(0, aim + Math.sin(tilt) * d, Math.cos(tilt) * d); camera.lookAt(0, aim, 0); camera.near = d / 50; camera.far = d * 4;
+    if (PAD.top) {   // the creature's own frame is the bottom middle of a larger picture: the same camera, a wider window
+      const fullH = Math.round(SIZE * (1 + 2 * PAD.top)); camera.aspect = OUT_W / fullH; camera.fov = 2 * Math.atan(tan * (1 + 2 * PAD.top)) * 180 / Math.PI; camera.setViewOffset(OUT_W, fullH, 0, 0, OUT_W, OUT_H); }
+    camera.updateProjectionMatrix(); camera.updateMatrixWorld(true); };
   window.info = () => {
     // where the camera must stand for this motion to stay in the frame, and for its first moment alone
     const dur = clip ? clip.duration : 0, fill = num("fill", 0.9), fit = times => { let d = 3, aim = 0.5;
@@ -162,6 +274,12 @@ const load = url => new Promise((ok, no) => loader.load(url, ok, undefined, no))
   };
   place(num("d", 3), num("aim", 0.5));
   window.frame = t => { pose(t); renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); };
+  // one picture for each thing worn, alone (with layer=1: only what the creature does not hide)
+  window.layers = t => { pose(t); const out = {};
+    for (const w of WORN) { WORN.forEach(x => { x.hold.visible = x === w; }); renderer.render(scene, camera); out[w.key] = renderer.domElement.toDataURL("image/png"); }
+    WORN.forEach(x => { x.hold.visible = true; }); return out; };
+  // the same moment from another side (degrees), for looking at how a thing sits
+  window.frameYaw = (t, yaw) => { pivot.rotation.y = yaw * Math.PI / 180; const u = window.frame(t); pivot.rotation.y = num("yaw", 0) * Math.PI / 180; return u; };
   window.ready = true;
 })().catch(e => { window.failed = String(e && e.message || e); });
 </script>

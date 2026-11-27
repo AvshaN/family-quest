@@ -1594,11 +1594,13 @@ function liveSky(cv) {
 const ART = window.FQ_ART_BASE || new URL("art/", location.href).href;
 const artImg = (() => {
   const kept = {};
-  return rel => kept[rel] || (kept[rel] = new Promise((ok, no) => {
+  const get = rel => kept[rel] || (kept[rel] = new Promise((ok, no) => {
     const im = new Image();
     im.decoding = "async"; im.onload = () => ok(im); im.onerror = () => { delete kept[rel]; no(new Error("no picture: " + rel)); };
     im.src = ART + rel;
   }));
+  get.drop = rel => { delete kept[rel]; };   // let go of one (a creature's long motion, once played): it is fetched again when wanted
+  return get;
 })();
 /* A picture in the page. One that fails is taken out, and its parent loses "pic", so the CSS shows what was there before. */
 const pic = (rel, cls) => `<img class="${cls || ""}" data-pic src="${ART}${rel}" alt="" decoding="async">`;
@@ -1779,7 +1781,7 @@ function liveCard(fig) {
 function artWarm(p) {
   if (!p || SANDBOX) return;
   const pet = petOf(p.id);
-  const go = () => [SPIN.coin.src, "wreath.webp"].concat(pieceOf(p) ? [SPIN[pieceOf(p)].src] : [], pet ? ["rest", "blink", "smile", "hop"].map(c => `pet/${pet.k}/${c}.webp`) : []).forEach(rel => artImg(rel).catch(() => {}));
+  const go = () => [SPIN.coin.src, "wreath.webp"].concat(pieceOf(p) ? [SPIN[pieceOf(p)].src] : [], pet ? ["rest", "blink", "smile", "hop"].map(c => `pet/${pet.k}/${c}.webp`).concat(petWorn(pet).flatMap(k => ["rest", "hop"].map(c => `pet/${pet.k}/${k}/${c}.webp`))) : []).forEach(rel => artImg(rel).catch(() => {}));
   if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 6000 }); else setTimeout(go, 3000);
 }
 
@@ -1794,22 +1796,123 @@ function artWarm(p) {
  * nothing, as with full weeks. Tokens, the board and the prizes do not know it exists.
  * It lives on her phone (L.pet, by profile): its kind k, name n, the day it was chosen d, and for each day the
  * letters of what it was given (c: e p w k s for care; F the five, P a perfect day, L a lesson, R a practice round,
- * W its wish), days older than PET.keep folded into g0. The Sheet keeps a copy in her profile once its script knows
- * how (api 9), so it is still hers on a new phone; the newer of the two copies wins.
+ * W its wish, h a heart a sister left it), days older than PET.keep folded into g0 and counted in t. The Sheet keeps
+ * a copy in her profile once its script knows how (api 9), so it is still hers on a new phone, and her sisters and
+ * Dad can see it.
  * Each creature is a Meshy model with a skeleton and eight of Meshy's ready-made motions, drawn ahead of time into
- * sheets of frames (art/pet/<kind>/<motion>.webp, tools/spin/clip.js): no 3D engine here, as with the coin. */
+ * sheets of frames (art/pet/<kind>/<motion>.webp, tools/spin/clip.js): no 3D engine here, as with the coin.
+ * What it wears (2026-11-27; the girls "enjoy all aspects: raising, dressing up, collecting, and showing each
+ * other"): eleven things, each earned by learning or by care and never bought (PET_WEAR says how), one to a place
+ * on its body (w: head, face, neck, back). What she has is o (item: the day it came). Each is drawn as a layer of
+ * its own over the creature's frame (art/pet/<kind>/<item>/<motion>.webp, tools/spin/wear.py), a quarter larger
+ * than the creature's frame, which is its bottom middle: a hat rises over the frame at the top of a jump.
+ * Sisters see each other's creatures and can leave one a heart a day, after their own five (h: sister: the days;
+ * hs: how many in all). A heart is growth for the creature that got it, written by its own phone (hf: who, by day). */
 const PET_KINDS = { fox: "שועל", dragon: "דרקון", axolotl: "אקסולוטל", bunny: "ארנב", cat: "חתול", spirit: "כוכבון" };
-const PET = { per: 5, max: 7, care: 3, five: 5, perfect: 3, lesson: 6, practice: 2, rounds: 2, wish: 4, first: 100, step: 30, keep: 45, name: 16, fps: 12 };
-const PET_PTS = { e: PET.care, p: PET.care, w: PET.care, k: PET.care, s: PET.care, F: PET.five, P: PET.perfect, L: PET.lesson, R: PET.practice, W: PET.wish };
-/* The frames of each motion's sheet, eight a row, the same for every creature (render_app.py prints them). */
+/* Avsha, 2026-11-27: "I'd like to review the creatures, animations and process before it's actually live". So the
+ * girls see nothing of creatures until PET_LIVE is true: they are shown only in his test profile (and in the demo),
+ * on his own phone, with tools to see all of it without waiting weeks (another creature, growth, every outfit) and
+ * two made-up creatures for the girls, to visit (petReview; kept apart in L.petSand, never in L.pet, so that a made-up
+ * creature can never be taken for a girl's own and sent to the Sheet). To open it to the girls: true, and a push. */
+const PET_LIVE = false || !!(window.FQ_TEST && window.FQ_TEST.petLive);
+const petOn = () => PET_LIVE || !LIVE || !!SANDBOX;
+const petReview = () => LIVE && !!SANDBOX && !PET_LIVE;
+const PET = { per: 5, max: 7, care: 3, five: 5, perfect: 3, lesson: 6, practice: 2, rounds: 2, wish: 4, heart: 2, first: 100, step: 30, keep: 45, name: 16, fps: 12 };
+const PET_PTS = { e: PET.care, p: PET.care, w: PET.care, k: PET.care, s: PET.care, F: PET.five, P: PET.perfect, L: PET.lesson, R: PET.practice, W: PET.wish, h: PET.heart };
+/* The frames of each motion's sheet, eight a row, the same for every creature (tools/spin/pets.py prints them). */
 const PET_CLIPS = { rest: 1, blink: 1, smile: 1, look: 48, hop: 23, eat: 48, play: 67, wash: 54, sit: 30, asleep: 1, walk: 24, flip: 26 };
+/* A layer's frame is larger than the creature's by these shares of it: on each side, and above. */
+const PET_OVER = { side: 0.125, top: 0.25 }, PET_FRAME = 272, PET_LAYER = PET_FRAME * (1 + 2 * PET_OVER.side);
+/* A layer's sheet holds only the part of that frame its item ever touches in the motion: full frames, mostly empty,
+ * were several hundred megabytes of pictures in memory with four things on. Where that part sits, [x, y, w, h] in
+ * the layer's frame of PET_LAYER px, for each creature, item and motion. tools/spin/wear.py writes this table
+ * together with the sheets; it is not written by hand. */
+/* PET_BOX:begin */
+const PET_BOX = {
+  "fox": {"beanie":{"rest":[104,43,127,162],"look":[83,42,174,175],"hop":[20,9,217,263],"eat":[102,40,140,200],"play":[82,36,258,253],"wash":[97,40,142,167],"sit":[109,86,127,165],"asleep":[109,86,127,163],"walk":[94,40,156,157],"flip":[57,0,190,340]},"gradcap":{"rest":[102,93,122,84],"look":[71,88,197,100],"hop":[21,26,209,219],"eat":[95,89,141,120],"play":[75,80,262,185],"wash":[86,90,147,89],"sit":[111,133,118,89],"asleep":[111,133,118,87],"walk":[84,87,162,85],"flip":[46,27,197,311]},"flowers":{"rest":[107,125,120,72],"look":[87,124,166,82],"hop":[65,46,167,221],"eat":[104,121,134,113],"play":[85,115,212,171],"wash":[101,123,134,77],"sit":[113,161,119,82],"asleep":[113,161,119,80],"walk":[97,124,149,64],"flip":[72,65,172,233]},"wizard":{"rest":[92,53,150,135],"look":[75,51,195,152],"hop":[43,23,204,253],"eat":[90,51,164,186],"play":[71,46,269,253],"wash":[85,49,165,143],"sit":[97,97,150,141],"asleep":[97,98,150,137],"walk":[83,49,177,130],"flip":[54,0,203,340]},"crown":{"rest":[111,93,105,85],"look":[80,91,181,97],"hop":[38,22,187,225],"eat":[106,89,127,122],"play":[84,84,250,185],"wash":[103,92,129,88],"sit":[120,132,105,91],"asleep":[120,132,105,89],"walk":[95,91,153,81],"flip":[54,30,187,304]},"halo":{"rest":[125,105,80,55],"look":[100,105,142,61],"hop":[66,42,147,190],"eat":[121,103,98,91],"play":[99,97,207,158],"wash":[117,103,100,59],"sit":[132,144,80,61],"asleep":[132,144,80,59],"walk":[111,104,121,49],"flip":[79,53,151,266]},"headphones":{"rest":[88,140,168,126],"look":[85,139,176,152],"hop":[76,80,184,202],"eat":[89,137,170,129],"play":[72,133,215,164],"wash":[79,137,181,134],"sit":[88,180,168,122],"asleep":[89,180,167,121],"walk":[86,135,173,134],"flip":[64,84,198,202]},"glasses":{"rest":[128,201,85,33],"look":[99,187,142,55],"hop":[96,150,119,129],"eat":[124,175,93,80],"play":[109,160,148,126],"wash":[112,186,115,51],"sit":[130,244,85,32],"asleep":[130,246,85,29],"walk":[121,185,108,43],"flip":[106,87,115,181]},"hearts":{"rest":[126,203,87,28],"look":[99,183,143,55],"hop":[95,106,121,172],"eat":[124,178,97,76],"play":[108,162,150,124],"wash":[111,189,116,45],"sit":[129,244,87,30],"asleep":[129,246,87,26],"walk":[120,185,109,40],"flip":[105,87,120,180]},"bow":{"rest":[137,245,54,35],"look":[128,239,88,42],"hop":[126,164,72,131],"eat":[141,219,57,57],"play":[121,222,102,75],"wash":[132,228,77,45],"sit":[145,284,53,32],"asleep":[145,284,53,32],"walk":[143,230,71,44],"flip":[129,112,75,163]},"wings":{"rest":[84,151,189,127],"look":[76,149,199,142],"hop":[66,70,214,227],"eat":[84,147,193,156],"play":[62,124,248,196],"wash":[59,149,223,153],"sit":[76,190,196,115],"asleep":[77,190,195,114],"walk":[67,135,200,155],"flip":[31,96,250,196]}},
+  "dragon": {"beanie":{"rest":[105,35,121,154],"look":[81,34,175,167],"hop":[14,13,219,248],"eat":[102,33,137,194],"play":[82,28,258,253],"wash":[97,33,138,158],"sit":[111,74,121,158],"asleep":[111,75,121,154],"walk":[93,33,154,149],"flip":[52,0,193,340]},"gradcap":{"rest":[104,84,116,78],"look":[70,79,196,94],"hop":[15,33,211,201],"eat":[96,80,137,117],"play":[75,73,265,185],"wash":[87,80,143,85],"sit":[112,120,114,84],"asleep":[113,120,112,82],"walk":[84,79,160,80],"flip":[42,28,199,312]},"flowers":{"rest":[108,114,114,68],"look":[85,113,167,77],"hop":[58,52,171,204],"eat":[104,110,130,111],"play":[85,105,219,173],"wash":[101,112,131,73],"sit":[114,147,114,77],"asleep":[114,148,114,74],"walk":[96,114,148,60],"flip":[67,64,174,260]},"wizard":{"rest":[94,45,142,127],"look":[73,43,195,144],"hop":[36,27,207,237],"eat":[91,43,159,180],"play":[71,38,269,253],"wash":[86,42,159,134],"sit":[99,85,143,133],"asleep":[100,86,142,130],"walk":[83,42,174,123],"flip":[51,0,202,340]},"crown":{"rest":[112,83,100,80],"look":[78,82,182,91],"hop":[31,29,191,207],"eat":[106,81,123,118],"play":[83,76,257,186],"wash":[103,82,126,83],"sit":[121,119,101,86],"asleep":[121,119,100,84],"walk":[94,82,151,76],"flip":[50,31,189,309]},"halo":{"rest":[126,94,76,51],"look":[96,94,146,58],"hop":[58,48,152,174],"eat":[121,92,95,90],"play":[98,87,216,161],"wash":[116,92,98,56],"sit":[133,130,76,57],"asleep":[133,130,76,56],"walk":[110,93,120,47],"flip":[74,49,149,291]},"headphones":{"rest":[90,128,161,121],"look":[88,127,172,145],"hop":[69,84,184,186],"eat":[91,125,164,127],"play":[73,122,222,158],"wash":[81,125,174,127],"sit":[91,165,160,116],"asleep":[91,165,160,115],"walk":[86,123,170,128],"flip":[61,78,197,234]},"glasses":{"rest":[120,187,95,41],"look":[87,172,163,62],"hop":[80,154,138,127],"eat":[116,158,104,97],"play":[101,144,169,148],"wash":[101,171,130,59],"sit":[123,227,95,40],"asleep":[123,230,95,36],"walk":[112,169,121,51],"flip":[96,86,128,195]},"hearts":{"rest":[119,182,97,42],"look":[86,166,165,64],"hop":[79,152,140,127],"eat":[116,161,105,92],"play":[100,146,170,145],"wash":[100,175,132,52],"sit":[122,227,97,37],"asleep":[122,229,96,34],"walk":[110,173,123,44],"flip":[95,86,133,194]},"bow":{"rest":[135,250,54,33],"look":[125,243,91,41],"hop":[125,173,72,124],"eat":[140,220,57,58],"play":[118,226,104,75],"wash":[130,230,79,45],"sit":[144,285,53,31],"asleep":[144,285,53,30],"walk":[142,235,72,41],"flip":[129,121,73,161]},"wings":{"rest":[86,149,183,118],"look":[76,148,195,132],"hop":[67,78,209,209],"eat":[85,147,187,154],"play":[63,124,245,190],"wash":[57,147,223,149],"sit":[76,185,191,105],"asleep":[77,185,190,105],"walk":[67,135,195,148],"flip":[29,102,248,202]}},
+  "axolotl": {"beanie":{"rest":[116,69,101,123],"look":[93,67,152,138],"hop":[37,48,186,211],"eat":[112,66,116,162],"play":[94,63,246,215],"wash":[108,66,117,128],"sit":[121,103,101,130],"asleep":[121,104,101,127],"walk":[104,65,133,123],"flip":[73,17,160,323]},"gradcap":{"rest":[115,107,96,66],"look":[83,104,170,80],"hop":[36,61,182,178],"eat":[108,104,114,102],"play":[90,99,231,161],"wash":[100,104,120,72],"sit":[123,140,94,70],"asleep":[123,140,94,68],"walk":[97,103,137,67],"flip":[63,52,164,288]},"flowers":{"rest":[118,132,95,56],"look":[96,131,146,66],"hop":[71,74,149,181],"eat":[114,129,110,93],"play":[97,125,192,151],"wash":[111,130,111,62],"sit":[124,162,95,65],"asleep":[124,162,95,61],"walk":[106,131,128,49],"flip":[82,83,142,229]},"wizard":{"rest":[106,76,119,107],"look":[86,75,169,121],"hop":[54,60,177,204],"eat":[103,74,134,154],"play":[86,71,254,216],"wash":[99,73,134,113],"sit":[111,112,120,111],"asleep":[112,113,119,108],"walk":[95,72,149,104],"flip":[70,26,172,314]},"crown":{"rest":[122,107,83,66],"look":[90,106,158,78],"hop":[49,57,164,183],"eat":[116,105,103,101],"play":[96,101,223,162],"wash":[113,105,107,70],"sit":[129,139,84,72],"asleep":[130,139,83,70],"walk":[105,106,130,64],"flip":[70,54,161,286]},"halo":{"rest":[132,115,64,44],"look":[105,115,129,50],"hop":[70,71,134,157],"eat":[127,113,82,80],"play":[108,109,190,142],"wash":[124,113,84,48],"sit":[139,147,64,49],"asleep":[139,147,64,48],"walk":[118,113,104,41],"flip":[88,69,123,262]},"headphones":{"rest":[91,144,160,119],"look":[89,142,168,145],"hop":[75,100,178,181],"eat":[92,140,162,126],"play":[77,137,208,155],"wash":[83,140,170,127],"sit":[91,176,160,116],"asleep":[92,177,159,114],"walk":[88,139,166,127],"flip":[68,94,188,210]},"glasses":{"rest":[123,208,90,35],"look":[90,190,158,59],"hop":[88,181,127,113],"eat":[118,177,98,93],"play":[107,159,152,144],"wash":[101,191,130,55],"sit":[125,245,91,34],"asleep":[126,247,90,30],"walk":[115,190,115,45],"flip":[101,94,119,193]},"hearts":{"rest":[122,211,92,29],"look":[89,191,160,55],"hop":[87,180,129,113],"eat":[118,179,100,89],"play":[106,161,153,141],"wash":[100,194,131,49],"sit":[125,247,91,29],"asleep":[125,249,91,25],"walk":[114,193,117,39],"flip":[97,95,124,192]},"bow":{"rest":[140,254,48,29],"look":[132,248,78,36],"hop":[133,195,62,100],"eat":[144,229,50,50],"play":[126,234,89,64],"wash":[135,238,69,39],"sit":[147,285,47,28],"asleep":[147,285,47,27],"walk":[146,241,62,37],"flip":[136,133,63,143]},"wings":{"rest":[98,168,158,104],"look":[87,166,171,117],"hop":[79,97,184,192],"eat":[94,165,166,134],"play":[74,144,217,168],"wash":[72,165,193,132],"sit":[87,205,169,88],"asleep":[87,205,169,88],"walk":[79,155,174,131],"flip":[50,122,215,169]}},
+  "bunny": {"beanie":{"rest":[119,101,96,120],"look":[93,97,152,132],"hop":[47,93,172,193],"eat":[114,94,108,164],"play":[100,91,226,210],"wash":[109,95,116,129],"sit":[123,131,96,125],"asleep":[123,133,96,121],"walk":[108,95,124,119],"flip":[84,51,145,289]},"gradcap":{"rest":[119,136,91,64],"look":[83,131,170,77],"hop":[46,105,168,160],"eat":[110,128,107,107],"play":[96,120,209,165],"wash":[97,131,123,72],"sit":[125,165,89,69],"asleep":[125,165,89,67],"walk":[102,130,127,65],"flip":[74,75,153,263]},"flowers":{"rest":[122,158,89,58],"look":[94,157,149,64],"hop":[78,115,138,167],"eat":[116,156,103,97],"play":[103,153,174,146],"wash":[110,156,112,63],"sit":[126,186,90,64],"asleep":[126,186,89,62],"walk":[110,156,119,51],"flip":[93,104,133,208]},"wizard":{"rest":[110,108,113,101],"look":[86,105,166,114],"hop":[63,104,164,185],"eat":[106,101,125,155],"play":[92,98,235,211],"wash":[99,102,134,111],"sit":[114,140,113,106],"asleep":[114,141,113,103],"walk":[100,102,139,99],"flip":[79,60,157,280]},"crown":{"rest":[125,144,78,57],"look":[91,134,153,74],"hop":[58,101,152,166],"eat":[118,131,96,106],"play":[102,124,201,163],"wash":[113,133,107,70],"sit":[131,176,79,59],"asleep":[131,178,79,55],"walk":[109,134,121,61],"flip":[80,77,145,260]},"halo":{"rest":[135,139,60,43],"look":[104,138,129,49],"hop":[75,112,127,142],"eat":[128,136,77,85],"play":[113,134,174,142],"wash":[124,136,85,49],"sit":[140,168,61,49],"asleep":[140,168,61,47],"walk":[120,136,99,40],"flip":[95,95,122,238]},"headphones":{"rest":[106,169,128,95],"look":[101,165,142,115],"hop":[84,142,152,149],"eat":[105,161,131,113],"play":[93,158,178,137],"wash":[101,163,135,103],"sit":[107,198,127,93],"asleep":[107,199,127,92],"walk":[102,162,138,102],"flip":[87,115,152,190]},"glasses":{"rest":[134,218,71,33],"look":[101,202,135,54],"hop":[100,163,108,134],"eat":[129,192,78,84],"play":[119,176,128,129],"wash":[112,205,107,49],"sit":[135,251,71,32],"asleep":[135,253,70,29],"walk":[126,204,92,41],"flip":[108,118,103,173]},"hearts":{"rest":[133,220,72,29],"look":[100,199,137,53],"hop":[99,150,114,146],"eat":[128,195,87,80],"play":[116,178,131,127],"wash":[112,203,107,48],"sit":[134,251,72,30],"asleep":[135,255,71,24],"walk":[125,206,93,36],"flip":[107,118,105,173]},"bow":{"rest":[137,271,52,32],"look":[129,264,83,40],"hop":[127,209,69,105],"eat":[140,245,55,55],"play":[124,248,89,66],"wash":[129,253,79,44],"sit":[144,300,52,28],"asleep":[144,300,52,28],"walk":[143,259,66,39],"flip":[131,146,70,152]},"wings":{"rest":[78,175,185,108],"look":[74,171,196,126],"hop":[65,107,209,194],"eat":[81,167,191,145],"play":[60,143,243,185],"wash":[63,163,208,146],"sit":[74,206,194,95],"asleep":[74,206,194,95],"walk":[67,156,201,141],"flip":[42,123,232,187]}},
+  "cat": {"beanie":{"rest":[99,25,135,172],"look":[77,24,185,185],"hop":[4,0,236,272],"eat":[95,23,151,215],"play":[77,18,263,272],"wash":[91,23,151,175],"sit":[103,66,136,176],"asleep":[104,67,135,172],"walk":[87,24,166,165],"flip":[44,0,206,340]},"gradcap":{"rest":[96,80,128,86],"look":[64,75,210,102],"hop":[6,9,226,234],"eat":[88,76,151,128],"play":[70,67,270,198],"wash":[78,76,158,92],"sit":[105,118,126,90],"asleep":[105,118,126,88],"walk":[76,75,173,88],"flip":[34,25,205,315]},"flowers":{"rest":[102,114,124,73],"look":[80,113,178,80],"hop":[55,32,180,235],"eat":[98,110,142,120],"play":[81,105,225,182],"wash":[94,112,144,78],"sit":[107,148,127,86],"asleep":[107,149,127,82],"walk":[90,114,157,65],"flip":[63,66,180,258]},"wizard":{"rest":[86,36,159,143],"look":[67,34,209,162],"hop":[30,4,222,273],"eat":[83,35,175,200],"play":[66,30,274,272],"wash":[79,33,174,151],"sit":[91,78,159,150],"asleep":[91,79,159,146],"walk":[75,33,189,139],"flip":[45,0,215,340]},"crown":{"rest":[106,80,112,84],"look":[73,78,194,98],"hop":[25,4,203,242],"eat":[100,77,136,128],"play":[79,71,261,198],"wash":[97,79,138,87],"sit":[114,117,113,94],"asleep":[115,117,112,89],"walk":[87,79,164,82],"flip":[43,28,200,312]},"halo":{"rest":[122,95,84,57],"look":[95,94,151,65],"hop":[57,28,158,203],"eat":[116,93,104,98],"play":[96,87,218,168],"wash":[113,93,105,62],"sit":[128,131,86,65],"asleep":[129,132,84,62],"walk":[106,95,127,51],"flip":[71,52,151,288]},"headphones":{"rest":[82,131,179,133],"look":[80,129,187,162],"hop":[70,69,194,215],"eat":[82,128,181,138],"play":[68,125,225,171],"wash":[74,128,190,141],"sit":[82,169,178,129],"asleep":[82,169,178,128],"walk":[79,127,183,141],"flip":[56,83,209,227]},"glasses":{"rest":[109,201,121,52],"look":[71,180,197,81],"hop":[73,155,159,156],"eat":[104,162,130,122],"play":[93,139,182,178],"wash":[82,181,167,76],"sit":[111,245,121,50],"asleep":[111,248,121,45],"walk":[101,179,146,65],"flip":[85,74,154,231]},"hearts":{"rest":[108,203,123,45],"look":[69,182,201,72],"hop":[71,150,162,159],"eat":[103,166,132,115],"play":[91,142,185,175],"wash":[81,185,169,67],"sit":[109,243,124,49],"asleep":[110,247,123,43],"walk":[100,183,148,56],"flip":[84,74,153,230]},"bow":{"rest":[136,260,52,33],"look":[127,253,87,41],"hop":[126,182,70,125],"eat":[140,232,55,57],"play":[121,235,95,71],"wash":[128,242,82,44],"sit":[144,297,52,30],"asleep":[144,297,52,30],"walk":[143,246,68,41],"flip":[130,122,70,164]},"wings":{"rest":[84,156,183,112],"look":[78,154,192,127],"hop":[68,67,207,221],"eat":[86,150,186,149],"play":[63,127,239,187],"wash":[63,152,212,143],"sit":[78,194,190,99],"asleep":[78,194,190,99],"walk":[70,138,195,144],"flip":[38,106,238,189]}},
+  "spirit": {"beanie":{"rest":[110,65,112,141],"look":[91,64,156,154],"hop":[34,35,194,235],"eat":[107,62,125,178],"play":[90,59,250,226],"wash":[103,62,127,147],"sit":[115,102,112,145],"asleep":[115,103,112,142],"walk":[100,62,140,138],"flip":[69,13,170,327]},"gradcap":{"rest":[109,108,107,74],"look":[80,104,176,89],"hop":[34,49,188,197],"eat":[102,104,125,109],"play":[85,98,235,166],"wash":[94,105,130,80],"sit":[117,143,104,79],"asleep":[117,143,104,77],"walk":[92,103,144,75],"flip":[58,50,177,287]},"flowers":{"rest":[113,137,105,63],"look":[94,135,150,73],"hop":[72,65,152,201],"eat":[110,133,118,102],"play":[94,131,191,151],"wash":[107,134,119,69],"sit":[118,168,105,72],"asleep":[118,169,105,70],"walk":[103,135,134,58],"flip":[80,84,155,219]},"wizard":{"rest":[100,74,132,118],"look":[83,72,175,134],"hop":[54,47,183,226],"eat":[97,71,145,167],"play":[81,68,259,226],"wash":[93,70,146,126],"sit":[104,112,132,124],"asleep":[105,113,131,120],"walk":[90,70,158,115],"flip":[66,24,181,316]},"crown":{"rest":[117,107,92,76],"look":[88,106,163,86],"hop":[48,45,169,203],"eat":[111,105,112,110],"play":[92,101,226,167],"wash":[109,106,114,79],"sit":[124,142,93,81],"asleep":[124,142,93,79],"walk":[101,107,137,72],"flip":[66,53,167,281]},"halo":{"rest":[129,116,71,49],"look":[104,116,131,55],"hop":[71,60,136,174],"eat":[124,114,87,85],"play":[105,110,190,144],"wash":[121,114,89,53],"sit":[135,150,71,55],"asleep":[135,150,71,53],"walk":[115,115,109,45],"flip":[86,70,133,254]},"headphones":{"rest":[96,149,149,111],"look":[94,147,157,134],"hop":[81,94,166,184],"eat":[96,145,152,117],"play":[82,142,194,145],"wash":[88,145,160,118],"sit":[96,184,149,107],"asleep":[96,184,149,107],"walk":[93,144,155,118],"flip":[74,99,176,194]},"glasses":{"rest":[127,196,87,48],"look":[91,187,155,62],"hop":[90,152,123,142],"eat":[122,174,94,97],"play":[109,157,148,144],"wash":[104,189,124,58],"sit":[128,244,86,39],"asleep":[128,246,85,36],"walk":[118,187,109,49],"flip":[105,91,113,195]},"hearts":{"rest":[125,208,87,33],"look":[90,190,157,55],"hop":[89,161,129,132],"eat":[121,178,95,91],"play":[106,159,151,142],"wash":[103,192,125,52],"sit":[127,245,87,35],"asleep":[128,248,86,31],"walk":[117,190,111,43],"flip":[104,92,118,193]},"bow":{"rest":[136,266,53,34],"look":[128,259,84,42],"hop":[124,182,72,131],"eat":[139,238,56,58],"play":[122,241,92,69],"wash":[127,248,84,45],"sit":[143,301,53,30],"asleep":[143,301,52,29],"walk":[143,253,66,41],"flip":[129,125,71,167]},"wings":{"rest":[84,155,185,118],"look":[77,153,194,134],"hop":[68,77,209,216],"eat":[84,151,189,154],"play":[63,129,241,190],"wash":[59,153,220,148],"sit":[76,190,193,106],"asleep":[77,190,191,106],"walk":[68,139,196,149],"flip":[34,107,243,191]}}
+};
+/* PET_BOX:end */
+const petBox = (kind, item, motion) => ((PET_BOX[kind] || {})[item] || {})[motion === "blink" || motion === "smile" ? "rest" : motion];
+/* What it can wear, in the order she is likely to earn it; `of` gives how far she is, [has, needs]. The places, in
+ * the order their layers are laid over it. */
+const PET_SLOTS = ["back", "neck", "face", "head"];
+const PET_WEAR = {
+  bow:        { slot: "neck", n: "עניבת פרפר", how: "להגיע לרמה 2", of: x => [x.lv, 2] },
+  hearts:     { slot: "face", n: "משקפי לבבות", how: "לשלוח 5 לבבות ליצורים של האחיות", of: x => [x.sent, 5] },
+  beanie:     { slot: "head", n: "כובע צמר", how: "5 ימים של חמש השאלות", of: x => [x.F, 5] },
+  glasses:    { slot: "face", n: "משקפיים", how: "7 משאלות שהתגשמו", of: x => [x.W, 7] },
+  flowers:    { slot: "head", n: "זר פרחים", how: "3 ימים מושלמים", of: x => [x.P, 3] },
+  headphones: { slot: "head", n: "אוזניות", how: "8 סבבי תרגול", of: x => [x.R, 8] },
+  halo:       { slot: "head", n: "הילה", how: "60 טיפולים", of: x => [x.care, 60] },
+  wings:      { slot: "back", n: "כנפיים", how: "שבוע שבו כל האחיות משחקות חמישה ימים", of: x => [x.sis, 1] },
+  wizard:     { slot: "head", n: "כובע קוסמים", how: "להגיע לרמה 4", of: x => [x.lv, 4] },
+  gradcap:    { slot: "head", n: "כובע סיום", how: "15 ימים של חמש השאלות", of: x => [x.F, 15] },
+  crown:      { slot: "head", n: "כתר", how: "להגיע לרמה 7", of: x => [x.lv, 7] }
+};
+/* an only child has no sisters to send hearts to or to share a week with; and hearts need the Sheet to carry creatures */
+const petItems = () => Object.keys(PET_WEAR).filter(k => k === "hearts" ? FAM && FAM.profiles.length > 1 && petShared() : k === "wings" ? FAM && FAM.profiles.length > 1 : true);
 const petOf = pid => { L.pet = L.pet || {}; const x = L.pet[pid]; return x && PET_KINDS[x.k] ? x : null; };
-const petPic = kind => `<span class="petpic" style="background-image:url('${ART}pet/${kind}/rest.webp')" aria-hidden="true"></span>`;
+/* Anyone's creature: her own from this phone; a sister's (and each girl's, for Dad) from the Sheet's copy. In the
+ * demo every creature is on the one phone. */
+const PET_FAR = {};
+function petAny(pid) {
+  if (petReview() && pid !== SANDBOX.p.id) return (L.petSand || {})[pid] || null;
+  const mine = me(), near = petOf(pid);
+  if (!LIVE || (SANDBOX && SANDBOX.p.id === pid) || (mine && mine.id === pid && near)) return near;
+  const prof = FAM && FAM.profiles.find(q => q.id === pid), raw = prof && prof.pet;
+  if (!raw) return null;
+  if (!PET_FAR[pid] || PET_FAR[pid].raw !== raw) { let o = null; try { o = JSON.parse(raw); } catch (e) { o = null; } PET_FAR[pid] = { raw, o: o && PET_KINDS[o.k] ? o : null }; }
+  return PET_FAR[pid].o;
+}
+const petSisters = p => (FAM ? FAM.profiles : []).filter(q => q.id !== p.id).map(q => ({ p: q, pet: petAny(q.id) }));
+/* can creatures be seen across phones: always in the demo, and once the Sheet keeps them */
+const petShared = () => petReview() || !LIVE || (PET_LIVE && !!FAM && (FAM.api | 0) >= 9);
+const petWorn = pet => PET_SLOTS.map(s => (pet.w || {})[s]).filter((k, i) => k && PET_WEAR[k] && PET_WEAR[k].slot === PET_SLOTS[i]);
+/* Its small picture: the resting frame, and over it the resting layer of each thing it wears. A layer's frame is
+ * larger than the creature's, so each has its own size and place; with something on its head or back the picture
+ * steps back a little, to hold it. */
+function petPic(kind, worn) {
+  worn = worn || [];
+  if (!worn.length) return `<span class="petpic" style="background-image:url('${ART}pet/${kind}/rest.webp')" aria-hidden="true"></span>`;
+  const far = worn.some(k => PET_WEAR[k].slot === "head" || PET_WEAR[k].slot === "back"), z = far ? 1.2 : 1.36, top = far ? 0.09 : 0.2012;
+  const zo = z * (1 + 2 * PET_OVER.side), q = top * z / (z - 1), pc = v => (v * 100).toFixed(2) + "%";
+  // a layer's picture is a part of the layer's frame: its size in the box, and where its corner falls (a place in
+  // per cent is a share of the room left over, so it is divided by that room)
+  const over = worn.slice().reverse().map(k => { const b = petBox(kind, k, "rest"); if (!b) return null;
+    const w = b[2] / PET_LAYER * zo, h = b[3] / PET_LAYER * zo, left = -(zo - 1) / 2 + b[0] / PET_LAYER * zo, up = -(top + PET_OVER.top) * z + b[1] / PET_LAYER * zo;
+    return { url: `url('${ART}pet/${kind}/${k}/rest.webp')`, size: `${pc(w)} ${pc(h)}`, at: `${pc(left / (1 - w || 1e-3))} ${pc(up / (1 - h || 1e-3))}` }; }).filter(Boolean);   // the first picture named is the one on top
+  return `<span class="petpic" style="background-image:${over.map(o => o.url).concat(`url('${ART}pet/${kind}/rest.webp')`).join(",")};background-size:${over.map(o => o.size).concat(pc(z)).join(",")};background-position:${over.map(o => o.at).concat("50% " + pc(q)).join(",")}" aria-hidden="true"></span>`;
+}
 const petGrowth = pet => (+pet.g0 || 0) + Object.values(pet.c || {}).reduce((t, s) => t + [...String(s)].reduce((a, ch) => a + (PET_PTS[ch] || 0), 0), 0);
 function petLevel(g) { let lv = 1, need = PET.first; while (g >= need) { g -= need; lv++; need = PET.first + PET.step * (lv - 1); } return { lv, have: g, need }; }
+/* How many times it was given something, over all its days: the letters still held by day and the folded ones (t). */
+const petCount = (pet, chars) => [...chars].reduce((t, ch) => t + (+((pet.t || {})[ch]) || 0), 0) + Object.values(pet.c || {}).reduce((t, s) => t + [...String(s)].filter(ch => chars.includes(ch)).length, 0);
+const petTally = pet => ({ lv: petLevel(petGrowth(pet)).lv, F: petCount(pet, "F"), P: petCount(pet, "P"), R: petCount(pet, "R"), W: petCount(pet, "W"), care: petCount(pet, "epwks"), sent: +pet.hs || 0, sis: pet.sw ? 1 : 0 });
+/* Has there been a week, since the day it was chosen, in which every sister played five days. */
+function petSisWeek(d0) {
+  const girls = FAM ? FAM.profiles : [];
+  if (girls.length < 2) return false;
+  const pl = girls.map(q => playedDays(q.id));
+  for (let w = weekStart(d0); w <= weekStart(TODAY); w = addDays(w, 7)) if (pl.every(s => { let n = 0; for (let i = 0; i < 7; i++) if (s.has(addDays(w, i))) n++; return n >= POINTS.weekDays; })) return true;
+  return false;
+}
+/* What it has newly earned: written in o with the day, noted in nw until she has been shown it, and put on if the
+ * place is free. */
+function petEarn(pet) {
+  const x = petTally(pet), fresh = [];
+  pet.o = pet.o || {};
+  petItems().forEach(k => { if (pet.o[k]) return; const [have, need] = PET_WEAR[k].of(x); if (have >= need) { pet.o[k] = TODAY; fresh.push(k); } });
+  if (fresh.length) { pet.nw = (pet.nw || []).concat(fresh); pet.w = pet.w || {}; fresh.forEach(k => { const s = PET_WEAR[k].slot; if (!pet.w[s]) { pet.w[s] = k; pet.wv = Date.now(); } }); }
+  return fresh;
+}
 /* Today's care: an action for every PET.per points of the day, and how many are used. */
 function petCare(pid) {
-  const pet = petOf(pid), e = stats(pid, Y, M).byDay[TODAY], played = !!e && e.reg >= 5;
+  const pet = petAny(pid), e = stats(pid, Y, M).byDay[TODAY], played = !!e && e.reg >= 5;
   const max = played ? Math.min(PET.max, Math.floor(dayPoints(e, POINTS) / PET.per)) : 0;
   const used = [...String(((pet || {}).c || {})[TODAY] || "")].filter(ch => "epwks".includes(ch)).length;
   return { max, used, left: Math.max(0, max - used), played };
@@ -1828,13 +1931,14 @@ function petWish(p) {
   const done = w.kind === "lesson" ? mine.filter(r => r.r === 3).length >= FIX.n : w.kind === "five" ? playedOn(p.id, TODAY) : mine.filter(r => r.r === 2).length >= PRACTICE.n;
   return Object.assign({ done }, w);
 }
-/* Writes on its days what her learning has earned it and is not yet there, for the last ten days (the rows a phone
- * holds reach further, but a creature is looked at more often than that), and folds old days into one number.
+/* Writes on its days what her learning has earned it and is not yet there, and the hearts her sisters left it, for
+ * the last ten days (the rows a phone holds reach further, but a creature is looked at more often than that); folds
+ * old days into one number and their letters into the counts; and notes what it has newly earned to wear.
  * Returns the growth it gained. */
 function petCredit(p) {
   const pet = petOf(p.id);
   if (!pet) return 0;
-  const all = rows().filter(r => r.p === p.id), was = petGrowth(pet);
+  const all = rows().filter(r => r.p === p.id), was = petGrowth(pet), sisters = petShared() ? petSisters(p) : [];
   let changed = false;
   pet.c = pet.c || {};
   for (let i = 0; i <= 10; i++) {
@@ -1847,17 +1951,26 @@ function petCredit(p) {
     if (day.filter(r => r.r === 3).length >= FIX.n && !have.includes("L")) add += "L";
     add += "R".repeat(Math.max(0, Math.min(PET.rounds, Math.floor(day.filter(r => r.r === 2).length / PRACTICE.n)) - [...have].filter(ch => ch === "R").length));
     if (d === TODAY && !have.includes("W") && petWish(p).done) add += "W";
+    const known = (pet.hf || {})[d] || [], fresh = sisters.filter(s => s.pet && ((s.pet.h || {})[p.id] || []).includes(d) && !known.includes(s.p.id)).map(s => s.p.id);
+    if (fresh.length) { add += "h".repeat(fresh.length); pet.hf = pet.hf || {}; pet.hf[d] = known.concat(fresh); pet.hn = (pet.hn || []).concat(fresh); }
     if (add) { pet.c[d] = have + add; changed = true; }
   }
-  const cut = addDays(TODAY, -PET.keep);
-  Object.keys(pet.c).filter(d => d < cut).forEach(d => { pet.g0 = (+pet.g0 || 0) + [...String(pet.c[d])].reduce((a, ch) => a + (PET_PTS[ch] || 0), 0); delete pet.c[d]; changed = true; });
+  const cut = addDays(TODAY, -PET.keep), near = addDays(TODAY, -12);
+  Object.keys(pet.c).filter(d => d < cut).forEach(d => { pet.t = pet.t || {};
+    [...String(pet.c[d])].forEach(ch => { pet.g0 = (+pet.g0 || 0) + (PET_PTS[ch] || 0); pet.t[ch] = (+pet.t[ch] || 0) + 1; }); delete pet.c[d]; changed = true; });
+  Object.keys(pet.hf || {}).filter(d => d < near).forEach(d => { delete pet.hf[d]; });
+  if (!pet.sw && petSisWeek(pet.d)) { pet.sw = 1; changed = true; }
+  if (petEarn(pet).length) changed = true;
   if (changed) petSave(p.id, pet);
   return petGrowth(pet) - was;
 }
 function petSave(pid, pet) { pet.v = Date.now(); L.pet[pid] = pet; save(); petSend(); }
 /* The Sheet's copy (api 9). Until the script there knows of creatures it lives on this phone alone; a phone whose
  * creature is newer than the Sheet's sends it, and a phone that has none, or an older one, takes the Sheet's. */
-const canPetSync = () => LIVE && !SANDBOX && !!FAM && (FAM.api | 0) >= 9;
+const canPetSync = () => LIVE && PET_LIVE && !SANDBOX && !!FAM && (FAM.api | 0) >= 9;
+/* what of a creature the Sheet keeps, in one fixed order, to tell whether two copies say the same */
+const petCanon = x => { const sorted = o => Array.isArray(o) ? o.map(sorted) : o && typeof o === "object" ? Object.keys(o).sort().reduce((a, k) => (a[k] = sorted(o[k]), a), {}) : o;
+  return JSON.stringify(sorted([x.k, x.n, x.d, +x.g0 || 0, x.c || {}, x.t || {}, x.o || {}, x.w || {}, +x.wv || 0, x.h || {}, +x.hs || 0, x.hf || {}, x.sw ? 1 : 0])); };
 function petSync() {
   const p = me();
   if (!p || !canPetSync()) return;
@@ -1867,8 +1980,8 @@ function petSync() {
   if (!far || !PET_KINDS[far.k]) { if (near && near.sent !== near.v) petSend(); return; }
   if (!near) { far.sent = far.v; L.pet[p.id] = far; save(); if (BOOTED && view === "home" && !layer.innerHTML) show("home", true); return; }
   if ((+far.v || 0) === (+near.v || 0)) return;
-  // Two copies that differ (she used another phone): its kind and name are the newer one's, and nothing either
-  // phone gave it is lost. A day's letters are joined, each as many times as the copy that has it most.
+  // Two copies that differ (she used another phone): its kind and its name are the newer one's, what it wears is
+  // as it was last dressed, and nothing either phone gave it is lost. A day's letters are joined, each as many times as the copy that has it most.
   const newer = (+far.v || 0) > (+near.v || 0) ? far : near, older = newer === far ? near : far, cut = addDays(TODAY, -PET.keep);
   const base = (+newer.g0 || 0) >= (+older.g0 || 0) ? newer : older, out = Object.assign({}, newer, { g0: +base.g0 || 0, c: {} });
   const count = (str, ch) => [...str].filter(x => x === ch).length;
@@ -1878,8 +1991,15 @@ function petSync() {
     let m = x; new Set(y).forEach(ch => { const more = count(y, ch) - count(x, ch); if (more > 0) m += ch.repeat(more); });
     out.c[d] = m;
   });
-  const same = JSON.stringify(out.c) === JSON.stringify(far.c || {}) && out.g0 === (+far.g0 || 0) && newer === far;
-  out.v = same ? far.v : Date.now(); out.sent = same ? far.v : 0; out.s = near.s;
+  const both = (f, join) => { const a = newer[f] || {}, b = older[f] || {}, o = {}; new Set(Object.keys(a).concat(Object.keys(b))).forEach(k => { o[k] = k in a && k in b ? join(a[k], b[k]) : k in a ? a[k] : b[k]; }); return o; };
+  const lists = (a, b) => [...new Set([].concat(a || [], b || []))].sort().slice(-10);
+  if (base.t) out.t = Object.assign({}, base.t); else delete out.t;
+  out.o = both("o", (a, b) => a < b ? a : b);                       // hers since the earlier day
+  const dressed = (+older.wv || 0) > (+newer.wv || 0) ? older : newer; out.w = Object.assign({}, dressed.w || {}); out.wv = +dressed.wv || 0;   // what it wears: as it was last dressed
+  out.h = both("h", lists); out.hf = both("hf", lists); out.hs = Math.max(+newer.hs || 0, +older.hs || 0); out.sw = newer.sw || older.sw ? 1 : 0;
+  const same = petCanon(out) === petCanon(far);
+  out.v = same ? far.v : Date.now(); out.sent = same ? far.v : 0; out.s = near.s; out.hn = near.hn;
+  out.nw = (near.nw || []).concat(Object.keys(out.o).filter(k => !(near.o || {})[k] && !(near.nw || []).includes(k)));   // what the other phone earned is new here
   L.pet[p.id] = out; save();
   if (!same) petSend();
   if (BOOTED && view === "home" && !layer.innerHTML) show("home", true);
@@ -1889,29 +2009,64 @@ async function petSend() {
   const p = me(), pet = p && petOf(p.id);
   if (!pet || !canPetSync() || PET_BUSY || pet.sent === pet.v) return;
   PET_BUSY = true;
-  const v = pet.v, copy = Object.assign({}, pet); delete copy.sent;
+  const v = pet.v, copy = Object.assign({}, pet); ["sent", "s", "nw", "hn", "demo"].forEach(k => delete copy[k]);   // this phone's own notes
   try { await api("profile", { p: p.id, pet: JSON.stringify(copy) }); const now = petOf(p.id); if (now && now.v === v) { now.sent = v; save(); } } catch (e) { PET_BUSY = false; return; /* the next change, or the next opening */ }
   PET_BUSY = false;
   const now = petOf(p.id); if (now && now.sent !== now.v) petSend();   // it changed while this was on its way
 }
+/* The demo has no Sheet, so her sisters' creatures are made up once, for the screens that show them. In Dad's review
+ * (petReview) two are made up for the girls afresh each day, one of which has left his test creature a heart. */
+function petDemo() {
+  const p = me(), review = petReview();
+  if (!p || (LIVE && !review) || (!LIVE && SANDBOX) || (review ? L.petSandDay === TODAY : L.petDemo)) return;
+  const store = review ? (L.petSand = {}) : (L.pet = L.pet || {});
+  if (review) L.petSandDay = TODAY; else L.petDemo = 1;
+  const looks = [{ k: "dragon", n: "אש", g0: 262, w: { head: "wizard", neck: "bow" }, o: { bow: 1, beanie: 1, wizard: 1 } }, { k: "bunny", n: "שלג", g0: 131, w: { face: "glasses", head: "flowers" }, o: { bow: 1, glasses: 1, flowers: 1 } }];
+  FAM.profiles.filter(q => q.id !== p.id && !store[q.id]).slice(0, looks.length).forEach((q, i) => { const x = looks[i];
+    store[q.id] = { k: x.k, n: x.n, d: addDays(TODAY, -14), g0: x.g0, c: {}, w: x.w, o: Object.fromEntries(Object.keys(x.o).map(k => [k, addDays(TODAY, -3)])), h: i ? {} : { [p.id]: [TODAY] }, v: 1, demo: 1 }; });
+  save();
+}
 
-/* The creature, drawn: the frame of the motion it is in, a short blend from one motion into the next, a blink and a
- * smile at rest, and small things that fly round it (hearts, bubbles, notes, crumbs, sparks). A motion's sheet is
- * fetched when it is first wanted and the motion starts when it has come; one that cannot be had is passed over,
- * and what it was for happens all the same. */
-function petEngine(cv, fxc, kind) {
-  const S = cv.clientWidth, dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = cv.height = Math.round(S * dpr); fxc.width = Math.round(fxc.clientWidth * dpr); fxc.height = Math.round(fxc.clientHeight * dpr);
-  const ctx = cv.getContext("2d"), fx = fxc.getContext("2d"), snap = document.createElement("canvas"), sctx = snap.getContext("2d"), sheets = {};
-  snap.width = snap.height = cv.width;
-  const fetchClip = name => sheets[name] !== undefined ? Promise.resolve(sheets[name]) : artImg(`pet/${kind}/${name}.webp`).then(im => (sheets[name] = im), () => (sheets[name] = null));
+/* The creature, drawn: the frame of the motion it is in with what it wears laid over it, a short blend from one
+ * motion into the next, a blink and a smile at rest, and small things that fly round it (hearts, bubbles, notes,
+ * crumbs, sparks). A motion's sheet is fetched when it is first wanted, with the same motion's layer of each thing
+ * worn, and the motion starts when they have come; one that cannot be had is passed over, and what it was for
+ * happens all the same. The canvas is larger than the creature's frame (PET_OVER), which is its bottom middle. */
+function petEngine(cv, fxc, kind, worn) {
+  const T = cv.clientWidth, S = T / (1 + 2 * PET_OVER.side), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = cv.height = Math.round(T * dpr); fxc.width = Math.round(fxc.clientWidth * dpr); fxc.height = Math.round(fxc.clientHeight * dpr);
+  const ctx = cv.getContext("2d"), fx = fxc.getContext("2d"), snap = document.createElement("canvas"), sctx = snap.getContext("2d"), fr = document.createElement("canvas"), fctx = fr.getContext("2d"), sheets = {};
+  snap.width = snap.height = fr.width = fr.height = cv.width;
+  const bx = Math.round(PET_OVER.side * S * dpr), bs = cv.width - 2 * bx, by = cv.height - bs, u = cv.width / PET_LAYER;   // the creature's own frame on the canvas; a layer's px on it
+  let wear = (worn || []).slice(), came = 0, frKey = "", shown = "";
+  const base = name => `pet/${kind}/${name}.webp`, layerOf = (k, name) => `pet/${kind}/${k}/${name === "blink" || name === "smile" ? "rest" : name}.webp`;
+  const get = rel => sheets[rel] !== undefined ? Promise.resolve(sheets[rel]) : artImg(rel).then(im => { came++; return (sheets[rel] = im); }, () => (sheets[rel] = null));
+  const fetchClip = name => Promise.all([get(base(name))].concat(wear.map(k => get(layerOf(k, name))))).then(a => a[0]);
+  const sheet = name => sheets[base(name)];
   const E = { S, W: fxc.clientWidth, H: fxc.clientHeight, busy: false, soft: false, face: null, asleep: false, parts: [], treat: null, after: null };
   E.grow = +getComputedStyle(cv).getPropertyValue("--grow") || 1;
-  E.pt = (fx2, fy2) => [cv.offsetLeft + (0.5 + (fx2 - 0.5) * E.grow) * S, cv.offsetTop + (0.88 - (0.88 - fy2) * E.grow) * S];
+  E.pt = (fx2, fy2) => [cv.offsetLeft + PET_OVER.side * S + (0.5 + (fx2 - 0.5) * E.grow) * S, cv.offsetTop + PET_OVER.top * S + (0.88 - (0.88 - fy2) * E.grow) * S];
   let cur = { name: "rest", t: 0, hold: true }, queue = [], blend = 0, onEnd = null, last = 0, blinkAt = 2.6, blinkTill = 0, token = 0;
-  const put = (name, k, a) => { const im = sheets[name] || sheets.rest; if (!im || a < 0.004) return; const n = PET_CLIPS[sheets[name] ? name : "rest"], F = im.width / Math.min(8, n);
-    k = Math.max(0, Math.min(n - 1, k)); ctx.globalAlpha = a; ctx.drawImage(im, (k % 8) * F, Math.floor(k / 8) * F, F, F, 0, 0, cv.width, cv.height); };
-  const start = (name, opt) => { sctx.clearRect(0, 0, snap.width, snap.height); sctx.drawImage(cv, 0, 0); blend = REDUCED ? 0 : 1; cur = Object.assign({ name, t: 0, hold: false, loop: false, times: 1 }, opt || {}); if (REDUCED) draw(0); };
+  /* the frame k of a motion with what it wears, put together on a canvas of its own; done again only when it changes */
+  const compose = (name, k) => {
+    const real = sheet(name) ? name : "rest", im = sheet(real);
+    if (!im) return false;
+    const n = PET_CLIPS[real], F = im.width / Math.min(8, n);
+    k = Math.max(0, Math.min(n - 1, k));
+    const key = real + ":" + k + ":" + wear.join(",") + ":" + came;
+    if (key === frKey) return true;
+    frKey = key; fctx.clearRect(0, 0, fr.width, fr.height);
+    fctx.drawImage(im, (k % 8) * F, Math.floor(k / 8) * F, F, F, bx, by, bs, bs);
+    for (const w of wear) { const om = sheets[layerOf(w, real)], b = petBox(kind, w, real); if (!om || !b) continue;
+      fctx.drawImage(om, (k % 8) * b[2], Math.floor(k / 8) * b[3], b[2], b[3], b[0] * u, b[1] * u, b[2] * u, b[3] * u); }
+    return true;
+  };
+  /* A long motion's sheets, with four things on, are tens of megabytes as pictures: when it has played they are let
+   * go, and fetched again (from the phone's own copy) the next time. The short ones it is always in are kept. */
+  const KEEP = ["rest", "blink", "smile", "asleep", "hop", "look"];
+  const letGo = name => { if (KEEP.includes(name) || name === cur.name || queue.some(x => x.name === name)) return;
+    [base(name)].concat(wear.map(k => layerOf(k, name))).forEach(rel => { if (sheets[rel] !== undefined) { delete sheets[rel]; artImg.drop(rel); } }); };
+  const start = (name, opt) => { const was = cur.name; sctx.clearRect(0, 0, snap.width, snap.height); sctx.drawImage(cv, 0, 0); blend = REDUCED ? 0 : 1; cur = Object.assign({ name, t: 0, hold: false, loop: false, times: 1 }, opt || {}); if (was !== name) letGo(was); if (REDUCED) draw(0); };
   const finish = () => { E.busy = false; E.soft = false; start(E.asleep ? "asleep" : "rest", { hold: true }); const f = onEnd, g = E.after; onEnd = null; E.after = null; if (f) f(); if (g) g(); };
   /* list: [{ name, loop, times, stay }]; done when the last has played; gentle: one that gives way to her tap */
   E.play = (list, done, gentle) => {
@@ -1920,12 +2075,14 @@ function petEngine(cv, fxc, kind) {
     if (!REDUCED) { cv.classList.remove("pop"); void cv.offsetWidth; cv.classList.add("pop"); }
     Promise.all(list.map(x => fetchClip(x.name))).then(() => {
       if (mine !== token || !cv.isConnected) return;
-      const have = list.filter(x => sheets[x.name]);
+      const have = list.filter(x => sheet(x.name));
       if (REDUCED || !have.length) { finish(); return; }
       queue = have.slice(1); start(have[0].name, have[0]);
     });
   };
   E.still = name => fetchClip(name).then(() => { if (cv.isConnected) { ++token; E.busy = false; queue = []; start(name, { hold: true }); } });
+  /* what it wears, changed while it is on screen */
+  E.wear = list => { const next = (list || []).filter(k => PET_WEAR[k]); return Promise.all(next.map(k => Promise.all([get(layerOf(k, "rest")), get(layerOf(k, cur.name))]))).then(() => { wear = next; frKey = ""; if (REDUCED && cv.isConnected) draw(0); }); };
   E.spawn = (kind2, x, y, n) => { if (REDUCED) return; for (let i = 0; i < n; i++) E.parts.push({ kind: kind2, x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 16, vx: (Math.random() - 0.5) * 50, vy: -40 - Math.random() * 60, life: 0, max: 0.9 + Math.random() * 0.8, s: 6 + Math.random() * 7, r: Math.random() * 6 }); };
   const heart = (x, y, s) => { fx.beginPath(); fx.moveTo(x, y + s * 0.3); fx.bezierCurveTo(x - s, y - s * 0.5, x - s * 0.5, y - s * 1.1, x, y - s * 0.45); fx.bezierCurveTo(x + s * 0.5, y - s * 1.1, x + s, y - s * 0.5, x, y + s * 0.3); fx.fill(); };
   const star = (x, y, s, rot) => { fx.beginPath(); for (let i = 0; i < 10; i++) { const a = rot + i * Math.PI / 5, r = i % 2 ? s * 0.45 : s; fx[i ? "lineTo" : "moveTo"](x + Math.sin(a) * r, y - Math.cos(a) * r); } fx.closePath(); fx.fill(); };
@@ -1936,7 +2093,7 @@ function petEngine(cv, fxc, kind) {
       q.x += q.vx * dt; q.y += q.vy * dt; if (q.kind === "crumb") q.vy += 260 * dt; else q.vx *= 0.985;
       const k = q.life / q.max; fx.globalAlpha = Math.sin(Math.min(1, k * 1.15) * Math.PI) * 0.95;
       if (q.kind === "heart") { fx.fillStyle = k < 0.5 ? "#FF7FA8" : "#FFB3C9"; heart(q.x, q.y, q.s * (0.7 + k * 0.5)); }
-      else if (q.kind === "bubble") { const bx = q.x + Math.sin(q.life * 5 + q.r) * 5; fx.strokeStyle = "rgba(190,240,255,.9)"; fx.lineWidth = 1.4; fx.beginPath(); fx.arc(bx, q.y, q.s, 0, 7); fx.stroke(); fx.fillStyle = "rgba(255,255,255,.55)"; fx.beginPath(); fx.arc(bx - q.s * 0.35, q.y - q.s * 0.35, q.s * 0.22, 0, 7); fx.fill(); }
+      else if (q.kind === "bubble") { const bx2 = q.x + Math.sin(q.life * 5 + q.r) * 5; fx.strokeStyle = "rgba(190,240,255,.9)"; fx.lineWidth = 1.4; fx.beginPath(); fx.arc(bx2, q.y, q.s, 0, 7); fx.stroke(); fx.fillStyle = "rgba(255,255,255,.55)"; fx.beginPath(); fx.arc(bx2 - q.s * 0.35, q.y - q.s * 0.35, q.s * 0.22, 0, 7); fx.fill(); }
       else if (q.kind === "note") { fx.fillStyle = [cssVar("--a3") || "#67E8F9", "#F2C56B", "#FF9FC0"][Math.floor(q.r) % 3]; fx.font = `${Math.round(q.s * 2.4)}px serif`; fx.fillText(Math.floor(q.r) % 2 ? "♪" : "♫", q.x, q.y); }
       else if (q.kind === "crumb") { fx.fillStyle = "#F2C56B"; star(q.x, q.y, q.s * 0.5, q.r + q.life * 4); }
       else { fx.fillStyle = "#FFF3C4"; star(q.x, q.y, q.s * (1 - k) * 0.9, q.r + q.life * 3); }
@@ -1952,34 +2109,54 @@ function petEngine(cv, fxc, kind) {
   const draw = t => {
     const dt = Math.min(0.1, Math.max(0, t - last)); last = t;
     const n = PET_CLIPS[cur.name] || 1, dur = n / PET.fps;
-    if (!cur.hold && sheets[cur.name]) { cur.t += dt;
+    if (!cur.hold && sheet(cur.name)) { cur.t += dt;
       if (cur.t >= dur - 0.5 / PET.fps) { if (cur.loop && --cur.times > 0) cur.t = 0; else if (queue.length) { const nx = queue.shift(); start(nx.name, nx); } else if (cur.stay) { cur.hold = true; cur.t = dur - 1 / PET.fps; E.busy = false; const f = onEnd; onEnd = null; if (f) f(); } else finish(); } }
     blend = Math.max(0, blend - dt / 0.2);
-    ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, cv.width, cv.height); ctx.globalCompositeOperation = "lighter";
-    if (blend > 0) { ctx.globalAlpha = blend; ctx.drawImage(snap, 0, 0); }
     let name = cur.name;
-    if (name === "rest" && !REDUCED) { if (t > blinkAt) { blinkTill = t + 0.13; blinkAt = t + 2.4 + Math.random() * 2.6; } name = E.face && sheets[E.face] ? E.face : t < blinkTill && sheets.blink ? "blink" : "rest"; }
-    put(name, name === cur.name ? Math.round(cur.t * PET.fps) : 0, 1 - blend);
-    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    if (name === "rest" && !REDUCED) { if (t > blinkAt) { blinkTill = t + 0.13; blinkAt = t + 2.4 + Math.random() * 2.6; } name = E.face && sheet(E.face) ? E.face : t < blinkTill && sheet("blink") ? "blink" : "rest"; }
+    const ok = compose(name, name === cur.name ? Math.round(cur.t * PET.fps) : 0), now = frKey + "|" + blend.toFixed(3);
+    if (now !== shown) {   // a creature at rest is the same picture for seconds: it is not drawn again
+      shown = now;
+      ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, cv.width, cv.height); ctx.globalCompositeOperation = "lighter";
+      if (blend > 0) { ctx.globalAlpha = blend; ctx.drawImage(snap, 0, 0); }
+      if (ok && 1 - blend > 0.004) { ctx.globalAlpha = 1 - blend; ctx.drawImage(fr, 0, 0); }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    }
     if (!REDUCED) drawFx(dt);
   };
   fetchClip("rest").then(() => { fetchClip("blink"); fetchClip("smile"); if (REDUCED && cv.isConnected) draw(0); });
   animate(cv, draw, 60);
   return E;
 }
+/* A finger drawn across a creature is a stroke: hearts under the finger, and every so often a hop of joy. */
+function petStroke(stage, E) {
+  stage.addEventListener("pointerdown", e => { if (!PETUI || PETUI.E !== E) return; PETUI.at = [e.clientX, e.clientY]; if (!E.busy && !E.asleep) E.face = "smile"; try { stage.setPointerCapture(e.pointerId); } catch (err) { /* it is stroked all the same */ } });
+  stage.addEventListener("pointermove", e => {
+    if (!PETUI || PETUI.E !== E || !PETUI.at || E.asleep) return;
+    const r = stage.getBoundingClientRect(), d = Math.hypot(e.clientX - PETUI.at[0], e.clientY - PETUI.at[1]);
+    PETUI.at = [e.clientX, e.clientY]; PETUI.strokes += d;
+    if (Math.random() < d / 26) E.spawn("heart", e.clientX - r.left, e.clientY - r.top - 8, 1);
+    if (PETUI.strokes > 150 && (!E.busy || E.soft)) { PETUI.strokes = 0; PETUI.pets++; E.face = null; buzz(12); E.play([{ name: PETUI.pets % 3 ? "hop" : "flip" }]); if (PETUI.pets % 3 === 0) E.spawn("heart", ...E.pt(0.5, 0.36), 9); }
+  });
+  const lift = () => { if (PETUI && PETUI.E === E) { PETUI.at = null; PETUI.strokes = 0; } E.face = null; };
+  stage.addEventListener("pointerup", lift); stage.addEventListener("pointercancel", lift);
+}
+const petGrowCss = lv => (0.82 + Math.min(lv - 1, 6) * 0.03).toFixed(2);
+const petTall = worn => worn.some(k => PET_WEAR[k].slot === "head") ? "tall" : "";
 
 /* Her home screen's card: an invitation until she has a creature, then the creature, its level and today's care. */
 function petCard(p) {
+  if (!petOn()) return "";
   const pet = petOf(p.id);
-  if (!pet) return `<section class="glass pad stack petcard new"><div class="petfaces" aria-hidden="true">${["fox", "axolotl", "spirit", "bunny"].map(petPic).join("")}</div>
+  if (!pet) return `<section class="glass pad stack petcard new"><div class="petfaces" aria-hidden="true">${["fox", "axolotl", "spirit", "bunny"].map(k => petPic(k)).join("")}</div>
     <span class="eyebrow">New</span><b class="fixname">יצור משלך</b>
     <p class="small muted">בוחרים יצור, נותנים לו שם ומטפלים בו. כל יום של שאלות נותן לו טיפולים, והוא גדל יחד איתך.</p>
     <button type="button" class="btn btn-aura wide" data-act="petOpen">לבחור יצור</button></section>`;
-  const g = petLevel(petGrowth(pet)), care = petCare(p.id);
-  const line = !care.played ? "חמש השאלות של היום נותנות לו טיפולים" : care.left ? (care.left === 1 ? "טיפול אחד מחכה" : `${care.left} טיפולים מחכים`) : "קיבל היום את כל הטיפולים";
-  return `<button type="button" class="glass petcard has ${care.left ? "due" : ""}" data-act="petOpen">${petPic(pet.k)}
+  const g = petLevel(petGrowth(pet)), care = petCare(p.id), fresh = (pet.nw || []).length, hearts = (pet.hn || []).length;
+  const line = fresh ? "פריט חדש מחכה בארון" : hearts ? "קיבל לב מאחות" : !care.played ? "חמש השאלות של היום נותנות לו טיפולים" : care.left ? (care.left === 1 ? "טיפול אחד מחכה" : `${care.left} טיפולים מחכים`) : "קיבל היום את כל הטיפולים";
+  return `<button type="button" class="glass petcard has ${care.left || fresh || hearts ? "due" : ""}" data-act="petOpen">${petPic(pet.k, petWorn(pet))}
     <span class="stack"><span class="row"><b class="petname">${esc(pet.n)}</b><span class="small muted">רמה <b class="num" style="color:var(--text)">${g.lv}</b></span></span>
-      <span class="bar"><i style="width:${Math.min(100, g.have / g.need * 100)}%"></i></span><span class="small ${care.left ? "" : "muted"}">${line}</span></span></button>`;
+      <span class="bar"><i style="width:${Math.min(100, g.have / g.need * 100)}%"></i></span><span class="small ${care.left || fresh || hearts ? "" : "muted"}">${line}</span></span></button>`;
 }
 /* The creature's screen. With no creature yet it is the choice: the six, one of them alive, and a name. */
 let PETUI = null;
@@ -1993,7 +2170,20 @@ function openPet() {
   const g = petGrowth(pet), seen = pet.s == null ? g : Math.min(g, +pet.s || 0), wasLv = petLevel(seen).lv;
   pet.s = g; save();
   renderPet();
-  if (g > seen) setTimeout(() => { if ($(".petscr", layer)) petPaint(g - seen, wasLv); }, 700);
+  if (g > seen) setTimeout(() => { if ($(".petscr", layer) && PETUI && PETUI.pid === p.id) petPaint(g - seen, wasLv); }, 700);
+  setTimeout(petNews, g > seen ? 2300 : 900);
+}
+/* What came while she was away, said once: a heart from a sister, something new to wear (already on, if its place
+ * was free). */
+function petNews() {
+  const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E;
+  if (!pet || !E || !PETUI || PETUI.pid !== p.id || PETUI.mode || !$(".petscr", layer)) return;
+  const from = [...new Set(pet.hn || [])].map(id => profile(id)).filter(Boolean), fresh = (pet.nw || []).filter(k => PET_WEAR[k]);
+  if (!from.length && !fresh.length) return;
+  if (from.length) { E.spawn("heart", ...E.pt(0.5, 0.36), 12); toast(`${joinHe(from.map(q => q.name))} ${from.length > 1 ? "שלחו" : "שלחה"} לב ל${pet.n}`); }
+  if (fresh.length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; E.spawn("spark", ...E.pt(0.5, 0.3), 24); SFX.done(); buzz([20, 60, 20]); if (!E.busy || E.soft) E.play([{ name: "flip" }]);
+    toast(fresh.length === 1 ? `חדש בארון: ${PET_WEAR[fresh[0]].n}` : `חדש בארון: ${fresh.length} פריטים`); const b = $(".petward", layer), ln = $("#petwardline", layer); if (b) b.classList.add("due"); if (ln) ln.innerHTML = petWardLine(pet); }, from.length ? 1600 : 0);
+  pet.hn = []; pet.nw = []; save();
 }
 function renderPetPick(kind) {
   const typed = ($("#petname", layer) || {}).value || "";
@@ -2006,21 +2196,37 @@ function renderPetPick(kind) {
     <button type="button" class="btn btn-primary wide" data-act="petAdopt" data-k="${kind}">זה היצור שלי</button>
     <p class="small faint" style="text-align:center">בוחרים אחד. בהמשך יהיו עוד.</p></div></div>`;
   const E = petEngine($(".petcv", layer), $(".petfx", layer), kind);
-  PETUI = { E, kind };
+  PETUI = { E, kind, mode: "pick" };
   setTimeout(() => { if (PETUI && PETUI.E === E) E.play([{ name: "hop" }], null, true); }, 250);
 }
 function petAdopt(kind) {
   const p = me(), name = String(($("#petname", layer) || {}).value || "").trim().slice(0, PET.name);
   if (!p || !PET_KINDS[kind]) return;
   if (!name) { toast("קודם נותנים לו שם"); const el = $("#petname", layer); if (el) el.focus(); return; }
-  petSave(p.id, { k: kind, n: name, d: TODAY, g0: 0, c: {} });
+  petSave(p.id, { k: kind, n: name, d: TODAY, g0: 0, c: {}, o: {}, w: {} });
   petCredit(p);
   petOf(p.id).s = petGrowth(petOf(p.id)); save();
   SFX.good();
   renderPet(true);
 }
+/* Its wardrobe in one line: how much of it she has, and the thing she is nearest to. */
+function petWardLine(pet) {
+  const items = petItems(), own = items.filter(k => (pet.o || {})[k]), tally = petTally(pet);
+  const next = items.filter(k => !(pet.o || {})[k]).map(k => ({ k, r: PET_WEAR[k].of(tally) })).sort((a, b) => b.r[0] / b.r[1] - a.r[0] / a.r[1])[0];
+  return `<span class="num" dir="ltr">${own.length}/${items.length}</span> פריטים${next ? ` · הבא: ${PET_WEAR[next.k].n}` : " · הכול אצלך"}`;
+}
+/* Her sisters' creatures, on her creature's screen: each with what it wears, to visit. */
+function petFamily(p, pet) {
+  if (!petShared()) return "";
+  const sis = petSisters(p);
+  if (!sis.length) return "";
+  return `<section class="glass pad stack"><span class="eyebrow">Your sisters' creatures</span>
+    <div class="petfam">${sis.map(s => s.pet ? `<button type="button" class="petsis" data-act="petVisit" data-id="${esc(s.p.id)}">${petPic(s.pet.k, petWorn(s.pet))}<b>${esc(s.pet.n)}</b><span class="small muted">של ${esc(s.p.name)} · רמה ${petLevel(petGrowth(s.pet)).lv}</span></button>`
+      : `<div class="petsis none">${avatar(s.p, "sm")}<span class="small muted">${esc(s.p.name)} עוד לא בחרה יצור</span></div>`).join("")}</div>
+    <p class="small faint">האחיות שלך ואבא רואים את ${esc(pet.n)}: את הרמה ואת מה שלבוש. אחרי חמש השאלות אפשר לשלוח לב ליצור של אחות, פעם ביום.</p></section>`;
+}
 function renderPet(fresh) {
-  const p = me(), pet = petOf(p.id), g = petLevel(petGrowth(pet)), care = petCare(p.id), w = petWish(p), have = String((pet.c || {})[TODAY] || "");
+  const p = me(), pet = petOf(p.id), g = petLevel(petGrowth(pet)), care = petCare(p.id), w = petWish(p), have = String((pet.c || {})[TODAY] || ""), worn = petWorn(pet);
   L.petSleep = L.petSleep || {};
   const asleep = L.petSleep[p.id] === TODAY, fx = w.kind === "lesson";
   const wishText = w.kind === "lesson" ? `חיזוק ב${esc(w.t)}` : w.kind === "five" ? "חמש השאלות של היום" : "סבב תרגול";
@@ -2034,7 +2240,7 @@ function renderPet(fresh) {
     <div class="row"><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button>
       <button type="button" class="petnamepill" data-act="petRename" aria-label="שינוי השם">${esc(pet.n)} ${I('<path d="M4 20l1-4L16 5l3 3L8 19z"/>')}</button><span class="petlv"><span class="eyebrow">רמה</span> <b class="num" id="petlv">${g.lv}</b></span></div>
     <div id="petrename" hidden><div class="row" style="flex-wrap:nowrap"><input id="petname" maxlength="${PET.name}" autocomplete="off" enterkeyhint="done" value="${esc(pet.n)}"><button type="button" class="btn btn-primary btn-sm" data-act="petRenameSave">שמירה</button></div></div>
-    <div class="petstage" id="petstage" style="--grow:${(0.82 + Math.min(g.lv - 1, 6) * 0.03).toFixed(2)}"><div class="petfloor"></div><div class="petway" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="petstage ${petTall(worn)}" id="petstage" style="--grow:${petGrowCss(g.lv)}"><div class="petfloor"></div><div class="petway" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas>
       <div class="petzzz" dir="ltr" aria-hidden="true"><span>z</span><span>z</span><span>z</span></div><div class="petgain" id="petgain" dir="ltr" aria-hidden="true"></div></div>
     <div class="petgrow"><div class="bar"><i id="petbar" style="width:${Math.min(100, g.have / g.need * 100)}%"></i></div>
@@ -2042,15 +2248,22 @@ function renderPet(fresh) {
     <div class="row petcare"><span><span class="eyebrow">Today's care</span><br><span class="small muted" id="petcareline">${care.played ? `הנקודות של היום נתנו ${care.max === 1 ? "טיפול אחד" : `${care.max} טיפולים`}` : "עוד לא ענית היום: חמש השאלות נותנות טיפולים"}</span></span><span class="pethearts" id="pethearts">${care.played ? hearts : ""}</span></div>
     ${care.played ? "" : `<button type="button" class="btn btn-aura wide" data-act="start" ${waitAttr()}>${waiting() ? WAIT_TEXT : "לשאלות של היום"}</button>`}
     <div class="petacts">${act("e", "האכלה", '<path d="M12 7c-4-3-8 0-7 5s4 8 7 7c3 1 6-2 7-7s-3-8-7-5z"/><path d="M12 7c0-2 1-3.5 3-4"/>')}${act("p", "משחק", '<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>')}${act("w", "רחצה", '<circle cx="9" cy="14" r="5"/><circle cx="16.5" cy="8" r="3"/><circle cx="18" cy="16.5" r="1.6"/>')}${act("k", "טיול", '<path d="M7 20c1.5-1 2-3 2-5 0-2-2-2.5-2-5a3 3 0 0 1 6 0c0 2-1 3-1 5s1 4 3 5"/><path d="M15.5 9.5a2 2 0 1 1 3 2.5"/>')}${act("s", asleep ? "להעיר" : "שינה", '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>')}</div>
+    <button type="button" class="glass petward ${(pet.nw || []).length ? "due" : ""}" data-act="petWardrobe">${I('<path d="M12 8.5V7.4a2 2 0 1 0-2-2"/><path d="M12 8.5 3.6 15a1.5 1.5 0 0 0 .9 2.7h15a1.5 1.5 0 0 0 .9-2.7z"/>')}
+      <span class="stack"><b>הארון של ${esc(pet.n)}</b><span class="small muted" id="petwardline">${petWardLine(pet)}</span></span><span class="chev" aria-hidden="true">‹</span></button>
     <section class="glass pad petwish ${w.done ? "done" : ""}"><div class="row"><span class="eyebrow">Wish of the day</span><span class="chip ${w.done ? "good" : ""}"><bdi dir="ltr">+${PET.wish}</bdi></span></div>
       <div class="row" style="flex-wrap:nowrap;justify-content:flex-start">${fx ? emb(subjOf(w.pool)) : ""}<b>ל${esc(pet.n)} מתחשק: ${wishText}</b></div>
       ${w.done ? `<p class="small muted">המשאלה של היום התגשמה.</p>` : canGo ? `<button type="button" class="btn btn-ghost wide" data-act="${wishAct}" ${waitAttr()}>${waiting() ? WAIT_TEXT : "להגשים"}</button>` : `<p class="small muted">${w.kind === "practice" ? "אחרי חמש השאלות של היום אפשר לתרגל." : "מחכה במסך הבית."}</p>`}</section>
+    ${petFamily(p, pet)}
     <section class="glass pad"><span class="eyebrow">Grow ${esc(pet.n)}</span>
       ${task(have.includes("F"), "חמש השאלות של היום", PET.five)}${task(have.includes("P"), "יום מושלם, חמש מחמש", PET.perfect)}
       ${fx || have.includes("L") ? task(have.includes("L"), "החיזוק של היום", PET.lesson) : ""}${task(rounds >= PET.rounds, "סבב תרגול", PET.practice, `<span class="small muted num" dir="ltr">${rounds}/${PET.rounds}</span>`)}
       ${task(have.includes("W"), "המשאלה של היום", PET.wish)}${task(care.max > 0 && !care.left, "כל טיפול", PET.care, care.max ? `<span class="small muted num" dir="ltr">${care.used}/${care.max}</span>` : "")}
-      <p class="small faint">${esc(pet.n)} לא נחלש ולא נעלם כשלא באים. יום בלי שאלות הוא פשוט יום בלי טיפולים.</p></section></div></div>`;
-  const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k);
+      ${have.includes("h") ? task(true, "לב מאחות", PET.heart) : ""}
+      <p class="small faint">${esc(pet.n)} לא נחלש ולא נעלם כשלא באים. יום בלי שאלות הוא פשוט יום בלי טיפולים.</p></section>
+    ${SANDBOX ? `<section class="glass pad stack"><span class="eyebrow">For your review</span>
+      <p class="small muted">רק בפרופיל הבדיקה, כדי לראות הכול בלי לחכות שבועות. הבנות לא רואות את זה.</p>
+      <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="grow"><bdi dir="ltr">+100</bdi> גדילה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="all">כל הפריטים</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="new">יצור אחר</button></div></section>` : ""}</div></div>`;
+  const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
   PETUI = { E, kind: pet.k, pid: p.id, strokes: 0, pets: 0, at: null };
   E.asleep = asleep;
   auraMood(asleep ? { calm: 0.7, energy: 0.05 } : { calm: 0.15, energy: 0.4 });
@@ -2059,17 +2272,9 @@ function renderPet(fresh) {
   else setTimeout(() => { if (PETUI && PETUI.E === E && !E.busy) E.play([{ name: "hop" }], null, true); }, 350);
   // now and then it looks about; a finger drawn across it is a stroke
   const idle = setInterval(() => { if (!PETUI || PETUI.E !== E || !stage.isConnected) return clearInterval(idle); if (!E.busy && !E.asleep && !PETUI.at) E.play([{ name: "look" }], null, true); }, 14000);
-  stage.addEventListener("pointerdown", e => { PETUI.at = [e.clientX, e.clientY]; if (!E.busy && !E.asleep) E.face = "smile"; try { stage.setPointerCapture(e.pointerId); } catch (err) { /* it is stroked all the same */ } });
-  stage.addEventListener("pointermove", e => {
-    if (!PETUI.at || E.asleep) return;
-    const r = stage.getBoundingClientRect(), d = Math.hypot(e.clientX - PETUI.at[0], e.clientY - PETUI.at[1]);
-    PETUI.at = [e.clientX, e.clientY]; PETUI.strokes += d;
-    if (Math.random() < d / 26) E.spawn("heart", e.clientX - r.left, e.clientY - r.top - 8, 1);
-    if (PETUI.strokes > 150 && (!E.busy || E.soft)) { PETUI.strokes = 0; PETUI.pets++; E.face = null; buzz(12); E.play([{ name: PETUI.pets % 3 ? "hop" : "flip" }]); if (PETUI.pets % 3 === 0) E.spawn("heart", ...E.pt(0.5, 0.36), 9); }
-  });
-  const lift = () => { PETUI.at = null; PETUI.strokes = 0; E.face = null; };
-  stage.addEventListener("pointerup", lift); stage.addEventListener("pointercancel", lift);
-  ["look", "hop", "eat", "play", "wash", "walk", "sit", "asleep", "flip"].forEach((n, i) => setTimeout(() => { if (stage.isConnected) artImg(`pet/${pet.k}/${n}.webp`).catch(() => {}); }, 900 + i * 350));
+  petStroke(stage, E);
+  const clips = ["look", "hop", "eat", "play", "wash", "walk", "sit", "asleep", "flip"];
+  clips.forEach((n, i) => setTimeout(() => { if (stage.isConnected) [`pet/${pet.k}/${n}.webp`].concat(worn.map(k => `pet/${pet.k}/${k}/${n}.webp`)).forEach(rel => artImg(rel).catch(() => {})); }, 900 + i * 350));
 }
 /* The bar, the level and the hearts after something was given; a new level waits for the motion in hand to end. */
 function petPaint(gained, wasLv) {
@@ -2084,7 +2289,9 @@ function petPaint(gained, wasLv) {
   if (gain && gained > 0) { gain.textContent = "+" + gained; gain.classList.remove("on"); void gain.offsetWidth; gain.classList.add("on"); }
   if (E && g.lv > wasLv) {
     const cheer = () => { if (!PETUI || PETUI.E !== E) return; E.play([{ name: "flip" }]); E.spawn("spark", ...E.pt(0.5, 0.38), 30); SFX.done(); buzz([20, 60, 20]); toast(`${pet.n}: רמה ${g.lv}!`);
-      const st = $("#petstage", layer); if (st) { E.grow = 0.82 + Math.min(g.lv - 1, 6) * 0.03; st.style.setProperty("--grow", E.grow.toFixed(2)); } };
+      const st = $("#petstage", layer); if (st) { E.grow = +petGrowCss(g.lv); st.style.setProperty("--grow", E.grow.toFixed(2)); }
+      // what the new level brought it to wear: on at once if the place was free, and said
+      if ((pet.nw || []).length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; const st2 = $("#petstage", layer), wn = petWorn(pet); E.wear(wn); if (st2) st2.classList.toggle("tall", !!petTall(wn)); petNews(); }, 2400); };
     if (E.busy && !E.soft) E.after = cheer; else setTimeout(cheer, 400);
   }
 }
@@ -2096,7 +2303,7 @@ const PET_ACTS = {
 };
 function petAct(k) {
   const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E;
-  if (!pet || !E || !$(".petscr", layer)) return;
+  if (!pet || !E || !$(".petscr", layer) || PETUI.mode) return;
   const care = petCare(p.id), have = String((pet.c || {})[TODAY] || ""), wasLv = petLevel(petGrowth(pet)).lv, scr = $(".petscr", layer), btn = $('.petact[data-k="s"] span', layer);
   L.petSleep = L.petSleep || {};
   if (k === "s") {   // sleep is a toggle; the first time in a day it is one of the day's care
@@ -2107,13 +2314,103 @@ function petAct(k) {
     if (first && !care.left) return;
     L.petSleep[p.id] = TODAY; E.asleep = true; scr.classList.add("night"); auraMood({ calm: 0.7, energy: 0.05 }); if (btn) btn.textContent = "להעיר";
     E.play([{ name: "sit", stay: true }], () => { if (E.asleep) E.still("asleep"); });
-    if (first) { pet.c = pet.c || {}; pet.c[TODAY] = have + "s"; pet.s = petGrowth(pet); petSave(p.id, pet); petPaint(PET.care, wasLv); } else { save(); petPaint(0, wasLv); }
+    if (first) { pet.c = pet.c || {}; pet.c[TODAY] = have + "s"; petEarn(pet); pet.s = petGrowth(pet); petSave(p.id, pet); petPaint(PET.care, wasLv); } else { save(); petPaint(0, wasLv); }
     SFX.tap(); return;
   }
   if (!PET_ACTS[k] || (E.busy && !E.soft) || E.asleep || !care.left) return;
-  pet.c = pet.c || {}; pet.c[TODAY] = have + k; pet.s = petGrowth(pet); petSave(p.id, pet);
+  pet.c = pet.c || {}; pet.c[TODAY] = have + k; petEarn(pet); pet.s = petGrowth(pet); petSave(p.id, pet);
   SFX.good(); buzz(15); PET_ACTS[k](E);
-  setTimeout(() => { if (PETUI && PETUI.E === E) petPaint(PET.care, wasLv); }, 800);
+  setTimeout(() => { if (PETUI && PETUI.E === E) { petPaint(PET.care, wasLv); if ((pet.nw || []).length && petLevel(petGrowth(pet)).lv === wasLv) setTimeout(() => { if (PETUI && PETUI.E === E) { E.wear(petWorn(pet)); petNews(); } }, 1500); } }, 800);
+}
+
+/* Its wardrobe: everything there is to wear, what she has and what each of the rest takes. A tap puts a thing on or
+ * takes it off, on the creature above. */
+function renderWardrobe() {
+  const p = me(), pet = p && petOf(p.id);
+  if (!pet) return;
+  const items = petItems(), tally = petTally(pet), worn = petWorn(pet), own = items.filter(k => (pet.o || {})[k]);
+  const tile = k => { const it = PET_WEAR[k], has = !!(pet.o || {})[k], on = worn.includes(k), [have, need] = it.of(tally);
+    return `<button type="button" class="pwi ${has ? "" : "locked"}" data-act="petWear" data-k="${k}" aria-pressed="${on}">${petPic(pet.k, [k])}${has ? "" : `<span class="pwlock" aria-hidden="true">${ICON.lock}</span>`}
+      <b>${it.n}</b><span class="small ${has ? "muted" : "faint"}">${has ? (on ? "לבוש עכשיו" : "להלביש") : `${it.how}${need > 1 ? ` · <bdi dir="ltr">${Math.min(have, need)}/${need}</bdi>` : ""}`}</span></button>`; };
+  layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="הארון של ${esc(pet.n)}"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
+    <div class="row"><button type="button" class="round" data-act="petBack" aria-label="חזרה">${ICON.back}</button><b class="petname">הארון של ${esc(pet.n)}</b><span class="small muted num" dir="ltr">${own.length}/${items.length}</span></div>
+    <div class="petstage pick ${petTall(worn)}" id="petstage" style="--grow:${petGrowCss(tally.lv)}"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
+    <div class="petwear">${items.map(tile).join("")}</div>
+    <p class="small faint" style="text-align:center">כל פריט מגיע מלמידה או מטיפול. שום דבר לא נקנה, ושום דבר לא נלקח בחזרה.</p></div></div>`;
+  const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
+  PETUI = { E, kind: pet.k, pid: p.id, mode: "wardrobe", strokes: 0, pets: 0, at: null };
+  petStroke(stage, E);
+  if ((pet.nw || []).length) { pet.nw = []; save(); }
+}
+function petWear(k) {
+  const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E, it = PET_WEAR[k];
+  if (!pet || !E || !it || PETUI.mode !== "wardrobe") return;
+  if (!(pet.o || {})[k]) { const [have, need] = it.of(petTally(pet)); toast(`${it.n}: ${it.how}${need > 1 ? ` (${Math.min(have, need)}/${need})` : ""}`); return; }
+  pet.w = pet.w || {};
+  if (pet.w[it.slot] === k) delete pet.w[it.slot]; else pet.w[it.slot] = k;
+  pet.wv = Date.now();   // when it was last dressed: of two phones' copies, the later dressing is kept
+  petSave(p.id, pet);
+  const worn = petWorn(pet), stage = $("#petstage", layer);
+  SFX.tap(); buzz(10);
+  E.wear(worn).then(() => { if (PETUI && PETUI.E === E && (!E.busy || E.soft)) { E.play([{ name: "hop" }], null, true); if (worn.includes(k)) E.spawn("spark", ...E.pt(0.5, 0.3), 10); } });
+  if (stage) stage.classList.toggle("tall", !!petTall(worn));
+  $$(".pwi", layer).forEach(b => { const kk = b.dataset.k, on = worn.includes(kk), s = $("span.small", b); b.setAttribute("aria-pressed", on); if (s && (pet.o || {})[kk]) s.textContent = on ? "לבוש עכשיו" : "להלביש"; });
+}
+
+/* A visit to a sister's creature (and Dad's look at any of them): the creature with what it wears, its level, and,
+ * for a sister who has played today, a heart to leave it, once a day. */
+function renderVisit(id, dad) {
+  const who = profile(id), pet = who && petAny(id), p = dad ? null : me(), mine = p && petOf(p.id);
+  if (!who || !pet) return;
+  Q = null;
+  const g = petLevel(petGrowth(pet)), worn = petWorn(pet), sent = !!mine && ((mine.h || {})[id] || []).includes(TODAY), played = !!p && playedOn(p.id, TODAY), care = dad ? petCare(id) : null;
+  const own = petItems().filter(k => (pet.o || {})[k]).length;
+  const heart = dad ? "" : !mine ? `<p class="small muted" style="text-align:center">כשיהיה לך יצור משלך, תוכלי לשלוח לו לב.</p>`
+    : sent ? `<p class="small good-t" style="text-align:center" id="petsent">שלחת היום לב ל${esc(pet.n)}</p>`
+    : `<button type="button" class="btn btn-aura wide" data-act="petHeart" data-id="${esc(id)}" ${played ? "" : "disabled"}>לשלוח לב ל${esc(pet.n)}</button>${played ? "" : `<p class="small muted" style="text-align:center">אחרי חמש השאלות של היום אפשר לשלוח לב.</p>`}`;
+  layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="${esc(pet.n)}"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
+    <div class="row">${dad ? `<button type="button" class="round" data-act="closeQuiz" data-to="parent" aria-label="סגירה">${ICON.close}</button>` : `<button type="button" class="round" data-act="petBack" aria-label="חזרה">${ICON.back}</button>`}
+      <span class="petnamepill still">${esc(pet.n)}</span><span class="petlv"><span class="eyebrow">רמה</span> <b class="num">${g.lv}</b></span></div>
+    <p class="small muted" style="text-align:center">${PET_KINDS[pet.k]} · של ${esc(who.name)}</p>
+    <div class="petstage ${petTall(worn)}" id="petstage" style="--grow:${petGrowCss(g.lv)}"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
+    <div class="petgrow"><div class="bar"><i style="width:${Math.min(100, g.have / g.need * 100)}%"></i></div>
+      <div class="row small muted"><span><b class="num" dir="ltr" style="color:var(--text)">${g.have} / ${g.need}</b> נקודות גדילה</span><span>עוד ${g.need - g.have} לרמה ${g.lv + 1}</span></div></div>
+    ${heart}
+    <section class="glass pad stack"><div class="row"><span class="eyebrow">Wearing</span><span class="small muted"><span class="num" dir="ltr">${own}/${petItems().length}</span> פריטים בארון</span></div>
+      ${worn.length ? `<div class="row" style="justify-content:flex-start;gap:8px">${worn.slice().reverse().map(k => `<span class="chip">${PET_WEAR[k].n}</span>`).join("")}</div>` : `<p class="small muted">עוד בלי בגדים.</p>`}
+      ${dad ? `<p class="small muted">${care.played ? `היום: ${care.used} טיפולים מתוך ${care.max}.` : "היום עוד לא שיחקה, אז עוד אין טיפולים."} נבחר ב־${dateHe(pet.d)}.</p>` : ""}</section></div></div>`;
+  const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
+  PETUI = { E, kind: pet.k, pid: id, mode: "visit", strokes: 0, pets: 0, at: null };
+  auraMood({ calm: 0.15, energy: 0.4 });
+  setTimeout(() => { if (PETUI && PETUI.E === E && !E.busy) E.play([{ name: "hop" }], null, true); }, 350);
+  const idle = setInterval(() => { if (!PETUI || PETUI.E !== E || !stage.isConnected) return clearInterval(idle); if (!E.busy && !PETUI.at) E.play([{ name: "look" }], null, true); }, 12000);
+  petStroke(stage, E);
+}
+function petHeart(id) {
+  const p = me(), pet = p && petOf(p.id), far = petAny(id), E = PETUI && PETUI.E;
+  if (!pet || !far || !E || PETUI.mode !== "visit" || PETUI.pid !== id) return;
+  if (!playedOn(p.id, TODAY)) { toast("אחרי חמש השאלות של היום אפשר לשלוח לב"); return; }
+  pet.h = pet.h || {};
+  const days = pet.h[id] || [];
+  if (days.includes(TODAY)) return;
+  pet.h[id] = days.concat(TODAY).slice(-10); pet.hs = (+pet.hs || 0) + 1;
+  const got = petEarn(pet);
+  petSave(p.id, pet);
+  SFX.good(); buzz([15, 40, 15]);
+  E.play([{ name: "hop" }, { name: "flip" }]); E.spawn("heart", ...E.pt(0.5, 0.36), 16);
+  const b = $("[data-act=petHeart]", layer);
+  if (b) b.outerHTML = `<p class="small good-t" style="text-align:center" id="petsent">שלחת היום לב ל${esc(far.n)}</p>`;
+  if (got.length) setTimeout(() => toast(`חדש בארון של ${pet.n}: ${PET_WEAR[got[0]].n}`), 1800);
+}
+/* Dad's look at the creatures, on his Today tab: each girl's, with its level and today's care. */
+function petsCard() {
+  if (!petShared() || (LIVE && !PET_LIVE)) return "";
+  const all = FAM.profiles.map(q => ({ p: q, pet: petAny(q.id) }));
+  if (!all.some(x => x.pet)) return "";
+  return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Creatures</span><span class="small muted">שכבה של משחק: לא נוגעת בנקודות או באסימונים</span></div>
+    <div class="petfam">${all.map(x => { if (!x.pet) return `<div class="petsis none">${avatar(x.p, "sm")}<span class="small muted">${esc(x.p.name)} עוד לא בחרה</span></div>`;
+      const g = petLevel(petGrowth(x.pet)), care = petCare(x.p.id);
+      return `<button type="button" class="petsis" data-act="petVisit" data-id="${esc(x.p.id)}" data-dad="1">${petPic(x.pet.k, petWorn(x.pet))}<b>${esc(x.pet.n)}</b><span class="small muted">של ${esc(x.p.name)} · רמה ${g.lv}</span><span class="small ${care.played ? "" : "faint"}">${care.played ? `היום ${care.used} מתוך ${care.max} טיפולים` : "היום עוד בלי טיפולים"}</span></button>`; }).join("")}</div></section>`;
 }
 
 /* A new token is a moment (they are rare: a month won, four full weeks, a gift): the coin spins in under turning
@@ -2276,6 +2573,7 @@ const flavorTitle = p => ({ portfolio: "Portfolio", routine: "The season", stage
 const WAIT_TEXT = "מתעדכן…";
 const waitAttr = () => waiting() ? "disabled data-wait" : "";
 function renderHome() {
+  petDemo();
   petCredit(me());   // what she has learned since it was last looked at is its growth
   const p = me(), st = stats(p.id, Y, M), rk = ranking(Y, M), place = placeOf(rk, p.id);
   const done = playedOn(p.id, TODAY), set = dailySet(p, TODAY), rev = done ? null : revengeFor(p, TODAY, set);
@@ -2489,7 +2787,7 @@ function renderMe() {
     ${subjectBars(st)}
     ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(", ")}</p>` : ""}
     ${levelLine(p, true)}
-    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, כמה זמן לקח לך לענות, את השבועות שלמטה, את הציונים שהזנת ואת דפי המחברת שצילמת. לא יותר.</p></section>
+    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, כמה זמן לקח לך לענות, את השבועות שלמטה, את הציונים שהזנת${petOn() ? ", את דפי המחברת שצילמת ואת היצור שלך" : " ואת דפי המחברת שצילמת"}. לא יותר.</p></section>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Over time</span><span class="small muted">הדיוק שלך לפי שבוע</span></div>
     ${trendChart([p])}${overTime(p, false)}</section>
   <button type="button" class="glass pad row" data-act="recap" style="text-align:start"><span>הסיכום של ${MONTHS[prevMonth(Y, M)[1] - 1]}</span>${ICON.back.replace("<svg", '<svg width="18" height="18" style="transform:scaleX(-1)"')}</button>
@@ -2574,6 +2872,7 @@ function parentToday() {
   ${pagesWaitCard()}
   ${canFlag() ? flagsCard() : ""}
   <section class="glass pad stack" style="gap:14px"><span class="eyebrow">Questions</span>${detail}${twins ? `<p class="small faint">${twins}</p>` : ""}</section>
+  ${petsCard()}
   ${factRow()}`;
 }
 /* A question she got wrong, whole, with its right answer, so Dad can talk it through with her (he saw only the
@@ -2806,7 +3105,8 @@ function parentSettings() {
   ${canGift() ? bonusCard() : ""}
   <section class="glass pad stack"><span class="eyebrow">Test profile</span>
     <p class="small muted">פרופיל ניסיון, כמו של הבנות, שקיים רק בטלפון הזה: אפשר לענות נכון ולא נכון, לתרגל ולראות כל מסך. שום דבר ממנו לא נשלח לגיליון, לא נספר בטבלה של הבנות ולא מגיע למייל. בוחרים של מי השאלות:</p>
-    <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="sandbox" data-id="${p.id}">${dot(p)} כמו ${esc(p.name)}</button>`).join("")}</div></section>
+    <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="sandbox" data-id="${p.id}">${dot(p)} כמו ${esc(p.name)}</button>`).join("")}</div>
+    ${LIVE && !PET_LIVE ? `<p class="small muted">היצורים עוד לא פתוחים לבנות. הם מופיעים רק כאן, בפרופיל הבדיקה, עד שתאשר.</p>` : ""}</section>
   <section class="glass pad stack"><span class="eyebrow">Email</span><p class="small muted">סיכום עם הטבלאות האלה מגיע כל ערב סמוך ל־${+s.digestHour || 21}:00, וב־1 לחודש מגיעה הטבלה הסופית.</p></section>
   ${LIVE ? `<button type="button" class="link" style="align-self:center" data-act="forget">זה לא הטלפון שלי</button>` : ""}`;
 }
@@ -3604,7 +3904,7 @@ function renderResult(p, gained, weekBonus, st, x) {
     ${tier ? art + review : review + art}
     <div class="row" style="flex-wrap:nowrap"><button type="button" class="btn btn-aura wide" data-act="closeQuiz" data-to="board">לטבלה</button>
       <button type="button" class="btn btn-ghost wide" data-act="closeQuiz">סיום</button></div>
-    ${petOf(p.id) && petCare(p.id).left ? `<button type="button" class="btn btn-ghost wide petgo" data-act="petOpen">${petPic(petOf(p.id).k)}${esc(petOf(p.id).n)}: ${petCare(p.id).left === 1 ? "טיפול אחד מחכה" : `${petCare(p.id).left} טיפולים מחכים`}</button>` : ""}
+    ${petOf(p.id) && petCare(p.id).left ? `<button type="button" class="btn btn-ghost wide petgo" data-act="petOpen">${petPic(petOf(p.id).k, petWorn(petOf(p.id)))}${esc(petOf(p.id).n)}: ${petCare(p.id).left === 1 ? "טיפול אחד מחכה" : `${petCare(p.id).left} טיפולים מחכים`}</button>` : ""}
     ${more ? `<button type="button" class="btn btn-ghost wide" data-act="practice">עוד תרגול, בלי נקודות (לא חובה)</button>` : ""}`);
   $(".quiz-in", layer).classList.add("reveal");
   paintArt(layer);
@@ -3715,6 +4015,18 @@ document.addEventListener("click", async e => {
     case "petPick": SFX.tap(); renderPetPick(b.dataset.k); break;
     case "petAdopt": petAdopt(b.dataset.k); break;
     case "petAct": petAct(b.dataset.k); break;
+    case "petWardrobe": SFX.tap(); renderWardrobe(); break;
+    case "petWear": petWear(b.dataset.k); break;
+    case "petVisit": SFX.tap(); renderVisit(b.dataset.id, !!b.dataset.dad); break;
+    case "petHeart": petHeart(b.dataset.id); break;
+    case "petTry": {   // his review, in the test profile only: growth, every outfit, or another creature
+      const p = me(), pet = p && petOf(p.id);
+      if (!SANDBOX || !pet) break;
+      if (b.dataset.k === "new") { delete L.pet[p.id]; if (L.petSleep) delete L.petSleep[p.id]; save(); renderPetPick("fox"); break; }
+      if (b.dataset.k === "grow") { pet.g0 = (+pet.g0 || 0) + 100; petEarn(pet); petSave(p.id, pet); openPet(); break; }
+      pet.o = pet.o || {}; petItems().forEach(k => { if (!pet.o[k]) pet.o[k] = TODAY; }); petSave(p.id, pet); renderWardrobe(); break;
+    }
+    case "petBack": { const p = me(); SFX.tap(); if (p && petOf(p.id)) renderPet(); else { layer.innerHTML = ""; show("home"); } break; }
     case "petRename": { const r = $("#petrename", layer); if (r) { r.hidden = !r.hidden; if (!r.hidden) $("#petname", layer).focus(); } break; }
     case "petRenameSave": { const p = me(), pet = p && petOf(p.id), v = String(($("#petname", layer) || {}).value || "").trim().slice(0, PET.name); if (pet && v) { pet.n = v; petSave(p.id, pet); renderPet(); } break; }
     case "toSubj": { const el = document.getElementById("subj-" + b.dataset.k); if (el) { SFX.tap(); el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" }); } break; }
@@ -4071,7 +4383,7 @@ async function boot() {
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
   shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, factOf, otherPool, me, family: () => FAM, bank: p => BANKS[p],
-  petOf, petGrowth, petLevel, petCare, petWish, petCredit, pet: () => PETUI };
+  petOf, petAny, petGrowth, petLevel, petCare, petWish, petCredit, petTally, petWorn, petItems, petEarn, petSave, PET_WEAR, pet: () => PETUI };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

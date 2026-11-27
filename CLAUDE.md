@@ -513,6 +513,12 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The evening reminder** (below): which phones, and whether the girls
   use Telegram.
   He is still to confirm, and may replace one twin's phone in a few days.
+- **The creatures wait for his review** (2026-11-27): they are on the
+  working branch, switched off for the girls (`PET_LIVE`). He was sent
+  clips and told he can try it in his test profile once he says "push to
+  main"; then he says go, and the switch is turned. Ask what he thought of
+  each creature, its motions and its outfits, and whether the numbers (care
+  a day, what each outfit takes) feel right.
 - **The script of api 9 waits for his paste** (2026-11-27: the creature's
   copy in the Sheet). Api 8 is in the Sheet (he said so on 2026-11-26 and
   the Sheet showed it). Until he pastes, a creature lives on its phone
@@ -653,6 +659,20 @@ page and said the animations are good, bar one whose face turned upside
 down (a wash made of a head rub: replaced), and: "let them choose in the app
 from the 6 designs ... eventually I'm sure they'll all be used".
 
+- **Not open to the girls yet** (`PET_LIVE` false, `petOn`, `petReview`).
+  Avsha, 2026-11-27: "I'd like to review the creatures, animations and
+  process before it's actually live". Until he says so a girl sees nothing
+  of creatures (no card, no line on her Me screen, nothing sent), Dad's
+  Today has no card, and the whole of it is in his test profile, on his own
+  phone: the choice, care, the wardrobe, and two made-up creatures for the
+  girls to visit (`petDemo` in review, kept apart in `L.petSand`, never in
+  `L.pet`, so a made-up one can never be sent as a girl's). His creature's
+  screen there has three review buttons (`petTry`: 100 growth, every
+  outfit, another creature). His Settings say so by the test profile's
+  door. **To open it: set `PET_LIVE` to true, bump the version, push, and
+  ask him to paste the script of api 9 first.** The walks run with it open
+  (`FQ_TEST.petLive`, set in the walks' lib.js; `PET_OFF=1` for the state
+  before).
 - **His rules**: a creature never gets sick and never dies; a day off costs
   it nothing, as with full weeks. Tokens, the board and the prizes do not
   know it exists, and nothing of it is bought with tokens.
@@ -669,22 +689,27 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   played, else a practice round; chosen once a day and kept). The first
   level takes 100, each next 30 more; it is drawn a little larger each level
   up to the seventh. The day's result has a button to it when care waits.
-  Dad's screens show nothing of it yet.
 - **Where it lives** (`L.pet`, by profile id; Dad's test profile has its
   own, and sends nothing): `{ k kind, n name, d the day chosen, c: { date:
-  letters }, g0, v, s }`. A day's letters are what it was given: e p w k s
-  for care, F the five, P a perfect day, L a lesson, R a practice round, W
-  its wish. `petCredit` writes the learning letters from the rows of the
-  last ten days (called when her home screen is drawn and when its screen
-  opens), and folds days older than `PET.keep` into `g0`. `s` is the growth
-  she has been shown: the difference is played to her when she comes.
+  letters }, g0, t, v, s }`, and from the second stage `o`, `w`, `wv`,
+  `nw`, `h`, `hs`, `hf`, `hn`, `sw` (below). A day's letters are what it
+  was given: e p w k s for care, F the five, P a perfect day, L a lesson, R
+  a practice round, W its wish, h a heart from a sister. `petCredit` writes
+  the learning letters from the rows of the last ten days (called when her home screen is drawn and when its screen
+  opens), and folds days older than `PET.keep` into `g0` and their letters
+  into the counts `t` (what an outfit is earned by is counted over all its
+  days: `petCount`). `s` is the growth she has been shown: the difference
+  is played to her when she comes.
   **The Sheet's copy** (api 9; `canPetSync`, `petSync`, `petSend`): the same
   JSON in a ninth column of Profiles, `pet`, through the `profile` action
   (the script checks it is a creature: a known kind, a short name, under
   6,000 characters), and `state` carries it, so a new phone gets it back and
-  a sister's phone holds it (nothing shows a sister's creature yet). Two
+  a sister's phone and Dad's hold it. Two
   copies that differ are merged, a day's letters joined, so no phone's care
-  is lost. **With the script of api 8 it lives on her phone alone**: tell
+  is lost; what it owns is the union, what it wears is as it was last
+  dressed (`wv`), hearts are joined (`petCanon` tells whether two copies say
+  the same). `sent`, `s`, `nw`, `hn` are a phone's own notes and are not
+  sent. **With the script of api 8 it lives on her phone alone**: tell
   him to paste before a phone is replaced.
 - **The pictures** (`art/pet/<kind>/<motion>.webp`, about 2 MB a creature,
   fetched a motion at a time and kept by the service worker): each creature
@@ -712,20 +737,131 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   taken for eyes before it looked only there) and sets over each a small
   dome in the colour of the skin round it with a curved line, carried by
   the head bone. **Something worn** (`--wear=FILE.glb`): a second model
-  handed to the head bone (tried with the crown: this is how outfits can be
-  made). A bug worth remembering: `--info` moved the camera and left it
+  handed to the head bone (the first trial, with the crown; the outfits
+  are made with `outfit=1`, below). A bug worth remembering: `--info` moved the camera and left it
   there, so every frame was drawn from too near and a hop left the frame.
   `tools/spin/pets.py ANIM_DIR` makes the app's sheets from a folder of
   the animated models (a camera for each creature at 70% of the frame, the
   highest hop and flip that stay in it, the packing); about ten minutes a
   creature on this machine.
+- **What it wears** (2026-11-27; Avsha: "I'd like to continue with ...
+  Outfits, seeing each other's creatures, a second creature with a house
+  (this can wait as a 2nd creature should be granted after a certain high
+  threshold/s), and your own view of them"). Eleven things in four places
+  (`PET_WEAR`, `PET_SLOTS`: head, face, neck, back; one to a place), each
+  earned and never bought: a bow tie at level 2, a wizard hat at 4, a crown
+  at 7; a wool hat for 5 days of the five, a graduation cap for 15; a
+  flower crown for 3 perfect days; glasses for 7 wishes granted; headphones
+  for 8 practice rounds; a halo for 60 care actions; heart glasses for 5
+  hearts sent to her sisters' creatures; wings for a week in which every
+  sister played five days (`petSisWeek`, from the week it was chosen). An
+  only child is not shown the last two (`petItems`), and the heart glasses
+  wait for the script of api 9. The numbers are a first guess at a spread:
+  something new about every other day in the first two weeks (a wish is
+  granted on nearly every day she plays, so glasses at 5 came on the same
+  day as the wool hat), then the long ones. `petTally` counts,
+  `petEarn` writes what is newly hers into `o` (item: the day), notes it in
+  `nw` until she has been told, and puts it on if its place is free (`w`).
+  It runs after her learning is credited, after each care action and after
+  a heart is sent. Her creature's screen has a line for the wardrobe
+  (`petWardLine`: how many she has, the one she is nearest to);
+  `renderWardrobe` shows all eleven on her own creature, the locked ones
+  grey with what each takes and how far she is; a tap puts on or takes off
+  (`petWear`), a tap on a locked one says how. Nothing is ever taken back.
+- **How the outfits are drawn.** A thing worn is a layer of its own over
+  the creature's frame: `art/pet/<kind>/<item>/<motion>.webp`, frame for
+  frame with the creature's sheet (ten motions: blink and smile use the
+  resting layer), each frame a quarter larger than the creature's (340 px;
+  `PET_OVER`: an eighth more on each side, a quarter more above), because a
+  hat rises over the creature's frame at the top of a jump and wings reach
+  past its sides; the creature's frame is the layer's bottom middle. So
+  any four can be worn together with no sheet per combination. `petEngine`
+  puts the frame and its layers together on a canvas of its own (`compose`)
+  and draws again only when the picture changes; its canvas is 1.25 times
+  `--pw`. `petPic` does the same for the small pictures with layered CSS
+  backgrounds (it steps back a little when something is on the head or the
+  back). A motion's layers are fetched with the motion; a layer that cannot
+  be had is left out for that motion.
+  **Memory** (the old Xiaomi): a sheet as a picture in memory is four bytes
+  a pixel, and full 340 px frames of four layers were several hundred
+  megabytes over a creature's motions. So a layer's sheet holds only the
+  part of the frame its item ever touches in that motion, and where that
+  part sits is the table `PET_BOX` in app.js (`petBox`), which
+  `wear.py draw` and `wear.py pack` write between its two marker comments
+  together with the sheets: never one without the other, and never by
+  hand. And the engine lets go of a long motion's sheets when it has played
+  (`letGo`, `artImg.drop`; rest, blink, smile, asleep, hop and look are
+  kept), fetching them again from the phone's own copy the next time. The
+  service worker keeps art by name for good, so layers drawn again need new
+  names (a new folder), like every changed picture.
+  The pipeline (`tools/spin/wear.py`, its head says how to run it):
+  `clip.html` with `outfit=1` hangs each item on a bone at a place found on
+  the body at rest (`top` of the skull over the forehead, `face` between
+  the eyes the eyelid finder found, `chest` under the chin, `back`), in
+  shares of the creature's height; `KIND` in wear.py corrects what cannot
+  be found (the dragon's crest and the bunny's ears stand where the skull's
+  top is looked for) and gives each skull's width, by which hats are sized.
+  `layer=1` draws the creature into the depth only, so each item comes out
+  as what shows of it; `pad=1` gives the larger frame. Round glasses, heart
+  glasses and the halo are built in code (the glasses from the eyes'
+  places); the other eight are Meshy models. `look` shows all six at rest
+  wearing the named items, front and side: use it before `draw`. `pack`
+  makes the sheets again from frames already drawn (they stay in
+  ANIM_DIR/_wear).
+  **Speed**: drawn from Meshy's own models (135,000 to 300,000 triangles a
+  creature, drawn again for every item of every frame) the full set was
+  three hours. `slim.mjs` (gltf-transform) makes stand-ins: items at 25,000
+  triangles, creatures at 15,000 (`SLIM=`), and the places are still
+  measured on Meshy's own model and handed over (`given`); then it is
+  about 0.13 s a picture, 21,000 pictures (some fifty minutes; the 660
+  sheets are 27 MB, `art/` 39 MB in all). Run two jobs at most on four
+  cores: three were slower than one. **A fault to know**: on a busy machine
+  a run can lose its WebGL context, and everything it draws after that is
+  about half as bright (two layer runs of 54, and the cat's flip of the
+  first stage, were). `clip.js` now refuses such a run and `wear.py` draws
+  it again, and `art.py check` compares each sheet's lightness with the
+  same thing's other motions (LIGHT). A scarf and a medal were tried and
+  dropped: these creatures' heads sit on their bodies with no neck, and
+  their hands rest on the tummy. The month's trophy crown was too spindly
+  as a hat; a chunky toy crown was made for this.
+- **Sisters** (`petAny`, `petSisters`, `petShared`, `petFamily`,
+  `renderVisit`, `petHeart`): with the script of api 9 every phone holds
+  every creature's copy, so her creature's screen shows her sisters'
+  creatures, dressed, and a tap visits one. After her own five she can
+  leave it a heart, once a day for each sister (`h`: sister: the days;
+  `hs`: how many in all). The heart is written in the sender's creature;
+  the receiver's phone finds it there (`petCredit`), gives her creature the
+  letter `h` (2 growth) once for each sender and day (`hf`), and says who
+  sent it the next time she opens it (`hn`, `petNews`). Nothing new in the
+  script: it is all inside the creature's JSON. With the script of api 8
+  no creature is shared and the sisters' part is not shown. In the demo
+  two sisters' creatures are made up (`petDemo`), so the preview shows it.
+- **Dad** (`petsCard` on his Today, `renderVisit(id, true)`): each girl's
+  creature with its level, what it wears and today's care; his look has no
+  heart. Her Me screen's line of what Dad sees names the creature, and her
+  creature's screen says her sisters and Dad see it: keep both true. The
+  evening email says nothing of creatures.
 - **Credits**: the six designs 54, each creature about 59 (model 30, rig 5,
-  eight motions 24), the trial's extra motions 39: 423 for the creatures,
-  654 for the app in all (see `auth status` for what is left).
-- **Next, when he says so**: outfits earned by learning (a worn model is
-  about 39 credits and its own sheets); sisters seeing and visiting each
-  other's creature (the copies are already on every phone); a second
-  creature and a house; Dad seeing them. **Never seen on a real phone.**
+  eight motions 24), the trial's extra motions 39: 423 for the creatures;
+  the outfits 312 (eight items, an image 9 and a model 30 each): 966 for
+  the app in all (see `auth status` for what is left). Outfit tasks
+  (image, model): beanie 01a21cbf-8c48-7104-b8cd-f5557b928d26, gradcap
+  01a21cbf-918d-77ed-b691-38e8a6e259a6, flowers
+  01a21cbf-9785-7445-ad82-7f5685cc3a0d, headphones
+  01a21cbf-9bea-77f0-b1de-85fb6168bd0d, wings
+  01a21cbf-a04a-7164-a5c2-70a612f89c5c, wizard
+  01a21cbf-a484-76c0-8af6-8b2d2f6ae31c, bow
+  01a21cbf-a8f1-7253-a678-3a5a09672583, crown
+  01a21ccb-9493-75b8-a67e-fdb52ee07ab1 (its model
+  01a21ccc-2a4b-7762-bad1-d0810e21930d); the other models' ids are in his
+  Meshy account by date.
+- **Next, when he says so**: a second creature and a house, which he said
+  can wait, "granted after a certain high threshold/s" (ask what
+  threshold; level 7 is about five weeks of good days); more outfits (39
+  credits and about seven minutes of drawing each); a line of the
+  creatures in the evening email. **Never seen on a real phone**: how the
+  layered creature runs on the old Xiaomi (up to five pictures drawn a
+  frame while it moves).
 
 ## Reminders (looked into 2026-11-14, not built)
 
