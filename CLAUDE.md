@@ -604,7 +604,19 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   300 and 1000 Hz. Three tries of it went to him, each with what is under
   250 Hz taken off (`highpass=250` on the piece and `--highpass=250` over
   it: under 300 Hz falls from about half to 7%): A at its own pace, B its
-  four steps set three a second, C like B at `speed=1.5`. When he
+  four steps set three a second, C like B at `speed=1.5`. His answer:
+  "the rhythm of the steps should be determined by the animation but I'd
+  like a softer sound, like walking on a carpet and not a wooden floor
+  which is the prompt I gave suno but still it's not there". So the rhythm
+  is settled (the waddle's, three a second), and what is open is the
+  sound. A step on wood starts sharply, knocks brightly and rings; on a
+  carpet it swells in, is dull and is over at once. Three more tries went
+  to him (`tools/sounds_steps_tries.py REPO steps.wav OUT_DIR` makes them):
+  his steps with the bass off, what is over 1200 Hz off and each start
+  eased in over 30 ms; the same at 700 Hz and 50 ms; and pads made here
+  with no recording (a short hush of noise between 260 and 900 Hz that
+  swells in over 22 ms and dies in 40, a faint weight under it, the two
+  feet a little unlike). When he
   picks: make `pet_walk` as one 2 s loop (six steps at 0.083 + k/3 in an
   arrangement of 2.06 s with `--loop=0.06`, so the part that repeats is
   the motion's own two seconds), `table`, `check`, the sound walk without
