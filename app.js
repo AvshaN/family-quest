@@ -1796,18 +1796,20 @@ function artWarm(p) {
  * nothing, as with full weeks. Tokens, the board and the prizes do not know it exists.
  * It lives on her phone (L.pet, by profile): its kind k, name n, the day it was chosen d, and for each day the
  * letters of what it was given (c: e p w k s for care; F the five, P a perfect day, L a lesson, R a practice round,
- * W its wish, h a heart a sister left it), days older than PET.keep folded into g0 and counted in t. The Sheet keeps
+ * W its wish, h a gift a sister left it), days older than PET.keep folded into g0 and counted in t. The Sheet keeps
  * a copy in her profile once its script knows how (api 9), so it is still hers on a new phone, and her sisters and
  * Dad can see it.
  * Each creature is a Meshy model with a skeleton and eight of Meshy's ready-made motions, drawn ahead of time into
  * sheets of frames (art/pet/<kind>/<motion>.webp, tools/spin/clip.js): no 3D engine here, as with the coin.
  * What it wears (2026-11-27; the girls "enjoy all aspects: raising, dressing up, collecting, and showing each
- * other"): eleven things, each earned by learning or by care and never bought (PET_WEAR says how), one to a place
- * on its body (w: head, face, neck, back). What she has is o (item: the day it came). Each is drawn as a layer of
+ * other"): eleven things, each earned by learning or by care and never bought, one to a place on its body (w: head,
+ * face, neck, back). A milestone (PET_MILES; m: the day it was reached) gives her a choice of two or three things,
+ * of which she keeps one (pm: what each milestone gave; o: what she has, item: the day). Each is drawn as a layer of
  * its own over the creature's frame (art/pet/<kind>/<item>/<motion>.webp, tools/spin/wear.py), a quarter larger
  * than the creature's frame, which is its bottom middle: a hat rises over the frame at the top of a jump.
- * Sisters see each other's creatures and can leave one a heart a day, after their own five (h: sister: the days;
- * hs: how many in all). A heart is growth for the creature that got it, written by its own phone (hf: who, by day). */
+ * Sisters see each other's creatures and can leave one a gift a day, after their own five: a heart, a cookie or a
+ * star, her pick (PET_GIFTS; h: sister: the days, a day alone for a heart and "day:t" or "day:s" for the others;
+ * hs: how many in all). A gift is growth for the creature that got it, written by its own phone (hf: who, by day). */
 const PET_KINDS = { fox: "שועל", dragon: "דרקון", axolotl: "אקסולוטל", bunny: "ארנב", cat: "חתול", spirit: "כוכבון" };
 /* Avsha, 2026-11-27: "I'd like to review the creatures, animations and process before it's actually live". So the
  * girls see nothing of creatures until PET_LIVE is true: they are shown only in his test profile (and in the demo),
@@ -1838,24 +1840,61 @@ const PET_BOX = {
 };
 /* PET_BOX:end */
 const petBox = (kind, item, motion) => ((PET_BOX[kind] || {})[item] || {})[motion === "blink" || motion === "smile" ? "rest" : motion];
-/* What it can wear, in the order she is likely to earn it; `of` gives how far she is, [has, needs]. The places, in
- * the order their layers are laid over it. */
+/* What it can wear, and the places, in the order their layers are laid over it. A thing is everyday (tier 1) or
+ * special (tier 2).
+ * Avsha, 2026-11-27: "for the milestones rewards, let's allow them to choose an accessory from 2-3 options so they
+ * won't be forced to get the same one as the others". So a milestone does not give a named thing: it gives a choice
+ * (PET_MILES) of up to three things of its tier that she does not have, and she keeps one. There are fewer
+ * milestones than things in each tier (six for seven, three for four), so the last choice is still a choice and no
+ * two sisters need end with the same wardrobe. Which three are offered is drawn once for each girl and milestone. */
 const PET_SLOTS = ["back", "neck", "face", "head"];
 const PET_WEAR = {
-  bow:        { slot: "neck", n: "עניבת פרפר", how: "להגיע לרמה 2", of: x => [x.lv, 2] },
-  hearts:     { slot: "face", n: "משקפי לבבות", how: "לשלוח 5 לבבות ליצורים של האחיות", of: x => [x.sent, 5] },
-  beanie:     { slot: "head", n: "כובע צמר", how: "5 ימים של חמש השאלות", of: x => [x.F, 5] },
-  glasses:    { slot: "face", n: "משקפיים", how: "7 משאלות שהתגשמו", of: x => [x.W, 7] },
-  flowers:    { slot: "head", n: "זר פרחים", how: "3 ימים מושלמים", of: x => [x.P, 3] },
-  headphones: { slot: "head", n: "אוזניות", how: "8 סבבי תרגול", of: x => [x.R, 8] },
-  halo:       { slot: "head", n: "הילה", how: "60 טיפולים", of: x => [x.care, 60] },
-  wings:      { slot: "back", n: "כנפיים", how: "שבוע שבו כל האחיות משחקות חמישה ימים", of: x => [x.sis, 1] },
-  wizard:     { slot: "head", n: "כובע קוסמים", how: "להגיע לרמה 4", of: x => [x.lv, 4] },
-  gradcap:    { slot: "head", n: "כובע סיום", how: "15 ימים של חמש השאלות", of: x => [x.F, 15] },
-  crown:      { slot: "head", n: "כתר", how: "להגיע לרמה 7", of: x => [x.lv, 7] }
+  bow:        { slot: "neck", n: "עניבת פרפר", tier: 1 },
+  hearts:     { slot: "face", n: "משקפי לבבות", tier: 1 },
+  beanie:     { slot: "head", n: "כובע צמר", tier: 1 },
+  glasses:    { slot: "face", n: "משקפיים", tier: 1 },
+  flowers:    { slot: "head", n: "זר פרחים", tier: 1 },
+  headphones: { slot: "head", n: "אוזניות", tier: 1 },
+  gradcap:    { slot: "head", n: "כובע סיום", tier: 1 },
+  halo:       { slot: "head", n: "הילה", tier: 2 },
+  wings:      { slot: "back", n: "כנפיים", tier: 2 },
+  wizard:     { slot: "head", n: "כובע קוסמים", tier: 2 },
+  crown:      { slot: "head", n: "כתר", tier: 2 }
 };
-/* an only child has no sisters to send hearts to or to share a week with; and hearts need the Sheet to carry creatures */
-const petItems = () => Object.keys(PET_WEAR).filter(k => k === "hearts" ? FAM && FAM.profiles.length > 1 && petShared() : k === "wings" ? FAM && FAM.profiles.length > 1 : true);
+/* The milestones, in the order she is likely to reach them; `of` gives how far she is, [has, needs]. `sis`: one that
+ * needs sisters ("shared": and the Sheet carrying creatures, for the gifts). */
+const PET_MILES = [
+  { k: "lv2",    tier: 1, how: "להגיע לרמה 2", of: x => [x.lv, 2] },
+  { k: "gifts",  tier: 1, how: "לשלוח 5 מתנות ליצורים של האחיות", of: x => [x.sent, 5], sis: "shared" },
+  { k: "five5",  tier: 1, how: "5 ימים של חמש השאלות", of: x => [x.F, 5] },
+  { k: "perf3",  tier: 1, how: "3 ימים מושלמים", of: x => [x.P, 3] },
+  { k: "prac8",  tier: 1, how: "8 סבבי תרגול", of: x => [x.R, 8] },
+  { k: "care60", tier: 1, how: "60 טיפולים", of: x => [x.care, 60] },
+  { k: "lv4",    tier: 2, how: "להגיע לרמה 4", of: x => [x.lv, 4] },
+  { k: "sis",    tier: 2, how: "שבוע מלא של כל האחיות", of: x => [x.sis, 1], sis: "any" },
+  { k: "lv7",    tier: 2, how: "להגיע לרמה 7", of: x => [x.lv, 7] }
+];
+const petItems = () => Object.keys(PET_WEAR);
+/* an only child has no sisters to send gifts to or to share a week with; and gifts need the Sheet to carry creatures */
+const petMiles = () => PET_MILES.filter(m => !m.sis || (!!FAM && FAM.profiles.length > 1 && (m.sis !== "shared" || petShared())));
+/* the choices that wait: milestones reached whose thing she has not yet chosen */
+const petPending = pet => petItems().some(k => !(pet.o || {})[k]) ? petMiles().filter(m => (pet.m || {})[m.k] && !(pet.pm || {})[m.k]) : [];
+/* What a milestone offers her: up to three things of its tier that she does not have (of any tier, if that tier is
+ * all hers), in an order drawn once for the girl and the milestone, so it is the same each time she looks. */
+function petOptions(pet, pid, mile) {
+  const free = petItems().filter(k => !(pet.o || {})[k]), tier = free.filter(k => PET_WEAR[k].tier === mile.tier), pool = tier.length ? tier : free;
+  const r = rng(hash(pid + "|" + mile.k)), key = {};
+  petItems().forEach(k => { key[k] = r(); });   // one draw an item, whatever she owns: the order holds as her wardrobe fills
+  return pool.sort((a, b) => key[a] - key[b]).slice(0, 3);
+}
+/* What a sister can leave a creature: one a day, her pick of three. It is growth all the same; what differs is what
+ * the creature does with it (another place where she chooses, and what her sister gets is not always the same). */
+const PET_GIFTS = {
+  h: { n: "לב", d: '<path d="M12 20.5C5 15.5 3 12 3 8.8A4.8 4.8 0 0 1 12 6.5a4.8 4.8 0 0 1 9 2.3c0 3.2-2 6.7-9 11.7z"/>', on: E => { E.spawn("heart", ...E.pt(0.5, 0.36), 14); if (!E.busy || E.soft) E.play([{ name: "hop" }]); } },
+  t: { n: "עוגייה", d: '<circle cx="12" cy="12" r="8.5"/><circle cx="9" cy="9.5" r="1"/><circle cx="14.5" cy="10.5" r="1"/><circle cx="10.5" cy="14.5" r="1"/><circle cx="15" cy="15" r="1"/>', on: E => { if (E.busy && !E.soft) { E.spawn("heart", ...E.pt(0.5, 0.36), 6); return; } PET_ACTS.e(E); } },
+  s: { n: "כוכב", d: '<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"/>', on: E => { E.spawn("spark", ...E.pt(0.5, 0.32), 26); if (!E.busy || E.soft) E.play([{ name: "flip" }]); } }
+};
+const petGiftOf = x => { const g = String(x || "").slice(11); return PET_GIFTS[g] ? g : "h"; };
 const petOf = pid => { L.pet = L.pet || {}; const x = L.pet[pid]; return x && PET_KINDS[x.k] ? x : null; };
 /* Anyone's creature: her own from this phone; a sister's (and each girl's, for Dad) from the Sheet's copy. In the
  * demo every creature is on the one phone. */
@@ -1901,14 +1940,27 @@ function petSisWeek(d0) {
   for (let w = weekStart(d0); w <= weekStart(TODAY); w = addDays(w, 7)) if (pl.every(s => { let n = 0; for (let i = 0; i < 7; i++) if (s.has(addDays(w, i))) n++; return n >= POINTS.weekDays; })) return true;
   return false;
 }
-/* What it has newly earned: written in o with the day, noted in nw until she has been shown it, and put on if the
- * place is free. */
+/* The milestones it has newly reached: written in m with the day, and noted in nw until she has been told. Each is a
+ * choice that waits for her (petPending). A creature from before there were choices keeps what it was given, each
+ * thing standing for one of the milestones it had reached. */
 function petEarn(pet) {
   const x = petTally(pet), fresh = [];
-  pet.o = pet.o || {};
-  petItems().forEach(k => { if (pet.o[k]) return; const [have, need] = PET_WEAR[k].of(x); if (have >= need) { pet.o[k] = TODAY; fresh.push(k); } });
-  if (fresh.length) { pet.nw = (pet.nw || []).concat(fresh); pet.w = pet.w || {}; fresh.forEach(k => { const s = PET_WEAR[k].slot; if (!pet.w[s]) { pet.w[s] = k; pet.wv = Date.now(); } }); }
+  pet.o = pet.o || {}; pet.pm = pet.pm || {};
+  if (!pet.m) { pet.m = {}; const had = Object.keys(pet.o); let i = 0;
+    petMiles().forEach(m => { const [h, n] = m.of(x); if (h >= n) { pet.m[m.k] = TODAY; if (i < had.length) pet.pm[m.k] = had[i++]; else fresh.push(m.k); } }); }
+  else petMiles().forEach(m => { if (pet.m[m.k]) return; const [h, n] = m.of(x); if (h >= n) { pet.m[m.k] = TODAY; fresh.push(m.k); } });
+  if (fresh.length) pet.nw = (pet.nw || []).concat(fresh);
   return fresh;
+}
+/* She takes one of the things a milestone offers: it is hers, and on. */
+function petTake(pid, mileKey, item) {
+  const pet = petOf(pid), mile = PET_MILES.find(m => m.k === mileKey);
+  if (!pet || !mile || !(pet.m || {})[mileKey] || (pet.pm || {})[mileKey] || !petOptions(pet, pid, mile).includes(item)) return false;
+  pet.o = pet.o || {}; pet.pm = pet.pm || {}; pet.w = pet.w || {};
+  pet.o[item] = TODAY; pet.pm[mileKey] = item; pet.w[PET_WEAR[item].slot] = item; pet.wv = Date.now();
+  pet.nw = (pet.nw || []).filter(k => k !== mileKey);
+  petSave(pid, pet);
+  return true;
 }
 /* Today's care: an action for every PET.per points of the day, and how many are used. */
 function petCare(pid) {
@@ -1951,8 +2003,8 @@ function petCredit(p) {
     if (day.filter(r => r.r === 3).length >= FIX.n && !have.includes("L")) add += "L";
     add += "R".repeat(Math.max(0, Math.min(PET.rounds, Math.floor(day.filter(r => r.r === 2).length / PRACTICE.n)) - [...have].filter(ch => ch === "R").length));
     if (d === TODAY && !have.includes("W") && petWish(p).done) add += "W";
-    const known = (pet.hf || {})[d] || [], fresh = sisters.filter(s => s.pet && ((s.pet.h || {})[p.id] || []).includes(d) && !known.includes(s.p.id)).map(s => s.p.id);
-    if (fresh.length) { add += "h".repeat(fresh.length); pet.hf = pet.hf || {}; pet.hf[d] = known.concat(fresh); pet.hn = (pet.hn || []).concat(fresh); }
+    const known = (pet.hf || {})[d] || [], gifts = sisters.map(s => ({ id: s.p.id, g: s.pet && ((s.pet.h || {})[p.id] || []).find(x => String(x).slice(0, 10) === d) })).filter(x => x.g && !known.includes(x.id));
+    if (gifts.length) { add += "h".repeat(gifts.length); pet.hf = pet.hf || {}; pet.hf[d] = known.concat(gifts.map(x => x.id)); pet.hn = (pet.hn || []).concat(gifts.map(x => x.id + ":" + petGiftOf(x.g))); }
     if (add) { pet.c[d] = have + add; changed = true; }
   }
   const cut = addDays(TODAY, -PET.keep), near = addDays(TODAY, -12);
@@ -1970,7 +2022,7 @@ function petSave(pid, pet) { pet.v = Date.now(); L.pet[pid] = pet; save(); petSe
 const canPetSync = () => LIVE && PET_LIVE && !SANDBOX && !!FAM && (FAM.api | 0) >= 9;
 /* what of a creature the Sheet keeps, in one fixed order, to tell whether two copies say the same */
 const petCanon = x => { const sorted = o => Array.isArray(o) ? o.map(sorted) : o && typeof o === "object" ? Object.keys(o).sort().reduce((a, k) => (a[k] = sorted(o[k]), a), {}) : o;
-  return JSON.stringify(sorted([x.k, x.n, x.d, +x.g0 || 0, x.c || {}, x.t || {}, x.o || {}, x.w || {}, +x.wv || 0, x.h || {}, +x.hs || 0, x.hf || {}, x.sw ? 1 : 0])); };
+  return JSON.stringify(sorted([x.k, x.n, x.d, +x.g0 || 0, x.c || {}, x.t || {}, x.o || {}, x.w || {}, +x.wv || 0, x.h || {}, +x.hs || 0, x.hf || {}, x.sw ? 1 : 0, x.m || {}, x.pm || {}])); };
 function petSync() {
   const p = me();
   if (!p || !canPetSync()) return;
@@ -1997,9 +2049,10 @@ function petSync() {
   out.o = both("o", (a, b) => a < b ? a : b);                       // hers since the earlier day
   const dressed = (+older.wv || 0) > (+newer.wv || 0) ? older : newer; out.w = Object.assign({}, dressed.w || {}); out.wv = +dressed.wv || 0;   // what it wears: as it was last dressed
   out.h = both("h", lists); out.hf = both("hf", lists); out.hs = Math.max(+newer.hs || 0, +older.hs || 0); out.sw = newer.sw || older.sw ? 1 : 0;
+  if (newer.m || older.m) { out.m = both("m", (a, b) => a < b ? a : b); out.pm = both("pm", a => a); }   // a milestone is reached once; its choice is the newer copy's
   const same = petCanon(out) === petCanon(far);
   out.v = same ? far.v : Date.now(); out.sent = same ? far.v : 0; out.s = near.s; out.hn = near.hn;
-  out.nw = (near.nw || []).concat(Object.keys(out.o).filter(k => !(near.o || {})[k] && !(near.nw || []).includes(k)));   // what the other phone earned is new here
+  out.nw = near.nw || [];
   L.pet[p.id] = out; save();
   if (!same) petSend();
   if (BOOTED && view === "home" && !layer.innerHTML) show("home", true);
@@ -2015,7 +2068,7 @@ async function petSend() {
   const now = petOf(p.id); if (now && now.sent !== now.v) petSend();   // it changed while this was on its way
 }
 /* The demo has no Sheet, so her sisters' creatures are made up once, for the screens that show them. In Dad's review
- * (petReview) two are made up for the girls afresh each day, one of which has left his test creature a heart. */
+ * (petReview) two are made up for the girls afresh each day, one of which has left his test creature a cookie. */
 function petDemo() {
   const p = me(), review = petReview();
   if (!p || (LIVE && !review) || (!LIVE && SANDBOX) || (review ? L.petSandDay === TODAY : L.petDemo)) return;
@@ -2023,7 +2076,7 @@ function petDemo() {
   if (review) L.petSandDay = TODAY; else L.petDemo = 1;
   const looks = [{ k: "dragon", n: "אש", g0: 262, w: { head: "wizard", neck: "bow" }, o: { bow: 1, beanie: 1, wizard: 1 } }, { k: "bunny", n: "שלג", g0: 131, w: { face: "glasses", head: "flowers" }, o: { bow: 1, glasses: 1, flowers: 1 } }];
   FAM.profiles.filter(q => q.id !== p.id && !store[q.id]).slice(0, looks.length).forEach((q, i) => { const x = looks[i];
-    store[q.id] = { k: x.k, n: x.n, d: addDays(TODAY, -14), g0: x.g0, c: {}, w: x.w, o: Object.fromEntries(Object.keys(x.o).map(k => [k, addDays(TODAY, -3)])), h: i ? {} : { [p.id]: [TODAY] }, v: 1, demo: 1 }; });
+    store[q.id] = { k: x.k, n: x.n, d: addDays(TODAY, -14), g0: x.g0, c: {}, w: x.w, o: Object.fromEntries(Object.keys(x.o).map(k => [k, addDays(TODAY, -3)])), h: i ? {} : { [p.id]: [TODAY + ":t"] }, v: 1, demo: 1 }; });
   save();
 }
 
@@ -2151,19 +2204,21 @@ function petRise(kind, worn, lv) {
 }
 const petFit = (stage, kind, worn, lv) => { if (stage) stage.style.setProperty("--rise", petRise(kind, worn, lv)); };
 
-/* Her home screen's card: an invitation until she has a creature, then the creature, its level and today's care. */
+/* Her home screen's card: an invitation until she has a creature, then the creature, its level and today's care.
+ * Until she has played, the invitation's button is the quiet kind: the day's own Start is the screen's one loud
+ * button (the design review of 2026-11-27). */
 function petCard(p) {
   if (!petOn()) return "";
   const pet = petOf(p.id);
   if (!pet) return `<section class="glass pad stack petcard new"><div class="petfaces" aria-hidden="true">${["fox", "axolotl", "spirit", "bunny"].map(k => petPic(k)).join("")}</div>
     <span class="eyebrow">New</span><b class="fixname">יצור משלך</b>
     <p class="small muted">בוחרים יצור, נותנים לו שם ומטפלים בו. כל יום של שאלות נותן לו טיפולים, והוא גדל יחד איתך.</p>
-    <button type="button" class="btn btn-aura wide" data-act="petOpen">לבחור יצור</button></section>`;
-  const g = petLevel(petGrowth(pet)), care = petCare(p.id), fresh = (pet.nw || []).length, hearts = (pet.hn || []).length;
-  const line = fresh ? "פריט חדש מחכה בארון" : hearts ? "קיבל לב מאחות" : !care.played ? "חמש השאלות של היום נותנות לו טיפולים" : care.left ? (care.left === 1 ? "טיפול אחד מחכה" : `${care.left} טיפולים מחכים`) : "קיבל היום את כל הטיפולים";
-  return `<button type="button" class="glass petcard has ${care.left || fresh || hearts ? "due" : ""}" data-act="petOpen">${petPic(pet.k, petWorn(pet))}
+    <button type="button" class="btn ${playedOn(p.id, TODAY) ? "btn-aura" : "btn-ghost"} wide" data-act="petOpen">לבחור יצור</button></section>`;
+  const g = petLevel(petGrowth(pet)), care = petCare(p.id), fresh = petPending(pet).length, gifts = (pet.hn || []).length;
+  const line = fresh ? "בחירה חדשה מחכה" : gifts ? "קיבל מתנה מאחות" : !care.played ? "חמש השאלות של היום נותנות לו טיפולים" : care.left ? (care.left === 1 ? "טיפול אחד מחכה" : `${care.left} טיפולים מחכים`) : "קיבל היום את כל הטיפולים";
+  return `<button type="button" class="glass petcard has ${care.left || fresh || gifts ? "due" : ""}" data-act="petOpen">${petPic(pet.k, petWorn(pet))}
     <span class="stack"><span class="row"><b class="petname">${esc(pet.n)}</b><span class="small muted">רמה <b class="num" style="color:var(--text)">${g.lv}</b></span></span>
-      <span class="bar"><i style="width:${Math.min(100, g.have / g.need * 100)}%"></i></span><span class="small ${care.left || fresh || hearts ? "" : "muted"}">${line}</span></span></button>`;
+      <span class="bar"><i style="width:${Math.min(100, g.have / g.need * 100)}%"></i></span><span class="small ${care.left || fresh || gifts ? "" : "muted"}">${line}</span></span></button>`;
 }
 /* The creature's screen. With no creature yet it is the choice: the six, one of them alive, and a name. */
 let PETUI = null;
@@ -2180,16 +2235,19 @@ function openPet() {
   if (g > seen) setTimeout(() => { if ($(".petscr", layer) && PETUI && PETUI.pid === p.id) petPaint(g - seen, wasLv); }, 700);
   setTimeout(petNews, g > seen ? 2300 : 900);
 }
-/* What came while she was away, said once: a heart from a sister, something new to wear (already on, if its place
- * was free). */
+/* What came while she was away, said once: a gift from a sister (and the creature does with it what the gift is for),
+ * a milestone reached (its choice waits in a card on this screen). */
 function petNews() {
   const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E;
   if (!pet || !E || !PETUI || PETUI.pid !== p.id || PETUI.mode || !$(".petscr", layer)) return;
-  const from = [...new Set(pet.hn || [])].map(id => profile(id)).filter(Boolean), fresh = (pet.nw || []).filter(k => PET_WEAR[k]);
-  if (!from.length && !fresh.length) return;
-  if (from.length) { E.spawn("heart", ...E.pt(0.5, 0.36), 12); toast(`${joinHe(from.map(q => q.name))} ${from.length > 1 ? "שלחו" : "שלחה"} לב ל${pet.n}`); }
-  if (fresh.length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; E.spawn("spark", ...E.pt(0.5, 0.3), 24); SFX.done(); buzz([20, 60, 20]); if (!E.busy || E.soft) E.play([{ name: "flip" }]);
-    toast(fresh.length === 1 ? `חדש בארון: ${PET_WEAR[fresh[0]].n}` : `חדש בארון: ${fresh.length} פריטים`); const b = $(".petward", layer), ln = $("#petwardline", layer); if (b) b.classList.add("due"); if (ln) ln.innerHTML = petWardLine(pet); }, from.length ? 1600 : 0);
+  const gifts = (pet.hn || []).map(x => ({ who: profile(String(x).split(":")[0]), g: PET_GIFTS[String(x).split(":")[1]] ? String(x).split(":")[1] : "h" })).filter(x => x.who);
+  const fresh = (pet.nw || []).filter(k => PET_MILES.some(m => m.k === k));
+  if (!gifts.length && !fresh.length) return;
+  if (gifts.length) { const names = [...new Set(gifts.map(x => x.who.name))];
+    toast(`${joinHe(names)} ${names.length > 1 ? "שלחו" : "שלחה"} ל${pet.n} ${gifts.length > 1 ? "מתנות" : PET_GIFTS[gifts[0].g].n}`);
+    if (!E.asleep) PET_GIFTS[gifts[0].g].on(E); }
+  if (fresh.length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; E.spawn("spark", ...E.pt(0.5, 0.3), 24); SFX.done(); buzz([20, 60, 20]); if (!E.asleep && (!E.busy || E.soft)) E.play([{ name: "flip" }]);
+    toast(`הגעת ליעד: בחירה חדשה ל${pet.n}`); petGiftShow(pet); }, gifts.length ? 2800 : 0);
   pet.hn = []; pet.nw = []; save();
 }
 function renderPetPick(kind) {
@@ -2200,8 +2258,8 @@ function renderPetPick(kind) {
     <div class="petstage pick"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
     <div class="petopts">${Object.keys(PET_KINDS).map(k => `<button type="button" class="petopt" data-act="petPick" data-k="${k}" aria-pressed="${k === kind}">${petPic(k)}<span>${PET_KINDS[k]}</span></button>`).join("")}</div>
     <div class="field"><label for="petname">איך קוראים לו?</label><input id="petname" maxlength="${PET.name}" autocomplete="off" enterkeyhint="done" placeholder="שם" value="${esc(typed)}"></div>
-    <button type="button" class="btn btn-primary wide" data-act="petAdopt" data-k="${kind}">זה היצור שלי</button>
-    <p class="small faint" style="text-align:center">בוחרים אחד. בהמשך יהיו עוד.</p></div></div>`;
+    <p class="small muted" style="text-align:center">בוחרים אחד. בהמשך יהיו עוד.</p>
+    <div class="petfoot"><button type="button" class="btn btn-primary wide" data-act="petAdopt" data-k="${kind}">זה היצור שלי</button></div></div></div>`;
   const E = petEngine($(".petcv", layer), $(".petfx", layer), kind);
   PETUI = { E, kind, mode: "pick" };
   $("#petname", layer).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); petAdopt(kind); } });
@@ -2211,18 +2269,28 @@ function petAdopt(kind) {
   const p = me(), name = String(($("#petname", layer) || {}).value || "").trim().slice(0, PET.name);
   if (!p || !PET_KINDS[kind]) return;
   if (!name) { toast("קודם נותנים לו שם"); const el = $("#petname", layer); if (el) el.focus(); return; }
-  petSave(p.id, { k: kind, n: name, d: TODAY, g0: 0, c: {}, o: {}, w: {} });
+  petSave(p.id, { k: kind, n: name, d: TODAY, g0: 0, c: {}, o: {}, w: {}, m: {}, pm: {} });
   petCredit(p);
   petOf(p.id).s = petGrowth(petOf(p.id)); save();
   SFX.good();
   renderPet(true);
 }
-/* Its wardrobe in one line: how much of it she has, and the thing she is nearest to. */
+/* Its wardrobe in one line: how much she has, and the choice she is nearest to. */
 function petWardLine(pet) {
-  const items = petItems(), own = items.filter(k => (pet.o || {})[k]), tally = petTally(pet);
-  const next = items.filter(k => !(pet.o || {})[k]).map(k => ({ k, r: PET_WEAR[k].of(tally) })).sort((a, b) => b.r[0] / b.r[1] - a.r[0] / a.r[1])[0];
-  return `<span class="num" dir="ltr">${own.length}/${items.length}</span> פריטים${next ? ` · הבא: ${PET_WEAR[next.k].n}` : " · הכול אצלך"}`;
+  const own = petItems().filter(k => (pet.o || {})[k]).length, tally = petTally(pet), wait = petPending(pet).length;
+  const next = petMiles().filter(m => !(pet.m || {})[m.k]).map(m => ({ m, r: m.of(tally) })).sort((a, b) => b.r[0] / b.r[1] - a.r[0] / a.r[1])[0];
+  return `${own === 0 ? "עוד בלי פריטים" : own === 1 ? "פריט אחד" : `<span class="num" dir="ltr">${own}</span> פריטים`}${wait ? " · בחירה מחכה" : next ? ` · הבחירה הבאה: ${next.m.how}${next.r[1] > 1 ? ` <bdi dir="ltr">${Math.min(next.r[0], next.r[1])}/${next.r[1]}</bdi>` : ""}` : ""}`;
 }
+/* The choice that waits, on its screen: the way in. */
+function petGiftCard(pet) {
+  const wait = petPending(pet);
+  if (!wait.length) return "";
+  return `<button type="button" class="glass petgift" data-act="petChoose" data-m="${wait[0].k}">${I('<path d="M4 11h16v9H4z"/><path d="M3 7.5h18V11H3z"/><path d="M12 7.5V20"/><path d="M12 7.5c-1.5-3-5-3.5-5-1.2 0 1.4 2.5 1.2 5 1.2zM12 7.5c1.5-3 5-3.5 5-1.2 0 1.4-2.5 1.2-5 1.2z"/>')}
+    <span class="stack"><b>${wait.length > 1 ? `${wait.length} בחירות מחכות ל${esc(pet.n)}` : `בחירה חדשה ל${esc(pet.n)}`}</b><span class="small">${wait[0].how}: בוחרים פריט אחד</span></span><span class="chev" aria-hidden="true">‹</span></button>`;
+}
+const petGiftShow = pet => { const box = $("#petgiftbox", layer), ln = $("#petwardline", layer); if (box) box.innerHTML = petGiftCard(pet); if (ln) ln.innerHTML = petWardLine(pet); };
+/* Today's care in words, beside its hearts (which say it by their look alone). */
+const petCareLine = care => !care.played ? "עוד לא ענית היום: חמש השאלות נותנות טיפולים" : !care.max ? "היום לא נצברו מספיק נקודות לטיפול" : care.left ? `${care.left === 1 ? "נשאר טיפול אחד" : `נשארו ${care.left} טיפולים`} מתוך ${care.max} של היום` : `כל ${care.max} הטיפולים של היום ניתנו`;
 /* Her sisters' creatures, on her creature's screen: each with what it wears, to visit. */
 function petFamily(p, pet) {
   if (!petShared()) return "";
@@ -2231,7 +2299,7 @@ function petFamily(p, pet) {
   return `<section class="glass pad stack"><span class="eyebrow">Your sisters' creatures</span>
     <div class="petfam">${sis.map(s => s.pet ? `<button type="button" class="petsis" data-act="petVisit" data-id="${esc(s.p.id)}">${petPic(s.pet.k, petWorn(s.pet))}<b>${esc(s.pet.n)}</b><span class="small muted">של ${esc(s.p.name)} · רמה ${petLevel(petGrowth(s.pet)).lv}</span></button>`
       : `<div class="petsis none">${avatar(s.p, "sm")}<span class="small muted">${esc(s.p.name)} עוד לא בחרה יצור</span></div>`).join("")}</div>
-    <p class="small faint">האחיות שלך ואבא רואים את ${esc(pet.n)}: את הרמה ואת מה שלבוש. אחרי חמש השאלות אפשר לשלוח לב ליצור של אחות, פעם ביום.</p></section>`;
+    <p class="small muted">האחיות שלך ואבא רואים את ${esc(pet.n)}: את הרמה ואת מה שלבוש. אחרי חמש השאלות אפשר לשלוח מתנה ליצור של אחות, פעם ביום.</p></section>`;
 }
 function renderPet(fresh) {
   const p = me(), pet = petOf(p.id), g = petLevel(petGrowth(pet)), care = petCare(p.id), w = petWish(p), have = String((pet.c || {})[TODAY] || ""), worn = petWorn(pet);
@@ -2253,24 +2321,25 @@ function renderPet(fresh) {
       <div class="petzzz" dir="ltr" aria-hidden="true"><span>z</span><span>z</span><span>z</span></div><div class="petgain" id="petgain" dir="ltr" aria-hidden="true"></div></div>
     <div class="petgrow"><div class="bar"><i id="petbar" style="width:${Math.min(100, g.have / g.need * 100)}%"></i></div>
       <div class="row small muted"><span><b class="num" id="petgp" dir="ltr" style="color:var(--text)">${g.have} / ${g.need}</b> נקודות גדילה</span><span id="petleft">עוד ${g.need - g.have} לרמה ${g.lv + 1}</span></div></div>
-    <div class="row petcare"><span><span class="eyebrow">Today's care</span><br><span class="small muted" id="petcareline">${care.played ? `הנקודות של היום נתנו ${care.max === 1 ? "טיפול אחד" : `${care.max} טיפולים`}` : "עוד לא ענית היום: חמש השאלות נותנות טיפולים"}</span></span><span class="pethearts" id="pethearts">${care.played ? hearts : ""}</span></div>
+    <div id="petgiftbox">${petGiftCard(pet)}</div>
+    <div class="row petcare"><span><span class="eyebrow">Today's care</span><br><span class="small muted" id="petcareline">${petCareLine(care)}</span></span><span class="pethearts" id="pethearts" aria-hidden="true">${care.played ? hearts : ""}</span></div>
     ${care.played ? "" : `<button type="button" class="btn btn-aura wide" data-act="start" ${waitAttr()}>${waiting() ? WAIT_TEXT : "לשאלות של היום"}</button>`}
     <div class="petacts">${act("e", "האכלה", '<path d="M12 7c-4-3-8 0-7 5s4 8 7 7c3 1 6-2 7-7s-3-8-7-5z"/><path d="M12 7c0-2 1-3.5 3-4"/>')}${act("p", "משחק", '<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>')}${act("w", "רחצה", '<circle cx="9" cy="14" r="5"/><circle cx="16.5" cy="8" r="3"/><circle cx="18" cy="16.5" r="1.6"/>')}${act("k", "טיול", '<path d="M7 20c1.5-1 2-3 2-5 0-2-2-2.5-2-5a3 3 0 0 1 6 0c0 2-1 3-1 5s1 4 3 5"/><path d="M15.5 9.5a2 2 0 1 1 3 2.5"/>')}${act("s", asleep ? "להעיר" : "שינה", '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>')}</div>
-    <button type="button" class="glass petward ${(pet.nw || []).length ? "due" : ""}" data-act="petWardrobe">${I('<path d="M12 8.5V7.4a2 2 0 1 0-2-2"/><path d="M12 8.5 3.6 15a1.5 1.5 0 0 0 .9 2.7h15a1.5 1.5 0 0 0 .9-2.7z"/>')}
+    <button type="button" class="glass petward" data-act="petWardrobe">${I('<path d="M12 8.5V7.4a2 2 0 1 0-2-2"/><path d="M12 8.5 3.6 15a1.5 1.5 0 0 0 .9 2.7h15a1.5 1.5 0 0 0 .9-2.7z"/>')}
       <span class="stack"><b>הארון של ${esc(pet.n)}</b><span class="small muted" id="petwardline">${petWardLine(pet)}</span></span><span class="chev" aria-hidden="true">‹</span></button>
     <section class="glass pad petwish ${w.done ? "done" : ""}"><div class="row"><span class="eyebrow">Wish of the day</span><span class="chip ${w.done ? "good" : ""}"><bdi dir="ltr">+${PET.wish}</bdi></span></div>
       <div class="row" style="flex-wrap:nowrap;justify-content:flex-start">${fx ? emb(subjOf(w.pool)) : ""}<b>ל${esc(pet.n)} מתחשק: ${wishText}</b></div>
-      ${w.done ? `<p class="small muted">המשאלה של היום התגשמה.</p>` : canGo ? `<button type="button" class="btn btn-ghost wide" data-act="${wishAct}" ${waitAttr()}>${waiting() ? WAIT_TEXT : "להגשים"}</button>` : `<p class="small muted">${w.kind === "practice" ? "אחרי חמש השאלות של היום אפשר לתרגל." : "מחכה במסך הבית."}</p>`}</section>
+      ${w.done ? `<p class="small muted">המשאלה של היום התגשמה.</p>` : w.kind === "five" && !care.played ? `<p class="small muted">הכפתור שלמעלה מגשים אותה.</p>` : canGo ? `<button type="button" class="btn btn-ghost wide" data-act="${wishAct}" ${waitAttr()}>${waiting() ? WAIT_TEXT : "להגשים"}</button>` : `<p class="small muted">${w.kind === "practice" ? "אחרי חמש השאלות של היום אפשר לתרגל." : "מחכה במסך הבית."}</p>`}</section>
     ${petFamily(p, pet)}
-    <section class="glass pad"><span class="eyebrow">Grow ${esc(pet.n)}</span>
+    <section class="glass pad"><span class="eyebrow">Growth</span>
       ${task(have.includes("F"), "חמש השאלות של היום", PET.five)}${task(have.includes("P"), "יום מושלם, חמש מחמש", PET.perfect)}
       ${fx || have.includes("L") ? task(have.includes("L"), "החיזוק של היום", PET.lesson) : ""}${task(rounds >= PET.rounds, "סבב תרגול", PET.practice, `<span class="small muted num" dir="ltr">${rounds}/${PET.rounds}</span>`)}
       ${task(have.includes("W"), "המשאלה של היום", PET.wish)}${task(care.max > 0 && !care.left, "כל טיפול", PET.care, care.max ? `<span class="small muted num" dir="ltr">${care.used}/${care.max}</span>` : "")}
-      ${have.includes("h") ? task(true, "לב מאחות", PET.heart) : ""}
-      <p class="small faint">${esc(pet.n)} לא נחלש ולא נעלם כשלא באים. יום בלי שאלות הוא פשוט יום בלי טיפולים.</p></section>
+      ${have.includes("h") ? task(true, "מתנה מאחות", PET.heart) : ""}
+      <p class="small muted">${esc(pet.n)} לא נחלש ולא נעלם כשלא באים. יום בלי שאלות הוא פשוט יום בלי טיפולים.</p></section>
     ${SANDBOX ? `<section class="glass pad stack"><span class="eyebrow">For your review</span>
       <p class="small muted">רק בפרופיל הבדיקה, כדי לראות הכול בלי לחכות שבועות. הבנות לא רואות את זה.</p>
-      <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="grow"><bdi dir="ltr">+100</bdi> גדילה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="all">כל הפריטים</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="new">יצור אחר</button></div></section>` : ""}</div></div>`;
+      <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="grow"><bdi dir="ltr">+100</bdi> גדילה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="pick">עוד בחירה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="all">כל הפריטים</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="new">יצור אחר</button></div></section>` : ""}</div></div>`;
   const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
   PETUI = { E, kind: pet.k, pid: p.id, strokes: 0, pets: 0, at: null };
   $("#petname", layer).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); const b = $("[data-act=petRenameSave]", layer); if (b) b.click(); } });
@@ -2292,6 +2361,7 @@ function petPaint(gained, wasLv) {
   if ($("#petbar", layer)) $("#petbar", layer).style.width = Math.min(100, g.have / g.need * 100) + "%";
   set("#petgp", `${g.have} / ${g.need}`); set("#petleft", `עוד ${g.need - g.have} לרמה ${g.lv + 1}`); set("#petlv", g.lv);
   $$("#pethearts svg", layer).forEach((el, i) => el.classList.toggle("off", i >= care.left));
+  set("#petcareline", petCareLine(care));
   const have = String((pet.c || {})[TODAY] || ""), asleep = (L.petSleep || {})[p.id] === TODAY;
   $$(".petact", layer).forEach(b => { b.disabled = b.dataset.k === "s" ? (!asleep && !have.includes("s") && !care.left) : (asleep || !care.left); });
   const gain = $("#petgain", layer);
@@ -2299,8 +2369,7 @@ function petPaint(gained, wasLv) {
   if (E && g.lv > wasLv) {
     const cheer = () => { if (!PETUI || PETUI.E !== E) return; E.play([{ name: "flip" }]); E.spawn("spark", ...E.pt(0.5, 0.38), 30); SFX.done(); buzz([20, 60, 20]); toast(`${pet.n}: רמה ${g.lv}!`);
       const st = $("#petstage", layer); if (st) { E.grow = +petGrowCss(g.lv); st.style.setProperty("--grow", E.grow.toFixed(2)); petFit(st, pet.k, petWorn(pet), g.lv); }
-      // what the new level brought it to wear: on at once if the place was free, and said
-      if ((pet.nw || []).length) setTimeout(() => { if (!PETUI || PETUI.E !== E) return; const wn = petWorn(pet); E.wear(wn); petFit($("#petstage", layer), pet.k, wn, g.lv); petNews(); }, 2400); };
+      if ((pet.nw || []).length) setTimeout(() => { if (PETUI && PETUI.E === E) petNews(); }, 2400); };   // a level that is a milestone: its choice is said after the cheer
     if (E.busy && !E.soft) E.after = cheer; else setTimeout(cheer, 400);
   }
 }
@@ -2329,32 +2398,36 @@ function petAct(k) {
   if (!PET_ACTS[k] || (E.busy && !E.soft) || E.asleep || !care.left) return;
   pet.c = pet.c || {}; pet.c[TODAY] = have + k; petEarn(pet); pet.s = petGrowth(pet); petSave(p.id, pet);
   SFX.good(); buzz(15); PET_ACTS[k](E);
-  setTimeout(() => { if (PETUI && PETUI.E === E) { petPaint(PET.care, wasLv); if ((pet.nw || []).length && petLevel(petGrowth(pet)).lv === wasLv) setTimeout(() => { if (PETUI && PETUI.E === E) { E.wear(petWorn(pet)); petFit($("#petstage", layer), pet.k, petWorn(pet), wasLv); petNews(); } }, 1500); } }, 800);
+  setTimeout(() => { if (PETUI && PETUI.E === E) { petPaint(PET.care, wasLv); if ((pet.nw || []).length && petLevel(petGrowth(pet)).lv === wasLv) setTimeout(() => { if (PETUI && PETUI.E === E) petNews(); }, 1500); } }, 800);
 }
 
-/* Its wardrobe: everything there is to wear, what she has and what each of the rest takes. A tap puts a thing on or
- * takes it off, on the creature above. */
+/* Its wardrobe: what she has (a tap puts a thing on or takes it off, on the creature above), the choices she has
+ * reached and those to come, each with how far she is, and what else there is to choose from. */
 function renderWardrobe() {
   const p = me(), pet = p && petOf(p.id);
   if (!pet) return;
-  const items = petItems(), tally = petTally(pet), worn = petWorn(pet), own = items.filter(k => (pet.o || {})[k]);
-  const tile = k => { const it = PET_WEAR[k], has = !!(pet.o || {})[k], on = worn.includes(k), [have, need] = it.of(tally);
+  const items = petItems(), tally = petTally(pet), worn = petWorn(pet), own = items.filter(k => (pet.o || {})[k]), rest = items.filter(k => !(pet.o || {})[k]);
+  const tile = k => { const it = PET_WEAR[k], has = !!(pet.o || {})[k], on = worn.includes(k);
     return `<button type="button" class="pwi ${has ? "" : "locked"}" data-act="petWear" data-k="${k}" aria-pressed="${on}">${petPic(pet.k, [k])}${has ? "" : `<span class="pwlock" aria-hidden="true">${ICON.lock}</span>`}
-      <b>${it.n}</b><span class="small ${has ? "muted" : "faint"}">${has ? (on ? "לבוש עכשיו" : "להלביש") : `${it.how}${need > 1 ? ` · <bdi dir="ltr">${Math.min(have, need)}/${need}</bdi>` : ""}`}</span></button>`; };
+      <b>${it.n}</b><span class="small muted">${has ? (on ? "לבוש עכשיו" : "להלביש") : it.tier > 1 ? "פריט מיוחד" : "באחת הבחירות"}</span></button>`; };
+  const wait = petPending(pet), mile = m => { const done = !!(pet.m || {})[m.k], got = (pet.pm || {})[m.k], [have, need] = m.of(tally);
+    return `<div class="pettask ${done ? "done" : ""}"><span class="ck">${I('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'stroke-width="3"')}</span><span>${m.how}${m.tier > 1 ? ` <span class="chip">מיוחד</span>` : ""}</span>${got ? `<span class="small muted">${PET_WEAR[got] ? PET_WEAR[got].n : ""}</span>`
+      : wait.includes(m) ? `<button type="button" class="btn btn-primary btn-sm" data-act="petChoose" data-m="${m.k}">לבחור</button>` : done ? "" : need > 1 ? `<span class="small muted num" dir="ltr">${Math.min(have, need)}/${need}</span>` : ""}</div>`; };
   layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="הארון של ${esc(pet.n)}"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
     <div class="row"><button type="button" class="round" data-act="petBack" aria-label="חזרה">${ICON.back}</button><b class="petname">הארון של ${esc(pet.n)}</b><span class="small muted num" dir="ltr">${own.length}/${items.length}</span></div>
     <div class="petstage pick" id="petstage" style="--grow:${petGrowCss(tally.lv)};--rise:${petRise(pet.k, worn, tally.lv)}"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
-    <div class="petwear">${items.map(tile).join("")}</div>
-    <p class="small faint" style="text-align:center">כל פריט מגיע מלמידה או מטיפול. שום דבר לא נקנה, ושום דבר לא נלקח בחזרה.</p></div></div>`;
+    ${own.length ? `<div class="petwear">${own.map(tile).join("")}</div>` : `<p class="small muted" style="text-align:center">עוד אין כאן פריטים. כל יעד שמגיעים אליו נותן בחירה.</p>`}
+    <section class="glass pad"><div class="row"><span class="eyebrow">Choices</span><span class="small muted">כל יעד: פריט אחד, לבחירתך</span></div>${petMiles().map(mile).join("")}</section>
+    ${rest.length ? `<section class="glass pad stack"><span class="eyebrow">Still to choose from</span><div class="petwear">${rest.map(tile).join("")}</div></section>` : ""}
+    <p class="small muted" style="text-align:center">כל פריט מגיע מלמידה או מטיפול. שום דבר לא נקנה, ושום דבר לא נלקח בחזרה.</p></div></div>`;
   const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
   PETUI = { E, kind: pet.k, pid: p.id, mode: "wardrobe", strokes: 0, pets: 0, at: null };
   petStroke(stage, E);
-  if ((pet.nw || []).length) { pet.nw = []; save(); }
 }
 function petWear(k) {
   const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E, it = PET_WEAR[k];
   if (!pet || !E || !it || PETUI.mode !== "wardrobe") return;
-  if (!(pet.o || {})[k]) { const [have, need] = it.of(petTally(pet)); toast(`${it.n}: ${it.how}${need > 1 ? ` (${Math.min(have, need)}/${need})` : ""}`); return; }
+  if (!(pet.o || {})[k]) { toast(`${it.n}: ${it.tier > 1 ? "פריט מיוחד, מגיע בבחירות הגדולות" : "אפשר לבחור אותו באחת הבחירות"}`); return; }
   pet.w = pet.w || {};
   if (pet.w[it.slot] === k) delete pet.w[it.slot]; else pet.w[it.slot] = k;
   pet.wv = Date.now();   // when it was last dressed: of two phones' copies, the later dressing is kept
@@ -2365,18 +2438,59 @@ function petWear(k) {
   petFit(stage, pet.k, worn, petLevel(petGrowth(pet)).lv);
   $$(".pwi", layer).forEach(b => { const kk = b.dataset.k, on = worn.includes(kk), s = $("span.small", b); b.setAttribute("aria-pressed", on); if (s && (pet.o || {})[kk]) s.textContent = on ? "לבוש עכשיו" : "להלביש"; });
 }
+/* A choice: the two or three things a milestone offers. A tap tries one on the creature; one is taken. */
+function renderChoose(mileKey) {
+  const p = me(), pet = p && petOf(p.id);
+  if (!pet) return;
+  const wait = petPending(pet), mile = wait.find(m => m.k === mileKey) || wait[0];
+  if (!mile) { renderPet(); return; }
+  const opts = petOptions(pet, p.id, mile), lv = petLevel(petGrowth(pet)).lv, worn = petWorn(pet);
+  layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="בחירת פריט"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
+    <div class="row"><button type="button" class="round" data-act="petBack" aria-label="חזרה">${ICON.back}</button><b class="petname">בחירה ל${esc(pet.n)}</b><span class="small muted">${wait.length > 1 ? `ועוד ${wait.length - 1}` : ""}</span></div>
+    <p class="small muted" style="text-align:center">${mile.how}. ${opts.length > 1 ? "נוגעים בפריט כדי למדוד אותו, ולוקחים אחד. האחרים יחזרו בבחירות הבאות." : "זה הפריט שנשאר לבחירה הזאת."}</p>
+    <div class="petstage pick" id="petstage" style="--grow:${petGrowCss(lv)};--rise:${petRise(pet.k, worn, lv)}"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
+    <div class="petwear n${opts.length}">${opts.map(k => `<button type="button" class="pwi" data-act="petTryOn" data-k="${k}" aria-pressed="false">${petPic(pet.k, [k])}<b>${PET_WEAR[k].n}</b>${PET_WEAR[k].tier > 1 ? `<span class="small muted">פריט מיוחד</span>` : ""}</button>`).join("")}</div>
+    <div class="petfoot"><button type="button" class="btn btn-primary wide" data-act="petTake" data-m="${mile.k}" disabled>בוחרים פריט</button></div></div></div>`;
+  const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
+  PETUI = { E, kind: pet.k, pid: p.id, mode: "choose", mile: mile.k, pick: null, strokes: 0, pets: 0, at: null };
+  petStroke(stage, E);
+  if (opts.length === 1) petTryOn(opts[0]);
+}
+function petTryOn(k) {
+  const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E, it = PET_WEAR[k];
+  if (!pet || !E || !it || PETUI.mode !== "choose" || PETUI.took) return;
+  PETUI.pick = k;
+  const w = Object.assign({}, pet.w || {}, { [it.slot]: k }), worn = PET_SLOTS.map(s => w[s]).filter(x => x && PET_WEAR[x]);
+  SFX.tap();
+  E.wear(worn).then(() => { if (PETUI && PETUI.E === E && (!E.busy || E.soft)) E.play([{ name: "hop" }], null, true); });
+  petFit($("#petstage", layer), pet.k, worn, petLevel(petGrowth(pet)).lv);
+  $$(".pwi", layer).forEach(b => b.setAttribute("aria-pressed", b.dataset.k === k));
+  const go = $("[data-act=petTake]", layer);
+  if (go) { go.disabled = false; go.textContent = `${it.n}: זה שלי`; }
+}
+function petTakeTap(mileKey) {
+  const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E, k = PETUI && PETUI.pick;
+  if (!pet || !E || PETUI.mode !== "choose" || !k || PETUI.took) return;
+  if (!petTake(p.id, mileKey, k)) return;
+  PETUI.took = true;
+  SFX.done(); buzz([20, 60, 20]); E.spawn("spark", ...E.pt(0.5, 0.3), 30); E.play([{ name: "flip" }]);
+  toast(`${PET_WEAR[k].n}: של ${pet.n}`);
+  $$(".pwi, [data-act=petTake]", layer).forEach(b => { b.disabled = true; });
+  setTimeout(() => { if (!PETUI || PETUI.E !== E) return; if (petPending(pet).length) renderChoose(); else renderPet(); }, 2300);
+}
 
 /* A visit to a sister's creature (and Dad's look at any of them): the creature with what it wears, its level, and,
- * for a sister who has played today, a heart to leave it, once a day. */
+ * for a sister who has played today, a gift to leave it, once a day: her pick of three (PET_GIFTS). */
 function renderVisit(id, dad) {
   const who = profile(id), pet = who && petAny(id), p = dad ? null : me(), mine = p && petOf(p.id);
   if (!who || !pet) return;
   Q = null;
-  const g = petLevel(petGrowth(pet)), worn = petWorn(pet), sent = !!mine && ((mine.h || {})[id] || []).includes(TODAY), played = !!p && playedOn(p.id, TODAY), care = dad ? petCare(id) : null;
+  const g = petLevel(petGrowth(pet)), worn = petWorn(pet), sent = !!mine && ((mine.h || {})[id] || []).find(x => String(x).slice(0, 10) === TODAY), played = !!p && playedOn(p.id, TODAY), care = dad ? petCare(id) : null;
   const own = petItems().filter(k => (pet.o || {})[k]).length;
-  const heart = dad ? "" : !mine ? `<p class="small muted" style="text-align:center">כשיהיה לך יצור משלך, תוכלי לשלוח לו לב.</p>`
-    : sent ? `<p class="small good-t" style="text-align:center" id="petsent">שלחת היום לב ל${esc(pet.n)}</p>`
-    : `<button type="button" class="btn btn-aura wide" data-act="petHeart" data-id="${esc(id)}" ${played ? "" : "disabled"}>לשלוח לב ל${esc(pet.n)}</button>${played ? "" : `<p class="small muted" style="text-align:center">אחרי חמש השאלות של היום אפשר לשלוח לב.</p>`}`;
+  const heart = dad ? "" : !mine ? `<p class="small muted" style="text-align:center">כשיהיה לך יצור משלך, תוכלי לשלוח לו מתנה.</p>`
+    : sent ? `<p class="small good-t" style="text-align:center" id="petsent">שלחת היום ${PET_GIFTS[petGiftOf(sent)].n} ל${esc(pet.n)}</p>`
+    : `<div class="petgifts" id="petgifts">${Object.keys(PET_GIFTS).map(k => `<button type="button" class="petact" data-act="petHeart" data-id="${esc(id)}" data-g="${k}" ${played ? "" : "disabled"}>${I(PET_GIFTS[k].d)}<span>${PET_GIFTS[k].n}</span></button>`).join("")}</div>
+      <p class="small muted" style="text-align:center" id="petgiftnote">${played ? `מתנה אחת ביום ל${esc(pet.n)}: מה לשלוח?` : "אחרי חמש השאלות של היום אפשר לשלוח מתנה."}</p>`;
   layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="${esc(pet.n)}"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
     <div class="row">${dad ? `<button type="button" class="round" data-act="closeQuiz" data-to="parent" aria-label="סגירה">${ICON.close}</button>` : `<button type="button" class="round" data-act="petBack" aria-label="חזרה">${ICON.back}</button>`}
       <span class="petnamepill still">${esc(pet.n)}</span><span class="petlv"><span class="eyebrow">רמה</span> <b class="num">${g.lv}</b></span></div>
@@ -2395,21 +2509,23 @@ function renderVisit(id, dad) {
   const idle = setInterval(() => { if (!PETUI || PETUI.E !== E || !stage.isConnected) return clearInterval(idle); if (!E.busy && !PETUI.at) E.play([{ name: "look" }], null, true); }, 12000);
   petStroke(stage, E);
 }
-function petHeart(id) {
+function petHeart(id, g) {
   const p = me(), pet = p && petOf(p.id), far = petAny(id), E = PETUI && PETUI.E;
+  g = PET_GIFTS[g] ? g : "h";
   if (!pet || !far || !E || PETUI.mode !== "visit" || PETUI.pid !== id) return;
-  if (!playedOn(p.id, TODAY)) { toast("אחרי חמש השאלות של היום אפשר לשלוח לב"); return; }
+  if (!playedOn(p.id, TODAY)) { toast("אחרי חמש השאלות של היום אפשר לשלוח מתנה"); return; }
   pet.h = pet.h || {};
   const days = pet.h[id] || [];
-  if (days.includes(TODAY)) return;
-  pet.h[id] = days.concat(TODAY).slice(-10); pet.hs = (+pet.hs || 0) + 1;
+  if (days.some(x => String(x).slice(0, 10) === TODAY)) return;
+  pet.h[id] = days.concat(TODAY + (g === "h" ? "" : ":" + g)).slice(-10); pet.hs = (+pet.hs || 0) + 1;
   const got = petEarn(pet);
   petSave(p.id, pet);
   SFX.good(); buzz([15, 40, 15]);
-  E.play([{ name: "hop" }, { name: "flip" }]); E.spawn("heart", ...E.pt(0.5, 0.36), 16);
-  const b = $("[data-act=petHeart]", layer);
-  if (b) b.outerHTML = `<p class="small good-t" style="text-align:center" id="petsent">שלחת היום לב ל${esc(far.n)}</p>`;
-  if (got.length) setTimeout(() => toast(`חדש בארון של ${pet.n}: ${PET_WEAR[got[0]].n}`), 1800);
+  PET_GIFTS[g].on(E);
+  const box = $("#petgifts", layer), note = $("#petgiftnote", layer);
+  if (note) note.remove();
+  if (box) box.outerHTML = `<p class="small good-t" style="text-align:center" id="petsent">שלחת היום ${PET_GIFTS[g].n} ל${esc(far.n)}</p>`;
+  if (got.length) setTimeout(() => toast(`הגעת ליעד: בחירה חדשה ל${pet.n}`), 1800);
 }
 /* Dad's look at the creatures, on his Today tab: each girl's, with its level and today's care. */
 function petsCard() {
@@ -2417,9 +2533,9 @@ function petsCard() {
   const all = FAM.profiles.map(q => ({ p: q, pet: petAny(q.id) }));
   if (!all.some(x => x.pet)) return "";
   return `<section class="glass pad stack"><div class="row"><span class="eyebrow">Creatures</span><span class="small muted">שכבה של משחק: לא נוגעת בנקודות או באסימונים</span></div>
-    <div class="petfam">${all.map(x => { if (!x.pet) return `<div class="petsis none">${avatar(x.p, "sm")}<span class="small muted">${esc(x.p.name)} עוד לא בחרה</span></div>`;
+    <div class="petfam ${all.length === 3 ? "n3" : ""}">${all.map(x => { if (!x.pet) return `<div class="petsis none">${avatar(x.p, "sm")}<span class="small muted">${esc(x.p.name)} עוד לא בחרה</span></div>`;
       const g = petLevel(petGrowth(x.pet)), care = petCare(x.p.id);
-      return `<button type="button" class="petsis" data-act="petVisit" data-id="${esc(x.p.id)}" data-dad="1">${petPic(x.pet.k, petWorn(x.pet))}<b>${esc(x.pet.n)}</b><span class="small muted">של ${esc(x.p.name)} · רמה ${g.lv}</span><span class="small ${care.played ? "" : "faint"}">${care.played ? `היום ${care.used} מתוך ${care.max} טיפולים` : "היום עוד בלי טיפולים"}</span></button>`; }).join("")}</div></section>`;
+      return `<button type="button" class="petsis" data-act="petVisit" data-id="${esc(x.p.id)}" data-dad="1">${petPic(x.pet.k, petWorn(x.pet))}<b>${esc(x.pet.n)}</b><span class="small muted">של ${esc(x.p.name)} · רמה&nbsp;${g.lv}</span><span class="small muted">${care.played ? `היום ${care.used} מתוך ${care.max} טיפולים` : "היום עוד בלי טיפולים"}</span></button>`; }).join("")}</div></section>`;
 }
 
 /* A new token is a moment (they are rare: a month won, four full weeks, a gift): the coin spins in under turning
@@ -3981,7 +4097,7 @@ function renderStory() {
 /* ---------- sheets and toasts ---------- */
 function sheet(html) { layer.innerHTML = `<div class="sheet-bg" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`; }
 function toast(msg) {
-  const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg;
+  const t = document.createElement("div"); t.className = "toast" + ($(".petscr", layer) ? " high" : ""); t.setAttribute("role", "status"); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
 }
 let TS = null;
@@ -4027,13 +4143,23 @@ document.addEventListener("click", async e => {
     case "petWardrobe": SFX.tap(); renderWardrobe(); break;
     case "petWear": petWear(b.dataset.k); break;
     case "petVisit": SFX.tap(); renderVisit(b.dataset.id, !!b.dataset.dad); break;
-    case "petHeart": petHeart(b.dataset.id); break;
+    case "petHeart": petHeart(b.dataset.id, b.dataset.g); break;
+    case "petChoose": SFX.tap(); renderChoose(b.dataset.m); break;
+    case "petTryOn": petTryOn(b.dataset.k); break;
+    case "petTake": petTakeTap(b.dataset.m); break;
     case "petTry": {   // his review, in the test profile only: growth, every outfit, or another creature
       const p = me(), pet = p && petOf(p.id);
       if (!SANDBOX || !pet) break;
       if (b.dataset.k === "new") { delete L.pet[p.id]; if (L.petSleep) delete L.petSleep[p.id]; save(); renderPetPick("fox"); break; }
       if (b.dataset.k === "grow") { pet.g0 = (+pet.g0 || 0) + 100; petEarn(pet); petSave(p.id, pet); openPet(); break; }
-      pet.o = pet.o || {}; petItems().forEach(k => { if (!pet.o[k]) pet.o[k] = TODAY; }); petSave(p.id, pet); renderWardrobe(); break;
+      if (b.dataset.k === "pick") {   // the next milestone, as if reached: its choice
+        petEarn(pet); const next = petMiles().find(m => !pet.m[m.k]);
+        if (next) { pet.m[next.k] = TODAY; petSave(p.id, pet); }
+        if (petPending(pet).length) renderChoose(); else toast("כל הבחירות כבר נבחרו");
+        break;
+      }
+      petEarn(pet); petItems().forEach(k => { if (!pet.o[k]) pet.o[k] = TODAY; }); petMiles().forEach((m, i) => { pet.m[m.k] = pet.m[m.k] || TODAY; pet.pm[m.k] = pet.pm[m.k] || petItems()[i]; });
+      petSave(p.id, pet); renderWardrobe(); break;
     }
     case "petBack": { const p = me(); SFX.tap(); if (p && petOf(p.id)) renderPet(); else { layer.innerHTML = ""; show("home"); } break; }
     case "petRename": { const r = $("#petrename", layer); if (r) { r.hidden = !r.hidden; if (!r.hidden) $("#petname", layer).focus(); } break; }
@@ -4392,7 +4518,7 @@ async function boot() {
 if (window.FQ_TEST) window.FQ_TEST.api = { dailySet, revengeFor, stats, ranking, placeOf, profile, setRows: r => { EXAMPLE = r; },
   round: () => Q, typedOf, matchOf, weeksOf, knowOf, knowMap, practiceSet, pointsOf, rows, paint: paintArt, mood: auraMood, aura: applyAura, weakTopic,
   shareOf, stuckOf, fixOffer, bandOf, take, pastExams, trendOf, gradeDue, sisOf, versusSelf, pages, pagesCounted, newsItems, blocks, studied, examCount, factOf, otherPool, me, family: () => FAM, bank: p => BANKS[p],
-  petOf, petAny, petGrowth, petLevel, petCare, petWish, petCredit, petTally, petWorn, petItems, petEarn, petSave, PET_WEAR, pet: () => PETUI };
+  petOf, petAny, petGrowth, petLevel, petCare, petWish, petCredit, petTally, petWorn, petItems, petEarn, petSave, petMiles, petPending, petOptions, petTake, PET_WEAR, pet: () => PETUI };
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

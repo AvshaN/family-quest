@@ -528,27 +528,31 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   a glow round it at a high level, drawn by the app with no new art. A new
   grown-up body was offered and not chosen: about 59 credits a creature and
   every sheet and layer drawn again.
-- **The design review's list waits for his pick** (2026-11-27). He added
-  the "UI Design Review" and "Design" plugins and said yes to a review of
-  the creature's screens. It was done from rendered screens at 390 x 844
-  and 360 x 640 with measures (scratch `rev.js`: no tap target under 44 px,
-  no sideways scroll), without the plugin's UXKIN library: its connector
-  asked him to buy a subscription with no clear way on, "which lowered my
-  trust in its usefulness", so do not lean on it or send him there. Fixed
-  at once, as faults: a tall hat stood on the name above the stage (the
-  stage now grows to what is worn, `petRise`, `--rise`), and the keyboard's
-  Done on a name did nothing. Offered, for him to choose: the wardrobe's
-  locked lines and the "who sees it" sentence are small and dim (11.5 and
-  13 px at 3.8 to 1; 4.5 is the rule); on a 640 px phone "this creature is
-  mine" is under the fold; before her five the creature's screen has two
-  buttons to the same five (the big one and the wish's); the invitation's
-  gradient button on the home screen outshouts the day's own Start; Dad's
-  three creatures wrap two and one; "GROW <name>" mixes English and
-  Hebrew; a toast covers the care buttons; the hearts of care have no
-  count in words. Light mode, the phone's largest text size and a real
-  phone were not looked at.
+- **The design review, and its eight points built** (2026-11-27; his "do
+  all eight"). He added the "UI Design Review" and "Design" plugins and said
+  yes to a review of the creature's screens. It was done from rendered
+  screens at 390 x 844 and 360 x 640 with measures (scratch `rev.js`: no
+  tap target under 44 px, no sideways scroll), without the plugin's UXKIN
+  library: its connector asked him to buy a subscription with no clear way
+  on, "which lowered my trust in its usefulness", so do not lean on it or
+  send him there. Two faults were fixed at once (a tall hat stood on the
+  name above the stage: the stage grows to what is worn, `petRise`,
+  `--rise`; the keyboard's Done on a name did nothing). The eight, as
+  built: the wardrobe's small lines and the "who sees it" sentence are
+  12.5 px and the muted colour, not the faint; "this creature is mine"
+  and the choice's "take" stay in sight at the foot of a short screen
+  (`.petfoot`: sticky, a soft dark halo round the button and no band
+  behind it: a band with hard edges stood in the middle of the screen);
+  before her five the wish's card has no second button to the five; the
+  home invitation's button is the quiet kind until she has played; Dad's
+  three creatures stand in one row (`.petfam.n3`); the list is headed
+  "Growth"; a toast over a creature's screen is shown at the top
+  (`.toast.high`), clear of the care buttons; today's care is said in
+  words beside its hearts (`petCareLine`). Light mode, the phone's largest
+  text size and a real phone were not looked at.
 - **Sounds from Suno** (SOUNDS.md, 2026-11-27): he said yes to a list of
-  prompts; thirteen creature sounds are asked for. He makes them, drops the
+  prompts; thirteen creature sounds are asked for. He makes them (he began
+  on 2026-11-27; MP3 is fine, he was told, WAV if Suno offers it), drops the
   files in the chat or names a Drive folder; then cut them (ffmpeg is on
   this machine), wire them to the care actions and the moments, and follow
   the sound switch. No Suno connector was found in the directory.
@@ -700,8 +704,9 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   phone: the choice, care, the wardrobe, and two made-up creatures for the
   girls to visit (`petDemo` in review, kept apart in `L.petSand`, never in
   `L.pet`, so a made-up one can never be sent as a girl's). His creature's
-  screen there has three review buttons (`petTry`: 100 growth, every
-  outfit, another creature). His Settings say so by the test profile's
+  screen there has four review buttons (`petTry`: 100 growth, another
+  choice, which reaches the next milestone for him, every outfit, another
+  creature). His Settings say so by the test profile's
   door. **To open it: set `PET_LIVE` to true, bump the version, push, and
   ask him to paste the script of api 9 first.** The walks run with it open
   (`FQ_TEST.petLive`, set in the walks' lib.js; `PET_OFF=1` for the state
@@ -725,9 +730,9 @@ from the 6 designs ... eventually I'm sure they'll all be used".
 - **Where it lives** (`L.pet`, by profile id; Dad's test profile has its
   own, and sends nothing): `{ k kind, n name, d the day chosen, c: { date:
   letters }, g0, t, v, s }`, and from the second stage `o`, `w`, `wv`,
-  `nw`, `h`, `hs`, `hf`, `hn`, `sw` (below). A day's letters are what it
+  `nw`, `h`, `hs`, `hf`, `hn`, `sw`, `m`, `pm` (below). A day's letters are what it
   was given: e p w k s for care, F the five, P a perfect day, L a lesson, R
-  a practice round, W its wish, h a heart from a sister. `petCredit` writes
+  a practice round, W its wish, h a gift from a sister. `petCredit` writes
   the learning letters from the rows of the last ten days (called when her home screen is drawn and when its screen
   opens), and folds days older than `PET.keep` into `g0` and their letters
   into the counts `t` (what an outfit is earned by is counted over all its
@@ -782,25 +787,46 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   (this can wait as a 2nd creature should be granted after a certain high
   threshold/s), and your own view of them"). Eleven things in four places
   (`PET_WEAR`, `PET_SLOTS`: head, face, neck, back; one to a place), each
-  earned and never bought: a bow tie at level 2, a wizard hat at 4, a crown
-  at 7; a wool hat for 5 days of the five, a graduation cap for 15; a
-  flower crown for 3 perfect days; glasses for 7 wishes granted; headphones
-  for 8 practice rounds; a halo for 60 care actions; heart glasses for 5
-  hearts sent to her sisters' creatures; wings for a week in which every
-  sister played five days (`petSisWeek`, from the week it was chosen). An
-  only child is not shown the last two (`petItems`), and the heart glasses
-  wait for the script of api 9. The numbers are a first guess at a spread:
-  something new about every other day in the first two weeks (a wish is
-  granted on nearly every day she plays, so glasses at 5 came on the same
-  day as the wool hat), then the long ones. `petTally` counts,
-  `petEarn` writes what is newly hers into `o` (item: the day), notes it in
-  `nw` until she has been told, and puts it on if its place is free (`w`).
-  It runs after her learning is credited, after each care action and after
-  a heart is sent. Her creature's screen has a line for the wardrobe
-  (`petWardLine`: how many she has, the one she is nearest to);
-  `renderWardrobe` shows all eleven on her own creature, the locked ones
-  grey with what each takes and how far she is; a tap puts on or takes off
-  (`petWear`), a tap on a locked one says how. Nothing is ever taken back.
+  earned and never bought.
+  **A milestone gives a choice, not a named thing** (the same day, his
+  words: "for the milestones rewards, let's allow them to choose an
+  accessory from 2-3 options so they won't be forced to get the same one
+  as the others, if you can identify other points where they can have
+  choices, instead of getting the exact reward, please update them too").
+  A thing is everyday (`tier` 1: bow tie, heart glasses, wool hat,
+  glasses, flower crown, headphones, graduation cap) or special (`tier` 2:
+  halo, wings, wizard hat, crown). The milestones (`PET_MILES`): level 2,
+  5 gifts sent to her sisters' creatures, 5 days of the five, 3 perfect
+  days, 8 practice rounds, 60 care actions give an everyday thing; level
+  4, a week in which every sister played five days (`petSisWeek`, from the
+  week it was chosen) and level 7 a special one. Each offers up to three
+  things of its tier that she does not have (`petOptions`: the order is
+  drawn once for the girl and the milestone, so it is the same whenever she
+  looks, and differs between sisters); she tries each on her creature and
+  keeps one (`renderChoose`, `petTryOn`, `petTakeTap`, `petTake`). There
+  are fewer milestones than things in each tier (six for seven, three for
+  four), so the last choice is still between two and no two wardrobes need
+  be the same. An only child has no sisters' milestones (`petMiles`), and
+  the gifts one waits for the script of api 9. The numbers are a first
+  guess at a spread. `petTally` counts; `petEarn` writes a milestone newly
+  reached into `m` (milestone: the day) and notes it in `nw` until she has
+  been told; `pm` is what each gave her (milestone: the item), `o` what
+  she owns, `w` what is on; a choice that waits is a milestone in `m` and
+  not in `pm` (`petPending`: shown as a card on her creature's screen,
+  `petGiftCard`, a line on her home card and a button in the wardrobe's
+  list). A choice does not expire and she is not hurried. `petEarn` runs
+  after her learning is credited, after each care action and after a gift
+  is sent. `renderWardrobe`: what she has (a tap puts on or takes off,
+  `petWear`), the list of milestones with how far she is and what each
+  gave, and what is still to choose from. Nothing is ever taken back. A
+  creature from before there were choices keeps what it was given, each
+  thing standing for one of the milestones it had reached (`petEarn`, the
+  branch for a copy with no `m`); with every thing hers no choice waits.
+  **Where a choice was left out, on purpose**: tokens, the month's prize
+  and Dad's gift are his money and his rule ("all other systems like
+  rewards stay the same"); the creature's wish of the day is the thing
+  that helps her most (her lesson when one is offered), and letting her
+  swap it would undo that. Say so if he asks for more.
 - **How the outfits are drawn.** A thing worn is a layer of its own over
   the creature's frame: `art/pet/<kind>/<item>/<motion>.webp`, frame for
   frame with the creature's sheet (ten motions: blink and smile use the
@@ -858,20 +884,31 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   their hands rest on the tummy. The month's trophy crown was too spindly
   as a hat; a chunky toy crown was made for this.
 - **Sisters** (`petAny`, `petSisters`, `petShared`, `petFamily`,
-  `renderVisit`, `petHeart`): with the script of api 9 every phone holds
-  every creature's copy, so her creature's screen shows her sisters'
-  creatures, dressed, and a tap visits one. After her own five she can
-  leave it a heart, once a day for each sister (`h`: sister: the days;
-  `hs`: how many in all). The heart is written in the sender's creature;
-  the receiver's phone finds it there (`petCredit`), gives her creature the
-  letter `h` (2 growth) once for each sender and day (`hf`), and says who
-  sent it the next time she opens it (`hn`, `petNews`). Nothing new in the
-  script: it is all inside the creature's JSON. With the script of api 8
-  no creature is shared and the sisters' part is not shown. In the demo
-  two sisters' creatures are made up (`petDemo`), so the preview shows it.
+  `renderVisit`, `petHeart`, `PET_GIFTS`): with the script of api 9 every
+  phone holds every creature's copy, so her creature's screen shows her
+  sisters' creatures, dressed, and a tap visits one. After her own five
+  she can leave it a gift, once a day for each sister, and which is her
+  pick of three (another of the choices he asked for): a heart, a cookie
+  or a star. All three are the same growth (`PET.heart`, 2); what differs
+  is what the creature does with it when its owner opens it (hearts and a
+  hop, eating, sparks and a flip) and the word she is told ("... sent a
+  cookie"). `h` is sister: the days, a day written alone for a heart and
+  as "day:t" or "day:s" for a cookie or a star (`petGiftOf`); `hs` is how
+  many in all. The gift is written in the sender's creature; the
+  receiver's phone finds it there (`petCredit`), gives her creature the
+  letter `h` once for each sender and day (`hf`), and says who sent what
+  the next time she opens it (`hn`: "sister:gift", `petNews`). Nothing new
+  in the script: it is all inside the creature's JSON. With the script of
+  api 8 no creature is shared and the sisters' part is not shown. In the
+  demo two sisters' creatures are made up (`petDemo`), one of which has
+  sent a cookie, so the preview shows it. Two phones' copies are joined
+  when a phone gets the other's (`petSync`: a milestone is reached once,
+  the newer copy's choice stands); a phone that changes something before
+  it has heard of the other sends its own copy, and the other joins the
+  two at its next opening.
 - **Dad** (`petsCard` on his Today, `renderVisit(id, true)`): each girl's
   creature with its level, what it wears and today's care; his look has no
-  heart. Her Me screen's line of what Dad sees names the creature, and her
+  gift. Her Me screen's line of what Dad sees names the creature, and her
   creature's screen says her sisters and Dad see it: keep both true. The
   evening email says nothing of creatures.
 - **Credits**: the six designs 54, each creature about 59 (model 30, rig 5,
