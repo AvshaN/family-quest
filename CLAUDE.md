@@ -616,7 +616,12 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   eased in over 30 ms; the same at 700 Hz and 50 ms; and pads made here
   with no recording (a short hush of noise between 260 and 900 Hz that
   swells in over 22 ms and dies in 40, a faint weight under it, the two
-  feet a little unlike). When he
+  feet a little unlike). Of those he took the second and asked to
+  "increase the muffle": two more went to him, the top cut at 500 Hz and
+  at 380 Hz with a sharper edge (`steep=2`). Measured, his steps' own
+  knock is a note near 480 Hz, so the first of them still has it and the
+  second dulls it (and is mostly under 500 Hz: quiet on a phone's speaker,
+  full on earphones). When he
   picks: make `pet_walk` as one 2 s loop (six steps at 0.083 + k/3 in an
   arrangement of 2.06 s with `--loop=0.06`, so the part that repeats is
   the motion's own two seconds), `table`, `check`, the sound walk without

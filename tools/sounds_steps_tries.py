@@ -25,7 +25,7 @@ for a, b in S.takes(x):
 print("his steps start at", [round(t, 3) for t in starts])
 
 AT = [round(0.083 + k / 3, 3) for k in range(12)]           # four seconds: two of the walk's loops
-def his(name, low, ease, tail, extra=""):
+def his(name, low, ease, tail, extra=""):   # extra: more of a piece's options, as ";steep=2"
     pieces = []
     for k, at in enumerate(AT):
         t0 = starts[k % len(starts)]
@@ -34,6 +34,9 @@ def his(name, low, ease, tail, extra=""):
     make(name, pieces, "--highpass=200")
 his("steps_soft_1", 1200, 0.03, 0.16)
 his("steps_soft_2_softer", 700, 0.05, 0.14)
+# "increase the muffle on steps_soft_2_softer" (his word on the three): the top cut lower and with a sharper edge
+his("steps_soft_2a_more_muffled", 500, 0.05, 0.14, ";steep=2")
+his("steps_soft_2b_most_muffled", 380, 0.06, 0.14, ";steep=2")
 
 # made here: a pad on a carpet is a short hush of low noise that swells in and dies at once, with a little weight under it
 rng = np.random.default_rng(7)

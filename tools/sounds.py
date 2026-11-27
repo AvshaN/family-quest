@@ -15,6 +15,7 @@ with any of
     speed=X         faster and higher together, as a tape sped up (5: a deep thump becomes a small pop)
     pitch=N         semitones up (down with a minus), its length kept
     highpass=HZ     without what is under HZ        lowpass=HZ      without what is over HZ
+    steep=N         those two filters N times over: a sharper edge (a more muffled sound at the same HZ)
     in=S out=S      its own fades (0.005 and 0.03)
 Options of make:
     --highpass=HZ   over the whole sound (none unless said: a sound of his goes in as he made it)
@@ -157,8 +158,9 @@ def piece(spec):
     f = []
     if "speed" in o: f += [f"asetrate={RATE * float(o['speed']):.0f}", f"aresample={RATE}"]
     if "pitch" in o: f.append(f"rubberband=pitch={2 ** (float(o['pitch']) / 12):.5f}")
-    if "highpass" in o: f.append(f"highpass=f={o['highpass']}")
-    if "lowpass" in o: f.append(f"lowpass=f={o['lowpass']}")
+    for _ in range(int(o.get("steep", 1))):
+        if "highpass" in o: f.append(f"highpass=f={o['highpass']}")
+        if "lowpass" in o: f.append(f"lowpass=f={o['lowpass']}")
     x = shaped(x, f)
     i, u = min(len(x) // 2, int(float(o.get("in", 0.005)) * RATE)), min(len(x) // 2, int(float(o.get("out", 0.03)) * RATE))
     if i: x[:i] *= np.linspace(0, 1, i)
