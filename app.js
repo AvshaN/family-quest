@@ -1957,7 +1957,7 @@ const PET_WEAR = {
  * needs sisters ("shared": and the Sheet carrying creatures, for the gifts). */
 const PET_MILES = [
   { k: "lv2",    tier: 1, how: "להגיע לרמה 2", of: x => [x.lv, 2] },
-  { k: "gifts",  tier: 1, how: "לשלוח 5 מתנות ליצורים של האחיות", of: x => [x.sent, 5], sis: "shared" },
+  { k: "gifts",  tier: 1, how: "לשלוח 5 מתנות לחיות של האחיות", of: x => [x.sent, 5], sis: "shared" },
   { k: "five5",  tier: 1, how: "5 ימים של חמש השאלות", of: x => [x.F, 5] },
   { k: "perf3",  tier: 1, how: "3 ימים מושלמים", of: x => [x.P, 3] },
   { k: "prac8",  tier: 1, how: "8 סבבי תרגול", of: x => [x.R, 8] },
@@ -2360,9 +2360,9 @@ function petCard(p) {
   if (!petOn()) return "";
   const pet = petOf(p.id);
   if (!pet) return `<section class="glass pad stack petcard new"><div class="petfaces" aria-hidden="true">${["fox", "axolotl", "spirit", "bunny"].map(k => petPic(k)).join("")}</div>
-    <span class="eyebrow">New</span><b class="fixname">יצור משלך</b>
-    <p class="small muted">בוחרים יצור, נותנים לו שם ומטפלים בו. כל יום של שאלות נותן לו טיפולים, והוא גדל יחד איתך.</p>
-    <button type="button" class="btn ${playedOn(p.id, TODAY) ? "btn-aura" : "btn-ghost"} wide" data-act="petOpen">לבחור יצור</button></section>`;
+    <span class="eyebrow">New</span><b class="fixname">חיה משלך</b>
+    <p class="small muted">בוחרים חיה, נותנים לה שם ומטפלים בה. כל יום של שאלות נותן לה טיפולים, והיא גדלה יחד איתך.</p>
+    <button type="button" class="btn ${playedOn(p.id, TODAY) ? "btn-aura" : "btn-ghost"} wide" data-act="petOpen">לבחור חיה</button></section>`;
   const g = petLevel(petGrowth(pet)), care = petCare(p.id), fresh = petPending(pet).length, gifts = (pet.hn || []).length;
   const line = fresh ? "בחירה חדשה מחכה" : gifts ? "מתנה מאחות מחכה" : !care.played ? "חמש השאלות של היום נותנות טיפולים" : care.left ? (care.left === 1 ? "טיפול אחד מחכה" : `${care.left} טיפולים מחכים`) : "כל הטיפולים של היום ניתנו";
   return `<button type="button" class="glass petcard has ${care.left || fresh || gifts ? "due" : ""}" data-act="petOpen">${petPic(pet.k, petWorn(pet))}
@@ -2403,14 +2403,14 @@ function petNews() {
 function renderPetPick(kind) {
   sndWarm(["adopt"]);
   const typed = ($("#petname", layer) || {}).value || "";
-  layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="בחירת יצור"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
+  layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="בחירת חיה"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
     <div class="row"><span class="eyebrow">Your creature</span><button type="button" class="round" data-act="closeQuiz" aria-label="סגירה">${ICON.close}</button></div>
-    <h2 class="display" style="font-size:44px">מי יהיה שלך?</h2>
+    <h2 class="display" style="font-size:44px">איזו חיה תהיה שלך?</h2>
     <div class="petstage pick"><div class="petfloor"></div><canvas class="petcv" aria-hidden="true"></canvas><canvas class="petfx" aria-hidden="true"></canvas></div>
     <div class="petopts">${Object.keys(PET_KINDS).map(k => `<button type="button" class="petopt" data-act="petPick" data-k="${k}" aria-pressed="${k === kind}">${petPic(k)}<span>${PET_KINDS[k]}</span></button>`).join("")}</div>
     <div class="field"><label for="petname">איך קוראים לו/ה?</label><input id="petname" maxlength="${PET.name}" autocomplete="off" enterkeyhint="done" placeholder="שם" value="${esc(typed)}"></div>
-    <p class="small muted" style="text-align:center">בוחרים אחד. בהמשך יהיו עוד.</p>
-    <div class="petfoot"><button type="button" class="btn btn-primary wide" data-act="petAdopt" data-k="${kind}">זה היצור שלי</button></div></div></div>`;
+    <p class="small muted" style="text-align:center">בוחרים אחת. בהמשך יהיו עוד.</p>
+    <div class="petfoot"><button type="button" class="btn btn-primary wide" data-act="petAdopt" data-k="${kind}">זאת החיה שלי</button></div></div></div>`;
   const E = petEngine($(".petcv", layer), $(".petfx", layer), kind);
   PETUI = { E, kind, mode: "pick" }; petTheme();
   $("#petname", layer).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); e.target.blur(); petAdopt(kind); } });
@@ -2449,8 +2449,8 @@ function petFamily(p, pet) {
   if (!sis.length) return "";
   return `<section class="glass pad stack"><span class="eyebrow">Your sisters' creatures</span>
     <div class="petfam">${sis.map(s => s.pet ? `<button type="button" class="petsis" data-act="petVisit" data-id="${esc(s.p.id)}">${petPic(s.pet.k, petWorn(s.pet))}<b>${esc(s.pet.n)}</b><span class="small muted">של ${esc(s.p.name)} · רמה ${petLevel(petGrowth(s.pet)).lv}</span></button>`
-      : `<div class="petsis none">${avatar(s.p, "sm")}<span class="small muted">${esc(s.p.name)} עוד לא בחרה יצור</span></div>`).join("")}</div>
-    <p class="small muted">האחיות שלך ואבא רואים את ${esc(pet.n)}: את הרמה ואת מה שלבוש. אחרי חמש השאלות אפשר לשלוח מתנה ליצור של אחות, פעם ביום.</p></section>`;
+      : `<div class="petsis none">${avatar(s.p, "sm")}<span class="small muted">${esc(s.p.name)} עוד לא בחרה חיה</span></div>`).join("")}</div>
+    <p class="small muted">האחיות שלך ואבא רואים את ${esc(pet.n)}: את הרמה ואת מה שלבוש. אחרי חמש השאלות אפשר לשלוח מתנה לחיה של אחות, פעם ביום.</p></section>`;
 }
 function renderPet(fresh) {
   const p = me(), pet = petOf(p.id), g = petLevel(petGrowth(pet)), care = petCare(p.id), w = petWish(p), have = String((pet.c || {})[TODAY] || ""), worn = petWorn(pet);
@@ -2491,7 +2491,7 @@ function renderPet(fresh) {
       <p class="small muted">ל${esc(pet.n)} לא קורה כלום כשלא באים. יום בלי שאלות הוא פשוט יום בלי טיפולים.</p></section>
     ${SANDBOX ? `<section class="glass pad stack"><span class="eyebrow">For your review</span>
       <p class="small muted">רק בפרופיל הבדיקה, כדי לראות הכול בלי לחכות שבועות. הבנות לא רואות את זה.</p>
-      <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="grow"><bdi dir="ltr">+100</bdi> גדילה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="pick">עוד בחירה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="all">כל הפריטים</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="new">יצור אחר</button></div></section>` : ""}</div></div>`;
+      <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="grow"><bdi dir="ltr">+100</bdi> גדילה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="pick">עוד בחירה</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="all">כל הפריטים</button><button type="button" class="btn btn-ghost btn-sm" data-act="petTry" data-k="new">חיה אחרת</button></div></section>` : ""}</div></div>`;
   const stage = $("#petstage", layer), E = petEngine($(".petcv", layer), $(".petfx", layer), pet.k, worn);
   PETUI = { E, kind: pet.k, pid: p.id, strokes: 0, pets: 0, at: null }; petTheme();
   sndWarm();
@@ -2853,7 +2853,7 @@ function renderWardrobe() {
     return `<button type="button" class="pwi ${has ? "" : "locked"}" data-act="petWear" data-k="${k}" aria-pressed="${on}">${petPic(pet.k, [k])}${has ? "" : `<span class="pwlock" aria-hidden="true">${ICON.lock}</span>`}
       <b>${it.n}</b><span class="small muted">${has ? (on ? "לבוש עכשיו" : "להלביש") : it.tier > 1 ? "פריט מיוחד" : "באחת הבחירות"}</span></button>`; };
   const wait = petPending(pet), mile = m => { const done = !!(pet.m || {})[m.k], got = (pet.pm || {})[m.k], [have, need] = m.of(tally);
-    return `<div class="pettask ${done ? "done" : ""}"><span class="ck">${I('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'stroke-width="3"')}</span><span>${m.how}${m.tier > 1 ? ` <span class="chip">מיוחד</span>` : ""}</span>${got ? `<span class="small muted">${PET_WEAR[got] ? PET_WEAR[got].n : ""}</span>`
+    return `<div class="pettask ${done ? "done" : ""}" data-tier="${m.tier}"><span class="ck">${I('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'stroke-width="3"')}</span><span>${m.how}${m.tier > 1 ? ` <span class="chip">מיוחד</span>` : ""}</span>${got ? `<span class="small muted">${PET_WEAR[got] ? PET_WEAR[got].n : ""}</span>`
       : wait.includes(m) ? `<button type="button" class="btn btn-primary btn-sm" data-act="petChoose" data-m="${m.k}">לבחור</button>` : done ? "" : need > 1 ? `<span class="small muted num" dir="ltr">${Math.min(have, need)}/${need}</span>` : ""}</div>`; };
   layer.innerHTML = `<div class="quiz petscr" role="dialog" aria-modal="true" aria-label="הארון של ${esc(pet.n)}"><div class="aura calm" aria-hidden="true"><i></i><i></i><i></i></div><div class="quiz-in">
     <div class="row"><button type="button" class="round" data-act="petBack" aria-label="חזרה">${ICON.back}</button><b class="petname">הארון של ${esc(pet.n)}</b><span class="small muted num" dir="ltr">${own.length}/${items.length}</span></div>
@@ -2869,7 +2869,11 @@ function renderWardrobe() {
 function petWear(k) {
   const p = me(), pet = p && petOf(p.id), E = PETUI && PETUI.E, it = PET_WEAR[k];
   if (!pet || !E || !it || PETUI.mode !== "wardrobe") return;
-  if (!(pet.o || {})[k]) { toast(`${it.n}: ${it.tier > 1 ? "פריט מיוחד, מגיע בבחירות הגדולות" : "אפשר לבחור אותו באחת הבחירות"}`); return; }
+  if (!(pet.o || {})[k]) {   // not hers yet: it shakes, and the choices that can give it glow
+    const el = $(`.pwi[data-k="${k}"]`, layer), from = $$(`.pettask[data-tier="${it.tier}"]:not(.done)`, layer);
+    if (!nope(el) || !from.map(x => cue(x, "arrived", 2400)).some(Boolean)) toast(`${it.n}: ${it.tier > 1 ? "פריט מיוחד, מגיע בבחירות הגדולות" : "אפשר לבחור אותו באחת הבחירות"}`);
+    else if (from[0].scrollIntoView) from[0].scrollIntoView({ block: "nearest", behavior: REDUCED ? "auto" : "smooth" });
+    return; }
   pet.w = pet.w || {};
   if (pet.w[it.slot] === k) delete pet.w[it.slot]; else pet.w[it.slot] = k;
   pet.wv = Date.now();   // when it was last dressed: of two phones' copies, the later dressing is kept
@@ -2918,7 +2922,7 @@ function petTakeTap(mileKey) {
   PETUI.took = true;
   if (!snd("new_item")) SFX.done();
   buzz([20, 60, 20]); E.spawn("spark", ...E.pt(0.5, 0.3), 30); E.play([{ name: "flip" }]);
-  toast(`${PET_WEAR[k].n}: של ${pet.n}`);
+  // (no banner: the thing is seen on it)
   $$(".pwi, [data-act=petTake]", layer).forEach(b => { b.disabled = true; });
   setTimeout(() => { if (!PETUI || PETUI.E !== E) return; if (petPending(pet).length) renderChoose(); else renderPet(); }, 2300);
 }
@@ -2931,7 +2935,7 @@ function renderVisit(id, dad) {
   Q = null;
   const g = petLevel(petGrowth(pet)), worn = petWorn(pet), sent = !!mine && ((mine.h || {})[id] || []).find(x => String(x).slice(0, 10) === TODAY), played = !!p && playedOn(p.id, TODAY), care = dad ? petCare(id) : null;
   const own = petItems().filter(k => (pet.o || {})[k]).length;
-  const heart = dad ? "" : !mine ? `<p class="small muted" style="text-align:center">כשיהיה לך יצור משלך, תוכלי לשלוח מתנה.</p>`
+  const heart = dad ? "" : !mine ? `<p class="small muted" style="text-align:center">כשתהיה לך חיה משלך, תוכלי לשלוח מתנה.</p>`
     : sent ? `<p class="small good-t" style="text-align:center" id="petsent">שלחת היום ${PET_GIFTS[petGiftOf(sent)].n} ל${esc(pet.n)}</p>`
     : `<div class="petgifts" id="petgifts">${Object.keys(PET_GIFTS).map(k => `<button type="button" class="petact" data-act="petHeart" data-id="${esc(id)}" data-g="${k}" ${played ? "" : "disabled"}>${I(PET_GIFTS[k].d)}<span>${PET_GIFTS[k].n}</span></button>`).join("")}</div>
       <p class="small muted" style="text-align:center" id="petgiftnote">${played ? `מתנה אחת ביום ל${esc(pet.n)}: מה לשלוח?` : "אחרי חמש השאלות של היום אפשר לשלוח מתנה."}</p>`;
@@ -3357,7 +3361,7 @@ function renderMe() {
     ${subjectBars(st)}
     ${st.weak.length ? `<p class="small"><span class="muted">כדאי לחזק:</span> ${st.weak.map(esc).join(", ")}</p>` : ""}
     ${levelLine(p, true)}
-    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, כמה זמן לקח לך לענות, את השבועות שלמטה, את הציונים שהזנת${petOn() ? ", את דפי המחברת שצילמת ואת היצור שלך" : " ואת דפי המחברת שצילמת"}. לא יותר.</p></section>
+    <p class="small faint">אבא רואה את זה, אילו שאלות קיבלת ובמה טעית, כמה זמן לקח לך לענות, את השבועות שלמטה, את הציונים שהזנת${petOn() ? ", את דפי המחברת שצילמת ואת החיה שלך" : " ואת דפי המחברת שצילמת"}. לא יותר.</p></section>
   <section class="glass pad stack"><div class="row"><span class="eyebrow">Over time</span><span class="small muted">הדיוק שלך לפי שבוע</span></div>
     ${trendChart([p])}${overTime(p, false)}</section>
   <button type="button" class="glass pad row" data-act="recap" style="text-align:start"><span>הסיכום של ${MONTHS[prevMonth(Y, M)[1] - 1]}</span>${ICON.back.replace("<svg", '<svg width="18" height="18" style="transform:scaleX(-1)"')}</button>
@@ -3640,7 +3644,7 @@ const SCRIPT_API = 9;
 const SCRIPT_ADDS = { 2: "תרגול, מחיקת מבחן, זמן לשאלה, אסימון על ארבעה שבועות מלאים", 3: "תמונות הפרופיל אצל האחיות", 4: "הכפתור ״עוד לא למדנו את זה״", 5: "המתנה בסוף החודש",
   6: "פתיחה מהירה של הגיליון, החיזוק בנושא תקוע, ציון אחרי מבחן, המגמה לאורך זמן ורצף האחיות", 7: "צילום דפים מהמחברת, והסרת סימון ״עוד לא למדנו״ (אחרי ההדבקה מריצים setup פעם אחת ומאשרים גישה ל־Drive)",
   8: "ההחלטה על סימון ״עוד לא למדנו״ (לעצור שאלה או נושא), הסימונים שמחכים במייל של הערב, צילום ואישור לציון, ואסימון על שלושה מבחנים מעל 85",
-  9: "היצור של כל אחת נשמר גם בגיליון, כדי שיישאר שלה בטלפון חדש" };
+  9: "החיה של כל אחת נשמרת גם בגיליון, כדי שתישאר שלה בטלפון חדש" };
 function scriptCard(brief) {
   if (!LIVE) return "";
   const have = FAM.api | 0;
@@ -3676,7 +3680,7 @@ function parentSettings() {
   <section class="glass pad stack"><span class="eyebrow">Test profile</span>
     <p class="small muted">פרופיל ניסיון, כמו של הבנות, שקיים רק בטלפון הזה: אפשר לענות נכון ולא נכון, לתרגל ולראות כל מסך. שום דבר ממנו לא נשלח לגיליון, לא נספר בטבלה של הבנות ולא מגיע למייל. בוחרים של מי השאלות:</p>
     <div class="chips">${FAM.profiles.map(p => `<button type="button" class="chip" data-act="sandbox" data-id="${p.id}">${dot(p)} כמו ${esc(p.name)}</button>`).join("")}</div>
-    ${LIVE && !PET_LIVE ? `<p class="small muted">היצורים עוד לא פתוחים לבנות. הם מופיעים רק כאן, בפרופיל הבדיקה, עד שתאשר.</p>` : ""}</section>
+    ${LIVE && !PET_LIVE ? `<p class="small muted">החיות עוד לא פתוחות לבנות. הן מופיעות רק כאן, בפרופיל הבדיקה, עד שתאשר.</p>` : ""}</section>
   <section class="glass pad stack"><span class="eyebrow">Email</span><p class="small muted">סיכום עם הטבלאות האלה מגיע כל ערב סמוך ל־${+s.digestHour || 21}:00, וב־1 לחודש מגיעה הטבלה הסופית.</p></section>
   ${LIVE ? `<button type="button" class="link" style="align-self:center" data-act="forget">זה לא הטלפון שלי</button>` : ""}`;
 }
@@ -4155,7 +4159,7 @@ const again = () => Q.queue.indexOf(Q.queue[Q.i]) < Q.i;
 const tryNo = () => Q.queue.slice(0, Q.i + 1).filter(k => k === Q.queue[Q.i]).length;
 function startQuest() {
   const p = me();
-  if (waiting()) { toast("רגע, מתעדכן…"); return; }
+  if (waiting()) { if (!waitCue()) toast("רגע, מתעדכן…"); return; }
   if (playedOn(p.id, TODAY)) { show("home"); return; }
   const set = dailySet(p, TODAY), rev = revengeFor(p, TODAY, set);
   const items = set.map(q => ({ q, rev: false }));
@@ -4187,7 +4191,7 @@ function iris(r) {
   q.classList.add("iris");
 }
 function startPractice() {
-  if (waiting()) { toast("רגע, מתעדכן…"); return; }
+  if (waiting()) { if (!waitCue()) toast("רגע, מתעדכן…"); return; }
   const p = me(), set = practiceSet(p);
   if (!set.length) { toast("אין כרגע מה לתרגל. מחר יהיו שאלות חדשות."); return; }
   Q = newRound("practice", p, set.map(q => ({ q, rev: false })));
@@ -4195,7 +4199,7 @@ function startPractice() {
 }
 /* The lesson's first screen: the idea and an example worked through. Its questions are a round of kind "fix". */
 function startFix() {
-  if (waiting()) { toast("רגע, מתעדכן…"); return; }
+  if (waiting()) { if (!waitCue()) toast("רגע, מתעדכן…"); return; }
   const p = me(), fx = fixOffer(p);
   if (!fx) { show("home"); return; }
   Q = newRound("fix", p, fx.set.map(q => ({ q, rev: false })));
@@ -4541,6 +4545,17 @@ function renderStory() {
 
 /* ---------- sheets and toasts ---------- */
 function sheet(html) { layer.innerHTML = `<div class="sheet-bg" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`; }
+/* Cues in place of banners (Avsha, 2026-11-27: "if text can be avoided by clear visual cues, that's the route we
+ * should take in all aspects of this project"). What is missing or wrong shakes and glows (nope); what was just
+ * saved or given arrives in a glow and is brought into view (arrived); a button that still waits for the Sheet
+ * pulses (waitCue). Each says whether it found its element: where it did not, the caller still says it in words, so
+ * nothing ever passes in silence. */
+function cue(el, cls, ms) { if (!el) return false; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), ms); return true; }
+const nope = el => { if (el) buzz(20); return cue(el, "nope", 1700); };
+function arrived(el) { if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest", behavior: REDUCED ? "auto" : "smooth" }); return cue(el, "arrived", 2400); }
+const waitCue = () => { const els = $$("[data-wait]"); els.forEach(el => cue(el, "waitcue", 1300)); return els.length > 0; };
+/* an exam's row on the screen now, found by a button that carries it (its grade, its delete) */
+const examEl = (p, date, subj) => { const b = $$(`[data-date="${date}"][data-subj="${subj}"]`, app).find(x => x.dataset.p === p); return b ? (b.closest("tr, .trow, .markrow") || b) : null; };
 function toast(msg) {
   const t = document.createElement("div"); t.className = "toast" + ($(".petscr", layer) ? " high" : ""); t.setAttribute("role", "status"); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
@@ -4664,7 +4679,10 @@ document.addEventListener("click", async e => {
       const id = b.dataset.id;
       if (LIVE) { try { await api("grant", { p: id, pin: parentPin }); await refresh(); } catch (err) { toast("לא נשמר. נסה שוב."); break; } }
       else { FAM.tokens[id] = (+FAM.tokens[id] || 0) + 1; L.demoTokens = FAM.tokens; L.demoLog = (L.demoLog || []).concat({ d: TODAY, p: id, change: 1, reason: "gift from parent" }); save(); }
-      SFX.coin(); show("parent"); toast("ניתן"); break;
+      SFX.coin(); show("parent");
+      { const chip = $(`[data-act=grant][data-id="${id}"]`, app), r = chip && chip.getBoundingClientRect();   // given: a coin's burst of gold on her name
+        if (arrived(chip)) { if (!REDUCED) sparks(r.left + r.width / 2, r.top + r.height / 2, ["#F2C56B", "#FFE08A", "#FFFFFF"], 18); } else toast("ניתן"); }
+      break;
     }
     case "pickBonus": b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); break;
     case "pickDays": $$("#bdays button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); break;
@@ -4785,7 +4803,7 @@ document.addEventListener("click", async e => {
     case "gradePick": $("#gradeFile").click(); break;
     case "gradeSave": {
       const d = b.dataset, dad = view === "parent", clear = !!d.clear, raw = clear ? "" : $("#gval").value.trim(), g = raw === "" ? "" : Math.round(+raw);
-      if (!clear && (raw === "" || isNaN(g) || g < 0 || g > 100)) { toast("ציון בין 0 ל־100"); break; }
+      if (!clear && (raw === "" || isNaN(g) || g < 0 || g > 100)) { if (!nope($("#gval"))) toast("ציון בין 0 ל־100"); break; }   // not a grade: its field shakes
       const go = $("#gradeSave"), file = !clear && GR && GR.file;
       if (go) { go.disabled = true; go.textContent = file ? "שולחת את הצילום…" : "שומר…"; }
       let photo = "";
@@ -4802,7 +4820,8 @@ document.addEventListener("click", async e => {
       GR = null;
       if (dad && g !== "") dadSaw([`grade|${d.p}|${d.date}|${d.subj}|${g}`]);
       show(view);
-      toast(g === "" ? "הציון נמחק" : dad ? "הציון נשמר" : photo ? "נשמר. אבא יאשר והמבחן ייספר." : "הציון נשמר");
+      // saved: its row arrives in a glow (the chip by the grade says where it stands); in words only if no row of it is on this screen
+      if (!arrived(examEl(d.p, d.date, d.subj))) toast(g === "" ? "הציון נמחק" : dad ? "הציון נשמר" : photo ? "נשמר. אבא יאשר והמבחן ייספר." : "הציון נשמר");
       if (dad && g !== "") popupsFrom(1, null);   // a third exam above 85: the token's popup, at once
       break;
     }
@@ -4817,7 +4836,7 @@ document.addEventListener("click", async e => {
     }
     case "saveTest": {
       const sb = $("#tsub [aria-pressed=true]"), date = $("#tdate").value, note = $("#tnote").value.trim();
-      if (!sb || !date || date < TODAY) { toast("צריך מקצוע ותאריך"); break; }
+      if (!sb || !date || date < TODAY) { const a = !sb && nope($("#tsub")), b2 = (!date || date < TODAY) && nope($("#tdate")); if (!a && !b2) toast("צריך מקצוע ותאריך"); break; }   // what is missing shakes
       const t = { p: TS ? TS.p : me().id, date, subj: sb.dataset.k, note };
       // her twin too, if she studies the subject and does not have this exam already
       const also = $$("#tmates [aria-pressed=true]").map(x => profile(x.dataset.id)).filter(q => q && subjectsOf(q).includes(t.subj) && !tests().some(z => z.p === q.id && z.date === date && z.subj === t.subj));
@@ -4826,7 +4845,10 @@ document.addEventListener("click", async e => {
       else if (LIVE) { try { for (const x of all) await api("test", x); await refresh(); } catch (err) { toast("לא נשמר. נסו שוב."); break; } }
       else { L.tests.push(...all); save(); }
       if (view === "parent") dadSaw(newsItems().filter(x => x.k.startsWith(`test|${date}|${t.subj}|`)).map(x => x.k));
-      show(view === "parent" ? "parent" : "home"); toast(also.length && !SANDBOX ? `המבחן נשמר, גם ל${joinHe(also.map(q => q.name))}` : "המבחן נשמר"); break;
+      show(view === "parent" ? "parent" : "home");
+      // saved: its row arrives in a glow (her sister's too, where both are on the screen)
+      if (!all.map(x => arrived(examEl(x.p, x.date, x.subj))).some(Boolean)) toast(also.length && !SANDBOX ? `המבחן נשמר, גם ל${joinHe(also.map(q => q.name))}` : "המבחן נשמר");
+      break;
     }
     case "joinCode": {
       const v = $("#code").value.trim();

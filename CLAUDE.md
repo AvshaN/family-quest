@@ -30,16 +30,28 @@ tests with the girls and gives feedback; Claude writes the code.
   look for the cue that says it: the thing to touch glows or moves, the
   field that is missing shakes, the number that changed pops, a card
   arrives in a glow. Words stay where a cue cannot carry it (who sent a
-  gift, why a thing is not hers yet, an error from the Sheet). Done so far,
-  all in the creature's section: the care scenes have no hints (below); a
-  name not given shakes and glows its field; a new level pops its number;
-  a choice reached arrives as its card in a glow. **Not yet looked at: the
-  rest of the app**, which is live for the girls. Candidates, to be shown
-  to him before they change: "רגע, מתעדכן…" while the Sheet answers (the
-  button already waits), "המבחן נשמר" / "הציון נשמר" / "ניתן" (the row or
-  the coin appearing could say it), "צריך מקצוע ותאריך" and "ציון בין 0
-  ל־100" (the field at fault could shake), the wardrobe's banners for a
-  thing taken and a thing not hers.
+  gift, an error from the Sheet). The tools (app.js beside `toast`):
+  `nope(el)` shakes and glows what is missing or wrong, `arrived(el)`
+  brings into view and glows what was just saved or given, `waitCue()`
+  pulses the buttons that wait for the Sheet, `examEl(p, date, subj)` finds
+  an exam's row on the screen. **Each says whether it found its element,
+  and where it did not the caller still says it in words**, so nothing
+  passes in silence: keep that shape (`if (!arrived(el)) toast(...)`).
+  Done in the creature's section: the care scenes have no hints (below); a
+  name not given shakes its field; a new level pops its number; a choice
+  reached arrives as its card in a glow; a thing not hers shakes and the
+  choices that can give it glow; a thing taken is simply seen on it.
+  Done in the rest of the app (his "yes" to a list of them, the same
+  evening): an exam form with no date or subject shakes what is missing; an
+  exam saved, and a grade saved, glow their row (a grade saved from her
+  home screen, where no row of it is left, is still said in words); a
+  grade that is not a grade shakes its field; a token Dad gives bursts in
+  gold on her name; a tap on a round's button while the Sheet answers
+  pulses the waiting buttons. **Still in words, and candidates for the
+  next pass** (mostly Dad's own confirmations): "הסימון הוסר" and its
+  three siblings, "אושר: המבחן נספר", "המבחן נמחק", "התמונה הוסרה",
+  "נשמר. הבנות יראו את זה בכספת.", the notebook page sent, the gift's
+  schedule. Scratch `t_cues.js` walks the ones done.
 
 ## How it fits together
 
@@ -537,8 +549,12 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   use Telegram.
   He is still to confirm, and may replace one twin's phone in a few days.
 - **The creatures wait for his review** (2026-11-27). He said "push to
-  main" for it, so they are on the site (fq-33) switched off for the girls
+  main" for it, so they are on the site switched off for the girls
   (`PET_LIVE`), and he is trying them in his test profile on his phone.
+  The care scenes, the music and the cues went to main the same evening on
+  his "push to main" (fq-38, then fq-39 with the new word, the dressing
+  sound as he made it and the cues in the rest of the app): **ask how the
+  scenes felt under a finger, and how loud the music is**.
   Ask what he thought of each creature, its motions and its outfits,
   whether the numbers (care a day, what each outfit takes) feel right, and
   how it ran on his phone: it is the first real phone any of this has been
@@ -1032,11 +1048,12 @@ from the 6 designs ... eventually I'm sure they'll all be used".
   Meshy account by date.
 - **His first notes from his phone** (2026-11-27, seven of them, the first
   time any of this was on a real phone), and what was done:
-  - *The word "יצור" is "a bit off, any other ideas?"* Open: he was offered
-    פֶּט (what children who play Adopt Me say), גור, קמע, מלווה and חיה, and
-    that the girls could choose. When he picks, the noun is in about twelve
-    strings of the creature's module (`grep -n "יצור" app.js`) and its
-    gender changes the words round it.
+  - *The word "יצור" is "a bit off, any other ideas?"* Of פֶּט, גור, קמע,
+    מלווה and חיה he said: "let's go with חיה for now". It is in fifteen
+    strings of the creature's module (`grep -n "חיה\|חיות" app.js`), and
+    being feminine it turned the words round it ("נותנים לה שם", "החיות
+    עוד לא פתוחות"); the code's names and these notes still say creature.
+    "For now": the girls may yet choose another.
   - *"איך קוראים לו is forcing its gender, maybe add /ה".* The label is "איך
     קוראים לו/ה?", and the other lines that took a named creature for a
     "he" say it another way (no "קיבל", "נחלש", "לו"). Keep new lines so.
@@ -1077,9 +1094,10 @@ from the 6 designs ... eventually I'm sure they'll all be used".
     the "ah" that closes the waking sound, he heard and did not like);
     **he was asked for more in Suno** (SOUNDS.md, round 2).
   - *"The wear on sound is too fast."* It was his two thumps sped up five
-    and six times. Three slower tries went to him to hear (as he made it,
-    twice as fast, three times): **waits for his pick**; the app keeps the
-    old ones until then.
+    and six times. Of three slower tries (as he made it, twice as fast,
+    three times) he chose "the 1st one": both takes are in as he made
+    them. They are nearly all under 150 Hz, so on a phone's speaker they
+    are soft and on earphones full: his choice, heard as a file.
   - *"Level up sound gets cut off too quickly."* It is the whole of his
     sound now (4.9 s), not its first 2.7.
   The engine learned three things for these, all on an item of `E.play`'s
@@ -1169,7 +1187,12 @@ from the 6 designs ... eventually I'm sure they'll all be used".
     Crown" ("the melody fits well", after two demos of it under the
     creature's sounds), whole, at `v` 0.14, fading in and out with the
     creature's screens, going on from where it stopped, switched by a note
-    button in the header (`L.petMusic`). **The sleeping sound**: of three
+    button in the header (`L.petMusic`). Its original is not on the
+    `sounds` branch: he said he had added it, and on 2026-11-27 the
+    branch's folder still held the fifteen effects only (not pushed from
+    his computer, perhaps). The recipe makes the music only when
+    `pet_theme.wav` is in the folder; the copy sent in the chat is gone
+    with the session, so ask again before the sounds are next rebuilt. **The sleeping sound**: of three
     higher tries he said "let's just leave it as is but less frequent":
     the same two breaths, five seconds apart.
   - **A fault the sounds' walk found**: the hop after a bath was begun a

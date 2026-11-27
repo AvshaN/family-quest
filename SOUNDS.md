@@ -80,11 +80,13 @@ reaches the phones with the app's next version (`VERSION` in sw.js), under the s
 |---|---|---|---|
 | `pet_chirp` (more takes) | A stroke of the finger: one of several, in turn | under 1 s each | Four different tiny happy sounds of a small cute creature being petted, each under a second, with a second of silence between them: a soft coo, a little purr-trill, a quiet delighted hum, a tiny contented sigh. Very soft and gentle, quieter and rounder than a squeak, no sharp start. No words, no music, close and dry. |
 | `pet_wash` (longer bubbles) | The wash, which lasts four seconds | 3 to 4 s | Soft bubbles popping and fizzing in a small bath for three or four seconds, gentle and continuous, no splash, no music. |
-| `wear_on` (if the slowed one does not fit) | Putting a thing on | half a second | A light swish of cloth and one small soft pop, bright and airy, with no bass and no thump. |
+| `wear_on` (only if he wants another) | Putting a thing on | half a second | A light swish of cloth and one small soft pop, bright and airy, with no bass and no thump. |
 
 Until the new cheers come, a stroke plays one of two plain cuts in turn, lower than before: the chirp and the giggle
 that opens the play sound (a third, the small "ah" that closes the waking sound, he heard and did not like). `level_up` is the whole of his sound now
-(cut at 2.7 s it "gets cut off too quickly"). `wear_on` was "too fast": three slower tries went to him to hear.
+(cut at 2.7 s it "gets cut off too quickly"). `wear_on` was "too fast": of three slower tries (as he made it, twice
+as fast, three times) he chose the first, so both takes are in as he made them. They are deep thumps (63 and 44 Hz):
+soft on a phone's speaker, full on earphones.
 
 ## Round 3 (2026-11-27): the music, the sleeping sound, and sounds for the care scenes
 

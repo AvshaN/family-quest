@@ -56,11 +56,11 @@ $S pet_sleep "$R/pet_sleep.wav,3.76,5.20" "$R/pet_sleep.wav,6.34,7.86@5.0" --len
 # over 3 kHz, its strongest note at 6): it is played low, and if it is sharp on a phone, `;lowpass=5000` softens it.
 $S pet_wake "$R/pet_wake.wav,0.10,2.30" --out=0.08 --v=0.45
 
-# Putting a thing on: the two takes are thumps at 63 and 44 Hz, which a phone does not give. Each is played five or
-# six times faster, as a tape sped up, which makes a deep thump a small pop near 300 Hz, over what there is of the
-# take above 300 Hz at its own speed. (Reshaped: he heard both and did not object.)
-$S wear_on_1 "$R/wear_on.wav,0.02,0.28;speed=5" "$R/wear_on.wav,0.02,0.28;highpass=300;gain=-4" --highpass=200 --out=0.04 --v=0.6
-$S wear_on_2 "$R/wear_on.wav,0.76,0.96;speed=6" "$R/wear_on.wav,0.76,0.96;highpass=300;gain=-4" --highpass=200 --out=0.04 --v=0.6
+# Putting a thing on: the two takes of the download, as he made them. They are thumps at 63 and 44 Hz, which a phone's
+# speaker hardly gives, so each was first played five or six times faster (a small pop near 300 Hz); on his phone that
+# was "too fast", and of three slower tries (as made, twice as fast, three times) he chose the first, as made.
+$S wear_on_1 "$R/wear_on.wav,0.0,0.34" --out=0.06 --v=0.6
+$S wear_on_2 "$R/wear_on.wav,0.76,1.02" --out=0.06 --v=0.6
 
 # The walk's steps. Suno gave heavy steps, "like a grown human", twice (pet_walk.wav, then steps.wav: four thumps
 # 0.8 s apart, strongest at 50 Hz, on what sounds like a wooden floor), and he wanted "a softer sound, like walking on
