@@ -556,7 +556,7 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
 - **The creature's sounds are in, all thirteen; nobody has heard them as
   the app plays them** (SOUNDS.md, 2026-11-27). He made twelve of the
   thirteen in Suno at first (all but the steps) and pushed thirteen WAVs, 9.6 MB, on the branch
-  `sounds`, in a folder "sound effects" (a cloud session cannot reach a
+  `sounds`, in a folder "sound effects", since renamed `sounds/` (a cloud session cannot reach a
   folder on his computer, and nothing was in his Drive: a push from his
   computer is the way; a Claude session there did it for him). They are
   cut into fifteen MP3s, 390 KB, in `audio/` by `tools/sounds_round1.sh`,
@@ -571,8 +571,8 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   repeat) is shown to him first as a file to listen to, beside the plain
   cut. `SendUserFile` with the MP3s reaches his phone in a minute. The
   WAVs stay on `sounds` and are not merged: to make the sounds again,
-  `git archive origin/sounds "sound effects" | tar -x -C SOMEWHERE` and run
-  the script on that folder. What was done for his notes: the bath came as
+  `git archive origin/sounds sounds | tar -x -C SOMEWHERE` and run
+  the script on `SOMEWHERE/sounds`. What was done for his notes: the bath came as
   a splash and bubbles in two files, each heard once, the splash and then
   the bubbles (1.4 s; the rest of the wash is quiet, and a longer download
   of bubbles would fill it);
@@ -607,11 +607,11 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   phone**. What worked: every try was a file sent with `SendUserFile`
   (`make ... --to=DIR`), two or three a round, each named for what it is,
   and he answered in a line. `tools/sounds_steps_tries.py` still makes
-  all the tries. **`steps.wav` and `pet_walk.wav` came as uploads and are
-  not on the `sounds` branch**: he had added the first there and not
-  pushed. Ask him to push that branch with both, or the walk cannot be
-  made again when a session's scratchpad is gone (the recipe then leaves
-  `audio/pet_walk.mp3` as it is).
+  all the tries. Both takes of the steps came as uploads first; he then
+  pushed them on the `sounds` branch with the others (fifteen WAVs, in
+  `sounds/` since that push). Checked the same evening: the branch's files
+  are the ones the sounds were made from, and the recipe run on the
+  branch's folder alone makes every file of `audio/` again, byte for byte.
   **The player** (app.js "recorded sounds": `SOUNDS`, `snd`, `sndWarm`,
   `sndBuf`, `sndWatch`, `acOn`): files of `audio/` decoded into the beeps'
   AudioContext and played from memory, so a sound a second after a tap

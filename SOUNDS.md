@@ -1,7 +1,7 @@
 # Sounds for the creature
 
 **Where it stands (2026-11-27):** all thirteen are in the app. Avsha made them in Suno and pushed the WAVs on the
-branch `sounds` (the two takes of the steps came as uploads and are still to be pushed there);
+branch `sounds` (fifteen of them, in its folder `sounds/`);
 `tools/sounds_round1.sh` cut them into `audio/` (fifteen MP3s, 390 KB, from some 11 MB). Its numbers were read off
 measures, not chosen by ear: he listens in his test profile and says what does not fit. His notes on the downloads,
 what was found in them and what was done are under the table.

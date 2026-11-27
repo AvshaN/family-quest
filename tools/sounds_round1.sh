@@ -1,7 +1,9 @@
 #!/bin/bash
-# The creature's sounds, round 1: from Avsha's Suno downloads (the folder "sound effects" of the branch `sounds`,
-# 2026-11-27: thirteen WAVs) to audio/*.mp3. Run from the repo's root with that folder:
-#     bash tools/sounds_round1.sh "/path/to/sound effects"
+# The creature's sounds, round 1: from Avsha's Suno downloads (the folder sounds/ of the branch `sounds`,
+# 2026-11-27: fifteen WAVs) to audio/*.mp3. Run from the repo's root with that folder:
+#     git archive origin/sounds sounds | tar -x -C /somewhere
+#     bash tools/sounds_round1.sh /somewhere/sounds
+# (Run so on the day the last two were pushed, it made every file of audio/ again, byte for byte.)
 # Every number here was read off `tools/sounds.py look` (where a take starts and ends, where its energy is), not
 # chosen by ear. A sound is cut and levelled and otherwise left as he made it: the first try reshaped two of them
 # (a pitched copy over the adoption's swoosh, the wash laid out six times) and he heard both as worse. What is still
