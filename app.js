@@ -1912,8 +1912,10 @@ const PET_KINDS = { fox: "שועל", dragon: "דרקון", axolotl: "אקסול�
  * girls see nothing of creatures until PET_LIVE is true: they are shown only in his test profile (and in the demo),
  * on his own phone, with tools to see all of it without waiting weeks (another creature, growth, every outfit) and
  * two made-up creatures for the girls, to visit (petReview; kept apart in L.petSand, never in L.pet, so that a made-up
- * creature can never be taken for a girl's own and sent to the Sheet). To open it to the girls: true, and a push. */
-const PET_LIVE = false || !!(window.FQ_TEST && window.FQ_TEST.petLive);
+ * creature can never be taken for a girl's own and sent to the Sheet). To open it to the girls: true, and a push.
+ * Open since 2026-11-28, on his "let's go live" (he was seeing the girls that evening and pasted the script of api 9
+ * as it went out). A walk can still see the state before with FQ_TEST.petOff. */
+const PET_LIVE = !(window.FQ_TEST && window.FQ_TEST.petOff);
 const petOn = () => PET_LIVE || !LIVE || !!SANDBOX;
 const petReview = () => LIVE && !!SANDBOX && !PET_LIVE;
 const PET = { per: 5, max: 7, care: 3, five: 5, perfect: 3, lesson: 6, practice: 2, rounds: 2, wish: 4, heart: 2, first: 100, step: 30, keep: 45, name: 16, fps: 12 };

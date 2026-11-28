@@ -1,7 +1,7 @@
 /* Keeps the app and its question banks on the phone, so it opens at once and works on a bus with no signal.
  * The Sheet (script.google.com) is never cached: answers wait in the app's outbox until there is a connection.
  * Bump VERSION when the app's files change, so phones take the new copy. */
-const VERSION = "fq-41";
+const VERSION = "fq-42";
 const ART = "fq-art";
 const KEEP = ["fq-banks", ART];   // the page's own copies of the question banks (app.js, BANK_KEPT) and the art outlive a version
 const SHELL = ["./", "index.html", "app.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];

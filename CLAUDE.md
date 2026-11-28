@@ -561,8 +561,7 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   Ask what he thought of each creature, its motions and its outfits,
   whether the numbers (care a day, what each outfit takes) feel right, and
   how it ran on his phone: it is the first real phone any of this has been
-  on. When he says go: `PET_LIVE` true, a new version, a push, and the
-  script of api 9 pasted.
+  on. **He said go on 2026-11-28**: see "A creature to care for".
 - **Tricks and a glow, after the creatures are live** (2026-11-27, his
   "yes but after the app is live"): a new trick at certain levels, as in
   Adopt Me (a Meshy motion is 3 credits a creature, then its sheet and the
@@ -680,10 +679,9 @@ seven ideas. Six are built (the notebook pages last, above). Waiting:
   copy of the repo, with a stand-in of tones for any sound not made): it
   checks what plays and when, not how it sounds. No Suno connector was found in the
   directory.
-- **The script of api 9 waits for his paste** (2026-11-27: the creature's
-  copy in the Sheet). Api 8 is in the Sheet (he said so on 2026-11-26 and
-  the Sheet showed it). Until he pastes, a creature lives on its phone
-  alone and is lost with the phone.
+- **The script of api 9 is in the Sheet** (he pasted it on 2026-11-28 as
+  the creatures went live: "script is updated"). His Settings tab's script
+  card should say it is current: ask him if anything looks off.
 - **The script of api 7 is in the Sheet** (pasted 2026-11-26; the Pages tab
   exists, the mark on perimeter is gone, the Sheet answers in 4.2 seconds
   by his Speed line, against about 30 before). **The script of api 8 waits
@@ -820,9 +818,18 @@ page and said the animations are good, bar one whose face turned upside
 down (a wash made of a head rub: replaced), and: "let them choose in the app
 from the 6 designs ... eventually I'm sure they'll all be used".
 
-- **Not open to the girls yet** (`PET_LIVE` false, `petOn`, `petReview`).
+- **Open to the girls since 2026-11-28** (`PET_LIVE` true; fq-42). His
+  words: "I'm gonna see the girls in a few, let's go live", and he pasted
+  the script of api 9 as it went out ("script is updated"), so a creature
+  is kept in the Sheet and the sisters see each other's. It went out after
+  a quick gate of seven walks of the live state, the full round following
+  the push. **Ask what the girls made of it**: which creature each chose,
+  what they did first, what they asked for, and how it ran on the old
+  Xiaomi. What follows is how it was before, kept because `petReview`
+  and the test profile's tools are still in the code (a walk sees that
+  state with `FQ_TEST.petOff`):
   Avsha, 2026-11-27: "I'd like to review the creatures, animations and
-  process before it's actually live". Until he says so a girl sees nothing
+  process before it's actually live". Until he said so a girl saw nothing
   of creatures (no card, no line on her Me screen, nothing sent), Dad's
   Today has no card, and the whole of it is in his test profile, on his own
   phone: the choice, care, the wardrobe, and two made-up creatures for the
